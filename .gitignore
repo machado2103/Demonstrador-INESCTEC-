@@ -1,0 +1,20 @@
+# Node modules (they are too big to include in the pushes)
+node_modules/
+
+# Ignore Complied files
+__pycache__/
+*.pyc
+
+# Ignore Venvs
+venv/
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+
+# Electron build output (this in case I use an aplication build/"versão empacotada" in the future of the app ready for distribution [basically if I use electron-package, electron-builder or electron-forge])
+#dist/                  <-
+#out/                   <-
