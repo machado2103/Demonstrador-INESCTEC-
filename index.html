@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robotic Demonstrator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Robotic System Demonstrator</h1>
+            <div id="connection-status" class="status">
+                <span class="status-dot"></span>
+                <span class="status-text">Checking connection...</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="dashboard">
+                <div class="panel system-status">
+                    <h2>System Status</h2>
+                    <div id="backend-status">Connecting to backend...</div>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="label">AMR Robot:</span>
+                            <span id="amr-status" class="value">Not connected</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Robotic Arm:</span>
+                            <span id="arm-status" class="value">Not connected</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Simulation:</span>
+                            <span id="simulation-status" class="value">Not active</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">ROS Connection:</span>
+                            <span id="ros-status" class="value">Not connected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel visualization">
+                    <h2>System Visualization</h2>
+                    <div class="video-container">
+                        <div id="placeholder-video" class="placeholder">
+                            <p>Simulation video will appear here</p>
+                        </div>
+                        <video id="simulation-video" controls style="display: none;">
+                            <source src="" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+
+                <div class="panel controls">
+                    <h2>System Controls</h2>
+                    <div class="control-buttons">
+                        <button id="connect-amr" class="btn">Connect AMR</button>
+                        <button id="connect-arm" class="btn">Connect Robotic Arm</button>
+                        <button id="start-simulation" class="btn">Start Simulation</button>
+                        <button id="start-ros" class="btn">Connect to ROS</button>
+                    </div>
+                    <div class="emergency-control">
+                        <button id="emergency-stop" class="btn emergency">EMERGENCY STOP</button>
+                    </div>
+                </div>
+
+                <div class="panel data-display">
+                    <h2>System Data</h2>
+                    <div id="system-data" class="data-container">
+                        <p>System data will be displayed here when connected.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Robotic System Demonstrator v1.0</p>
+        </footer>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
