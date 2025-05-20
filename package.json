@@ -1,19 +1,22 @@
 {
   "name": "demonstrador",
   "version": "1.0.0",
-  "description": "",
+  "description": "Demonstrador do Algoritmo de Paletização",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "electron --no-sandbox --disable-dev-shm-usage .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "electron",
+    "palletization",
+    "algorithm",
+    "INESCTEC",
+    "CEGI"
+  ],
   "author": "Pedro Machado - INESCTEC",
   "license": "ISC",
   "devDependencies": {
     "electron": "^36.2.1"
-  },
-  "dependencies": {
-    "axios": "^1.9.0"
   }
 }

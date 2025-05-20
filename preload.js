@@ -1,9 +1,8 @@
-const { ipcRenderer, contextBridge } = require('electron');
+// preload.js - versão simplificada
+const { contextBridge } = require('electron');
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
-contextBridge.exposeInMainWorld('api', {
-  request: (options) => ipcRenderer.invoke('api-request', options),
+// Expõe uma API mínima para o processo de renderização
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Funções serão adicionadas aqui conforme necessário
+  appVersion: '1.0.0'
 });
-
-const response = await window.api.request({ method: 'GET', endpoint: '/status' });
