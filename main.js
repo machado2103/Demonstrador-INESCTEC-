@@ -22,7 +22,7 @@ function createWindow() {
   win.loadFile('index.html');
   
   // Descomentar esta linha para abrir o DevTools para debugging
-  // win.webContents.openDevTools();
+  win.webContents.openDevTools();
 }
 
 // Inicializar o aplicativo

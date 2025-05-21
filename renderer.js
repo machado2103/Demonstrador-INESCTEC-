@@ -1,4 +1,4 @@
-// renderer.js - Versão básica sem erros de sintaxe
+// renderer.js - Version until the description page
 document.addEventListener('DOMContentLoaded', function() {
   // Obter referência ao botão de start
   var startButton = document.getElementById('start-app');
@@ -6,9 +6,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // Adicionar evento de clique se o botão existir
   if (startButton) {
     startButton.addEventListener('click', function() {
-      alert('Iniciando simulação...\nEsta função será implementada em breve.');
+      // Redirection to the simulation page
+      window.location.href = 'description_page/index.html';
     });
   }
   
-  console.log('Aplicação inicializada com sucesso!');
+  console.log('App initialized succesfully!');
 });

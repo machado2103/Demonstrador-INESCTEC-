@@ -336,7 +336,7 @@ main {
     height: calc(100vh - 132px);
 }
 
-/* Adicionar um pequeno efeito ao passar o mouse sobre painéis */
+/* Adicionar um pequeno efeito ao passar o rato sobre painéis */
 .panel {
     background-color: white;
     border-radius: 8px;
