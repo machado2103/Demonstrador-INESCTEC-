@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleção de Caixas - Algoritmo de Paletização</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="./box_selection.css">
+</head>
+<body>
+    <div class="box-selection-container">
+        <header class="box-selection-header">
+            <h1>Algoritmo de Paletização</h1>
+            <div class="logo-container">
+                <img id="company-logo" src="../images/logo.jpg" alt="Logo da Empresa">
+            </div>
+        </header>
+
+        <main class="box-selection-content">
+            <h2 class="selection-title">Choose the type and number of boxes to deal and simulate</h2>
+            
+            <div class="boxes-grid">
+                <!-- Box Type 1 -->
+                <div class="box-item">
+                    <div class="box-image">
+                        <img src="./images/box1.jpg" alt="Box Type 1">
+                    </div>
+                    <div class="box-info">
+                        <h3 class="box-title">Box type n°1</h3>
+                        <div class="box-counter">
+                            <button class="counter-btn decrement" data-box="1">
+                                <span class="minus-icon">-</span>
+                            </button>
+                            <span class="counter-value" id="counter-1">0</span>
+                            <button class="counter-btn increment" data-box="1">
+                                <span class="plus-icon">+</span>
+                            </button>
+                        </div>
+                        <p class="box-specs">Box specifications → size 20cm x 20cm, weight: 1.5kg</p>
+                    </div>
+                </div>
+
+                <!-- Box Type 2 -->
+                <div class="box-item">
+                    <div class="box-image">
+                        <img src="./images/box2.jpg" alt="Box Type 2">
+                    </div>
+                    <div class="box-info">
+                        <h3 class="box-title">Box type n°2</h3>
+                        <div class="box-counter">
+                            <button class="counter-btn decrement" data-box="2">
+                                <span class="minus-icon">-</span>
+                            </button>
+                            <span class="counter-value" id="counter-2">0</span>
+                            <button class="counter-btn increment" data-box="2">
+                                <span class="plus-icon">+</span>
+                            </button>
+                        </div>
+                        <p class="box-specs">Box specifications → size 30cm x 20cm, weight: 1.5kg</p>
+                    </div>
+                </div>
+
+                <!-- Box Type 3 -->
+                <div class="box-item">
+                    <div class="box-image">
+                        <img src="./images/box3.jpg" alt="Box Type 3">
+                    </div>
+                    <div class="box-info">
+                        <h3 class="box-title">Box type n°3</h3>
+                        <div class="box-counter">
+                            <button class="counter-btn decrement" data-box="3">
+                                <span class="minus-icon">-</span>
+                            </button>
+                            <span class="counter-value" id="counter-3">0</span>
+                            <button class="counter-btn increment" data-box="3">
+                                <span class="plus-icon">+</span>
+                            </button>
+                        </div>
+                        <p class="box-specs">Box specifications → size 25cm x 20cm, weight: 1.2kg</p>
+                    </div>
+                </div>
+
+                <!-- Box Type 4 -->
+                <div class="box-item">
+                    <div class="box-image">
+                        <img src="./images/box4.jpg" alt="Box Type 4">
+                    </div>
+                    <div class="box-info">
+                        <h3 class="box-title">Box type n°4</h3>
+                        <div class="box-counter">
+                            <button class="counter-btn decrement" data-box="4">
+                                <span class="minus-icon">-</span>
+                            </button>
+                            <span class="counter-value" id="counter-4">0</span>
+                            <button class="counter-btn increment" data-box="4">
+                                <span class="plus-icon">+</span>
+                            </button>
+                        </div>
+                        <p class="box-specs">Box specifications → size 35cm x 25cm, weight: 1.8kg</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="notification" id="max-boxes-notification">
+                <div class="notification-content">
+                    <p>Max amount of boxes of this type has been reached</p>
+                </div>
+            </div>
+            
+            <!-- Botão reposicionado à direita -->
+            <div class="next-button-container">
+                <button id="next-step-btn" class="next-button">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14"></path>
+                        <path d="m12 5 7 7-7 7"></path>
+                    </svg>
+                    <span class="sr-only">Next Step</span>
+                </button>
+            </div>
+        </main>
+
+        <footer class="box-selection-footer">
+            <p>Developed by INESCTEC &copy; 2025</p>
+        </footer>
+    </div>
+
+    <script src="box_selection.js"></script>
+</body>
+</html>
