@@ -1,0 +1,203 @@
+/* Ending Page - Estilo consistente com o projeto */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.ending-container {
+    height: 100vh;
+    background: linear-gradient(135deg, #f5f6fa, #e3f2fd);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Conteúdo principal centralizado */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+}
+
+/* Logo da aplicação */
+.logo-section {
+    margin-bottom: 40px;
+    animation: fadeInDown 1s ease-out;
+}
+
+#app-logo {
+    height: 120px;
+    width: auto;
+    border-radius: 15px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease;
+}
+
+#app-logo:hover {
+    transform: scale(1.05);
+}
+
+/* Seção da mensagem principal */
+.thank-you-section {
+    margin-bottom: 50px;
+    animation: fadeInUp 1s ease-out 0.3s both;
+}
+
+.thank-you-message {
+    font-size: 3.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    font-size: 1.4rem;
+    color: #666;
+    font-weight: 300;
+    opacity: 0.8;
+}
+
+/* Ícone de conclusão animado */
+.completion-icon {
+    animation: fadeInScale 1s ease-out 0.6s both;
+}
+
+/* Contador no canto inferior direito */
+.redirect-info {
+    position: fixed;
+    bottom: 80px;
+    right: 30px;
+    background: rgba(255,255,255,0.95);
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--primary-color);
+    animation: slideInRight 0.8s ease-out 1.5s both;
+}
+
+.redirect-text {
+    font-size: 1rem;
+    color: #555;
+    font-weight: 500;
+}
+
+.countdown-number {
+    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    animation: pulse 1s infinite;
+}
+
+/* Rodapé */
+.footer {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: #bdc3c7;
+    text-align: center;
+    padding: 15px;
+    font-size: 0.9rem;
+}
+
+/* Animações */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .thank-you-message {
+        font-size: 2.5rem;
+        letter-spacing: 1px;
+    }
+    
+    .subtitle {
+        font-size: 1.1rem;
+    }
+    
+    #app-logo {
+        height: 80px;
+    }
+    
+    .redirect-info {
+        bottom: 60px;
+        right: 20px;
+        padding: 12px 20px;
+    }
+    
+    .redirect-text {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .thank-you-message {
+        font-size: 2rem;
+    }
+    
+    .main-content {
+        padding: 20px;
+    }
+    
+    .redirect-info {
+        bottom: 40px;
+        right: 15px;
+        padding: 10px 15px;
+    }
+}

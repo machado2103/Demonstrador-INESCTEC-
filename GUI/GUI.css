@@ -435,3 +435,67 @@
         height: 25px;
     }
 }
+
+
+/* ========================================= */
+/* BOTÃO NEXT - TEMPORÁRIO PARA TESTE      */
+/* TODO: REMOVER ESTE CÓDIGO MAIS TARDE    */
+/* ========================================= */
+
+/* Botão Next - Canto inferior direito (para teste) */
+.next-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    border: 2px solid white;
+}
+
+.next-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+.next-button:active {
+    transform: scale(0.95);
+}
+
+/* Seta em CSS puro */
+.next-button::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border-top: 3px solid white;
+    border-right: 3px solid white;
+    transform: rotate(45deg);
+    margin-left: 3px; /* Pequeno ajuste para centralizar melhor */
+}
+
+/* Tooltip opcional */
+.next-button:hover::before {
+    content: 'Next Page';
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* ========================================= */
+/* FIM DO CÓDIGO TEMPORÁRIO                 */
+/* ========================================= */
