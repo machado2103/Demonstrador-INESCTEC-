@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar contadores
     const counters = {
-        1: parseInt(document.getElementById('counter-1').textContent) || 0,
-        2: parseInt(document.getElementById('counter-2').textContent) || 0,
-        3: parseInt(document.getElementById('counter-3').textContent) || 0,
+        1: parseInt(document.getElementById('counter-1').textContent) || 1,
+        2: parseInt(document.getElementById('counter-2').textContent) || 1,
+        3: parseInt(document.getElementById('counter-3').textContent) || 2,
         4: parseInt(document.getElementById('counter-4').textContent) || 0
     };
     
@@ -40,11 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Salvar contadores no localStorage para uso posterior
             localStorage.setItem('boxSelections', JSON.stringify(counters));
             
-            // Redirecionar para a próxima página
-            // Note: Esta linha será modificada posteriormente quando a próxima página estiver pronta
-            console.log('Advancing to the next step with the following nº of boxes:', counters);
-            // window.location.href = '../next_page/index.html';
-            alert('Numa implementação completa, aqui avançaria para a próxima etapa.');
+            // Redirecionar para a GUI
+            console.log('Avançando para a GUI com as seguintes caixas:', counters);
+            window.location.href = '../GUI/index.html';
         });
     }
     
@@ -78,10 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function showMaxBoxesNotification() {
         notification.classList.add('show');
         
-        // Remover a notificação após 2 segundos
+        // Remover a notificação após 2.5 segundos
         setTimeout(function() {
             notification.classList.remove('show');
-        }, 2000);
+        }, 2500);
     }
     
     console.log('Box selection page initialized successfully!');

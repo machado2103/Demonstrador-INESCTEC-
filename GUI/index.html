@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GUI - Algoritmo de Paletização</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="GUI.css">
+</head>
+<body>
+    <div class="gui-container">
+        <!-- Logo no canto superior direito -->
+        <div class="logo-container">
+            <img id="company-logo" src="../images/logo.jpg" alt="Logo da Empresa">
+        </div>
+
+        <!-- Conteúdo principal -->
+        <main class="main-content">
+            <!-- Área de visualização (esquerda) -->
+            <section class="visualization-area">
+                <h2>2D Visualization</h2>
+                
+                <div class="pallet-display">
+                    <!-- Palete vista de cima -->
+                    <div class="pallet-scene">
+                        <div class="pallet-base"></div>
+                        <div class="box-stack">
+                            <!-- Primeira linha de caixas -->
+                            <div class="stacked-box box-1"></div>
+                            <div class="stacked-box box-2"></div>
+                            <div class="stacked-box box-1"></div>
+                            <div class="stacked-box box-3"></div>
+                            
+                            <!-- Segunda linha de caixas -->
+                            <div class="stacked-box box-2"></div>
+                            <div class="stacked-box box-1"></div>
+                            <div class="stacked-box box-3"></div>
+                            <div class="stacked-box box-2"></div>
+                            
+                            <!-- Terceira linha de caixas -->
+                            <div class="stacked-box box-3"></div>
+                            <div class="stacked-box box-1"></div>
+                            <div class="stacked-box box-2"></div>
+                            <div class="stacked-box box-1"></div>
+                        </div>
+                        <!-- Centro de massa -->
+                        <div class="center-mass"></div>
+                    </div>
+                </div>
+                
+                <!-- Informações básicas -->
+                <div class="info-panel">
+                    <div class="info-group">
+                        <span class="info-label">Boxes Placed:</span>
+                        <span class="info-value" id="boxes-placed">12</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Current Height:</span>
+                        <span class="info-value" id="current-height">50cm</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Time:</span>
+                        <span class="info-value" id="execution-time">0.0s</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Área de métricas (direita) -->
+            <section class="metrics-area">
+                <h2>Performance Metrics</h2>
+                
+                <!-- Distribuição de peso -->
+                <div class="metric-card">
+                    <h3>Weight Distribution</h3>
+                    <div class="heatmap">
+                        <div class="heat-grid">
+                            <div class="heat-cell low"></div>
+                            <div class="heat-cell medium"></div>
+                            <div class="heat-cell high"></div>
+                            <div class="heat-cell medium"></div>
+                            <div class="heat-cell low"></div>
+                            <div class="heat-cell medium"></div>
+                            <div class="heat-cell high"></div>
+                            <div class="heat-cell low"></div>
+                            <div class="heat-cell medium"></div>
+                        </div>
+                        <div class="legend">
+                            <span><div class="legend-dot low"></div>Low</span>
+                            <span><div class="legend-dot medium"></div>Medium</span>
+                            <span><div class="legend-dot high"></div>High</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eficiência -->
+                <div class="metric-card">
+                    <h3>Area/Volume Efficiency</h3>
+                    <div class="efficiency-chart">
+                        <div class="pie-chart">
+                            <div class="pie-fill"></div>
+                            <div class="pie-text" id="pie-efficiency">99.7%</div>
+                        </div>
+                        <div class="efficiency-info">
+                            <div><span class="dot occupied"></span>Occupied: <span id="occupied-percentage">99.7%</span></div>
+                            <div><span class="dot free"></span>Free: <span id="free-percentage">0.3%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eficiência por camada -->
+                <div class="metric-card">
+                    <h3>Layer Efficiency</h3>
+                    <div class="bar-chart">
+                        <div class="bar-group">
+                            <div class="bar" style="height: 90%;"></div>
+                            <span>L1</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 75%;"></div>
+                            <span>L2</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 60%;"></div>
+                            <span>L3</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 40%;"></div>
+                            <span>L4</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Barra inferior -->
+        <footer class="status-bar">
+            <div class="status-group">
+                <span class="status-label">Center of Mass Deviation:</span>
+                <span class="status-value" id="mass-deviation">0.5cm</span>
+            </div>
+            <div class="status-group">
+                <span class="status-label">Collisions:</span>
+                <span class="status-value" id="collisions">0</span>
+            </div>
+            <div class="status-group">
+                <span class="status-label">Global Efficiency:</span>
+                <span class="status-value" id="global-efficiency">99.7%</span>
+            </div>
+        </footer>
+
+        <!-- Rodapé -->
+        <div class="footer">
+            <p>Developed by INESCTEC &copy; 2025</p>
+        </div>
+    </div>
+
+    <script src="GUI.js"></script>
+</body>
+</html>

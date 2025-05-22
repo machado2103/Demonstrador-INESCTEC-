@@ -1,0 +1,437 @@
+/* GUI Simples - Algoritmo de Paletização */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.gui-container {
+    height: 100vh;
+    background-color: #f5f6fa;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Logo - menor e melhor posicionado */
+.logo-container {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 6px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+#company-logo {
+    height: 30px;
+    width: auto;
+    border-radius: 6px;
+}
+
+/* Conteúdo principal */
+.main-content {
+    flex: 1;
+    display: flex;
+    padding: 20px;
+    gap: 20px;
+}
+
+/* Área de visualização */
+.visualization-area {
+    flex: 6;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--primary-color);
+    display: flex;              /* esta propriedade já deve existir */
+    flex-direction: column;     /* esta também já deve existir */
+    justify-content: space-between;  /* esta é a nova propriedade crucial */
+}
+
+.visualization-area h2 {
+    color: var(--primary-color);
+    margin-bottom: 5px;
+    text-align: center;
+    font-size: 1.4rem;
+    flex-shrink: 0; /* Não encolhe */
+}
+
+.pallet-display {
+    background: linear-gradient(to bottom, #e3f2fd, #bbdefb);
+    border-radius: 8px;
+    flex: 1;
+    min-height: 300px;
+    position: relative;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #e1f5fe;
+}
+
+/* Palete vista de cima - base da palete */
+.pallet-base {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 200px;
+    background: linear-gradient(145deg, #8d6e63, #5d4037);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 2px solid #6d4c41;
+}
+
+/* Container para as caixas organizadas sobre a palete */
+.box-stack {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px;
+    height: 180px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px;
+    padding: 10px;
+}
+
+/* Caixas vistas de cima - formato retangular */
+.stacked-box {
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.3);
+    transition: transform 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stacked-box:hover {
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+/* Efeito de profundidade nas caixas */
+.stacked-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+    pointer-events: none;
+}
+
+.box-1 {
+    background: linear-gradient(145deg, #64b5f6, #1976d2);
+    border-top: 3px solid #0d47a1;
+}
+
+.box-2 {
+    background: linear-gradient(145deg, #81c784, #388e3c);
+    border-top: 3px solid #1b5e20;
+}
+
+.box-3 {
+    background: linear-gradient(145deg, #ffb74d, #f57c00);
+    border-top: 3px solid #e65100;
+}
+
+/* Centro de massa - posição (x,y) vista de cima */
+.center-mass {
+    position: absolute;
+    top: 45%;
+    left: 55%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    background: radial-gradient(circle, #f44336, #d32f2f);
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.8);
+    border: 2px solid white;
+    animation: pulse 2s infinite;
+    z-index: 20;
+}
+
+/* Indicador de coordenadas do centro de massa */
+.center-mass::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 2px dashed rgba(244, 67, 54, 0.5);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.2); }
+}
+
+/* Painel de informações */
+.info-panel {
+    display: flex;
+    justify-content: space-around;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.info-group {
+    text-align: center;
+}
+
+.info-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Área de métricas */
+.metrics-area {
+    flex: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.metrics-area h2 {
+    color: var(--primary-color);
+    text-align: center;
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--secondary-color);
+    flex: 1;
+}
+
+.metric-card h3 {
+    color: var(--dark-color);
+    font-size: 1rem;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* Mapa de calor */
+.heat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 32px); /* Tamanho fixo em vez de 1fr */
+    gap: 1px; /* Gap uniforme tanto horizontal quanto vertical */
+    margin-bottom: 10px;
+    justify-content: center; /* Centraliza o grid no container */
+    padding: 5px; /* Adiciona um pouco de padding para não colar nas bordas */
+}
+
+.heat-cell {
+    width: 32px; /* Ligeiramente aumentado para compensar o gap menor */
+    height: 32px; /* Ligeiramente aumentado para compensar o gap menor */
+    border-radius: 2px; /* Reduzido para aparência mais industrial/palete */
+    border: 1px solid rgba(255,255,255,0.2); /* Adiciona borda sutil para definição */
+}
+
+/* Cores da distribuição de peso com maior contraste */
+.heat-cell.low { 
+    background: linear-gradient(145deg, #81c784, #66bb6a);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.heat-cell.medium { 
+    background: linear-gradient(145deg, #ffb74d, #ffa726);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.heat-cell.high { 
+    background: linear-gradient(145deg, #f44336, #e53935);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    font-size: 0.8rem;
+}
+
+.legend span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.legend-dot.low { background: #81c784; }
+.legend-dot.medium { background: #ffb74d; }
+.legend-dot.high { background: #f44336; }
+
+/* Gráfico de pizza */
+.efficiency-chart {
+    text-align: center;
+}
+
+.pie-chart {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(var(--primary-color) 0deg 270deg, #e0e0e0 270deg 360deg);
+    margin: 0 auto 15px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pie-text {
+    font-weight: bold;
+    color: white;
+    font-size: 1rem;
+}
+
+.efficiency-info {
+    font-size: 0.8rem;
+}
+
+.efficiency-info div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: 2px 0;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.dot.occupied { background: var(--primary-color); }
+.dot.free { background: #e0e0e0; }
+
+/* Gráfico de barras */
+.bar-chart {
+    display: flex;
+    justify-content: space-around;
+    align-items: end;
+    height: 80px;
+}
+
+.bar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.bar {
+    width: 20px;
+    background: linear-gradient(to top, var(--primary-color), var(--secondary-color));
+    border-radius: 3px 3px 0 0;
+    margin-bottom: 5px;
+    transition: height 0.5s ease;
+}
+
+.bar-group span {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Barra de status */
+.status-bar {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-around;
+}
+
+.status-group {
+    text-align: center;
+}
+
+.status-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #bdc3c7;
+    margin-bottom: 5px;
+}
+
+.status-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--secondary-color);
+}
+
+/* Rodapé */
+.footer {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: #bdc3c7;
+    text-align: center;
+    padding: 10px;
+}
+
+.footer p {
+    font-size: 0.9rem;
+}
+
+/* Responsivo - ajustado para logo menor */
+@media (max-width: 900px) {
+    .main-content {
+        flex-direction: column;
+        padding: 15px;
+    }
+    
+    .visualization-area {
+        margin-bottom: 20px;
+    }
+    
+    .pallet-display {
+        height: 250px;
+    }
+    
+    .status-bar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .logo-container {
+        top: 10px;
+        right: 10px;
+    }
+    
+    #company-logo {
+        height: 25px;
+    }
+}
