@@ -1,4 +1,4 @@
-/* Ending Page - Estilo consistente com o projeto */
+/* Ending Page */
 
 * {
     margin: 0;
@@ -15,7 +15,7 @@
     overflow: hidden;
 }
 
-/* Conteúdo principal centralizado */
+/* Main content (centralized) */
 .main-content {
     flex: 1;
     display: flex;
@@ -26,7 +26,7 @@
     padding: 40px;
 }
 
-/* Logo da aplicação */
+/* INESCTEC Logo */
 .logo-section {
     margin-bottom: 40px;
     animation: fadeInDown 1s ease-out;
@@ -44,7 +44,7 @@
     transform: scale(1.05);
 }
 
-/* Seção da mensagem principal */
+/* Thank You message section */
 .thank-you-section {
     margin-bottom: 50px;
     animation: fadeInUp 1s ease-out 0.3s both;
@@ -66,12 +66,12 @@
     opacity: 0.8;
 }
 
-/* Ícone de conclusão animado */
+/* Animated conclusion icon */
 .completion-icon {
     animation: fadeInScale 1s ease-out 0.6s both;
 }
 
-/* Contador no canto inferior direito */
+/* Right Corner counter*/
 .redirect-info {
     position: fixed;
     bottom: 80px;
@@ -97,7 +97,7 @@
     animation: pulse 1s infinite;
 }
 
-/* Rodapé */
+/* Footnote */
 .footer {
     background: linear-gradient(135deg, #2c3e50, #34495e);
     color: #bdc3c7;
@@ -106,7 +106,7 @@
     font-size: 0.9rem;
 }
 
-/* Animações */
+/* Animations */
 @keyframes fadeInDown {
     from {
         opacity: 0;
@@ -160,7 +160,7 @@
     }
 }
 
-/* Responsivo */
+/* Responsiveness */
 @media (max-width: 768px) {
     .thank-you-message {
         font-size: 2.5rem;

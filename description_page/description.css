@@ -1,6 +1,6 @@
-/* Estilos para a página de Descrição */
+/* Description Page CSS*/
 
-/* Container principal */
+/* Main Container */
 .explanation-container {
     display: flex;
     flex-direction: column;
@@ -8,7 +8,7 @@
     background-color: var(--light-color);
 }
 
-/* Cabeçalho */
+/* Header */
 .explanation-header {
     background-color: var(--primary-color);
     color: white;
@@ -40,7 +40,7 @@
     border-radius: 20px;
 }
 
-/* Conteúdo principal */
+/* Main Content */
 .explanation-content {
     display: flex;
     flex: 1;
@@ -48,7 +48,7 @@
     gap: 2rem;
 }
 
-/* Coluna esquerda com duas caixas */
+/* Left column with the two boxes */
 .explanation-left {
     flex: 1;
     display: flex;
@@ -94,7 +94,7 @@
     line-height: 1.6;
 }
 
-/* Coluna direita com imagem */
+/* Image */
 .explanation-right {
     flex: 1;
     display: flex;
@@ -148,7 +148,7 @@
     height: 60px;
 }
 
-/* Botão de seta para a direita */
+/* Right arrow BUTTON */
 .next-button {
     display: flex;
     align-items: center;
@@ -187,7 +187,7 @@
     border-width: 0;
 }
 
-/* Rodapé */
+/* Footer */
 .explanation-footer {
     background-color: var(--primary-color);
     color: white;
@@ -201,7 +201,7 @@
     font-size: 0.9rem;
 }
 
-/* Responsividade */
+/* Responsive design */
 @media (max-width: 900px) {
     .explanation-content {
         flex-direction: column;

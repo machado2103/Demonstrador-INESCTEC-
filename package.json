@@ -10,7 +10,7 @@
   "keywords": [
     "electron",
     "palletization",
-    "algorithm",
+    "GUI",
     "INESCTEC",
     "CEGI"
   ],
@@ -18,5 +18,8 @@
   "license": "ISC",
   "devDependencies": {
     "electron": "^36.2.1"
+  },
+  "dependencies": {
+    "cowsay": "^1.6.0"
   }
 }

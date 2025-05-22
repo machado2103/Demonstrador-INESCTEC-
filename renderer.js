@@ -1,9 +1,9 @@
 // renderer.js - Version until the description page
 document.addEventListener('DOMContentLoaded', function() {
-  // Obter referência ao botão de start
+  // Obtains Start Button reference
   var startButton = document.getElementById('start-app');
   
-  // Adicionar evento de clique se o botão existir
+  // Adds click button reference
   if (startButton) {
     startButton.addEventListener('click', function() {
       // Redirection to the simulation page

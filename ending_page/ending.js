@@ -1,15 +1,15 @@
-// ending.js - JavaScript para a página de finalização
+// ending.js - JavaScript for the ending page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Ending page initialized - Starting countdown...');
     
-    // Iniciar o contador regressivo
+    // Initialize countdown timer
     startCountdown();
     
-    // Adicionar efeitos sonoros ou visuais opcionais
+    // Add optional visual effects and interactions
     initializePageEffects();
 });
 
-// Variáveis globais para o countdown
+// Global variables for countdown functionality
 let countdownValue = 10;
 let countdownInterval = null;
 
@@ -17,28 +17,28 @@ function startCountdown() {
     const countdownElement = document.getElementById('countdown');
     
     if (!countdownElement) {
-        console.error('Elemento countdown não encontrado!');
+        console.error('Countdown element not found!');
         return;
     }
     
-    // Atualizar display inicial
+    // Update initial display
     countdownElement.textContent = countdownValue;
     
-    // Iniciar o intervalo de 1 segundo
+    // Start 1-second interval timer
     countdownInterval = setInterval(function() {
         countdownValue--;
         countdownElement.textContent = countdownValue;
         
-        // Log para debug
+        // Debug logging
         console.log(`Redirecting in ${countdownValue} seconds...`);
         
-        // Adicionar efeito visual quando restam poucos segundos
+        // Add visual effect when few seconds remain
         if (countdownValue <= 3) {
             countdownElement.style.color = '#e74c3c';
             countdownElement.style.fontSize = '1.4rem';
         }
         
-        // Quando chegar a 0, redirecionar
+        // When reaching 0s, redirect to home
         if (countdownValue <= 0) {
             clearInterval(countdownInterval);
             redirectToHome();
@@ -51,37 +51,37 @@ function startCountdown() {
 function redirectToHome() {
     console.log('Redirecting to home page...');
     
-    // Adicionar efeito de fade out antes do redirect
+    // Add fade out effect before redirect
     const container = document.querySelector('.ending-container');
     if (container) {
         container.style.transition = 'opacity 0.5s ease-out';
         container.style.opacity = '0';
     }
     
-    // Redirecionar após meio segundo (tempo do fade out)
+    // Redirect after half second (fade out duration)
     setTimeout(function() {
         window.location.href = '../index.html';
     }, 500);
 }
 
 function initializePageEffects() {
-    // Adicionar efeito de entrada suave para toda a página
+    // Add smooth entrance effect for entire page
     const container = document.querySelector('.ending-container');
     if (container) {
         container.style.opacity = '0';
         container.style.transition = 'opacity 0.8s ease-in';
         
-        // Fade in após um pequeno delay
+        // Fade in after small delay
         setTimeout(function() {
             container.style.opacity = '1';
         }, 100);
     }
     
-    // Adicionar hover effect no logo
+    // interactive hover effect to logo
     const logo = document.getElementById('app-logo');
     if (logo) {
         logo.addEventListener('click', function() {
-            // Easter egg: clique no logo para voltar imediatamente
+            // click logo to return immediately
             if (confirm('Return to home immediately?')) {
                 clearInterval(countdownInterval);
                 redirectToHome();
@@ -89,12 +89,12 @@ function initializePageEffects() {
         });
     }
     
-    // Adicionar efeito de partículas de confetti (opcional)
+    // CONFETIIII particle effect
     createConfettiEffect();
 }
 
 function createConfettiEffect() {
-    // Simular efeito de confetti simples com CSS
+    // Simulate confetti effect (using CSS animations)
     for (let i = 0; i < 15; i++) {
         setTimeout(function() {
             createConfettiPiece();
@@ -118,7 +118,7 @@ function createConfettiPiece() {
     
     document.body.appendChild(confetti);
     
-    // Remover o elemento após a animação
+    // Remove element after animation finishes
     setTimeout(function() {
         if (confetti.parentNode) {
             confetti.parentNode.removeChild(confetti);
@@ -131,7 +131,7 @@ function getRandomColor() {
     return colors[Math.floor(Math.random() * colors.length)];
 }
 
-// Adicionar CSS da animação de confetti dinamicamente
+// Dynamically inject confetti animation CSS
 const confettiCSS = `
     @keyframes confettiFall {
         0% {
@@ -149,7 +149,11 @@ const style = document.createElement('style');
 style.textContent = confettiCSS;
 document.head.appendChild(style);
 
-// Função para parar o countdown (útil para debug)
+
+                // DEBBUGGING //
+
+
+// Function to stop countdown (useful for debugging)
 function stopCountdown() {
     if (countdownInterval) {
         clearInterval(countdownInterval);
@@ -158,7 +162,7 @@ function stopCountdown() {
     }
 }
 
-// Função para resetar o countdown (útil para debug)
+// Function to reset countdown (useful for debugging)
 function resetCountdown() {
     stopCountdown();
     countdownValue = 10;
@@ -166,14 +170,14 @@ function resetCountdown() {
     console.log('Countdown reset');
 }
 
-// Expor funções para debug no console
+// Expose utility functions for debug console access
 window.endingPageControls = {
     stop: stopCountdown,
     reset: resetCountdown,
     redirectNow: redirectToHome
 };
 
-// Limpar intervalos se a página for fechada
+// Clean up intervals when page is closed
 window.addEventListener('beforeunload', function() {
     stopCountdown();
 });

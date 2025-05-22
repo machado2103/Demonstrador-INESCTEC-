@@ -1,6 +1,6 @@
-/* Estilos para a página de Seleção de Caixas */
+/* Box Selection Page Styles */
 
-/* Container principal - sem overflow hidden para permitir rolagem se necessário */
+/* Main container - allows scrolling when content exceeds viewport */
 .box-selection-container {
     display: flex;
     flex-direction: column;
@@ -8,7 +8,7 @@
     background-color: var(--light-color);
 }
 
-/* Cabeçalho - ajustado para o estilo na referência */
+/* Header section with centered title and positioned logo */
 .box-selection-header {
     background-color: var(--primary-color);
     color: white;
@@ -40,7 +40,7 @@
     border-radius: 20px;
 }
 
-/* Conteúdo principal - mais espaçado e centrado */
+/* Main content area with centered flexbox layout */
 .box-selection-content {
     display: flex;
     flex-direction: column;
@@ -51,7 +51,7 @@
     justify-content: center;
 }
 
-/* Título da seleção - ajustado para referência da imagem */
+/* Selection instruction title */
 .selection-title {
     font-size: 1.3rem;
     color: var(--primary-color);
@@ -60,7 +60,7 @@
     font-weight: 500;
 }
 
-/* Grid de caixas - ajustado para referência da imagem */
+/* Grid layout for box selection items */
 .boxes-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -71,7 +71,7 @@
     margin-bottom: 1rem;
 }
 
-/* Item da caixa - ajustado para referência da imagem */
+/* Individual box item with hover effects */
 .box-item {
     background-color: white;
     border-radius: 8px;
@@ -90,7 +90,7 @@
     transform: translateY(-2px);
 }
 
-/* Imagem da caixa - ajustado para o tamanho na referência */
+/* Box image container with fixed dimensions */
 .box-image {
     display: flex;
     justify-content: center;
@@ -109,13 +109,13 @@
     object-fit: contain;
 }
 
-/* Informações da caixa - reduzidas */
+/* Box information section */
 .box-info {
     padding: 0.25rem;
     text-align: center;
 }
 
-/* Box title - ajustado para o estilo na referência */
+/* Box title styling */
 .box-title {
     font-size: 1.1rem;
     color: var(--primary-color);
@@ -124,7 +124,7 @@
     text-align: center;
 }
 
-/* Contador - ajustado para o estilo na referência */
+/* Quantity counter with increment/decrement buttons */
 .box-counter {
     display: flex;
     justify-content: center;
@@ -173,7 +173,7 @@
     text-align: center;
 }
 
-/* Notification */
+/* Centered modal notification overlay */
 .notification {
     position: fixed;
     top: 50%;
@@ -199,7 +199,7 @@
     text-align: center;
 }
 
-/* Botão de próximo - ajustado para o estilo na referência */
+/* Navigation button positioned on the right side */
 .next-button-container {
     position: absolute;
     right: 10%;
@@ -233,6 +233,7 @@
     box-shadow: 0 2px 5px rgba(8, 148, 194, 0.4);
 }
 
+/* Screen reader only content for accessibility */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -245,7 +246,7 @@
     border-width: 0;
 }
 
-/* Rodapé - ajustado para o estilo na referência */
+/* Footer section with company branding */
 .box-selection-footer {
     background-color: var(--primary-color);
     color: white;
@@ -259,7 +260,7 @@
     font-size: 0.9rem;
 }
 
-/* Responsividade */
+/* Responsive design adjustments */
 @media (max-width: 900px) {
     .boxes-grid {
         grid-template-columns: 1fr;

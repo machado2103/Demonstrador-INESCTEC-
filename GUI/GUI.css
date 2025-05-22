@@ -1,4 +1,4 @@
-/* GUI Simples - Algoritmo de Paletização */
+/* Simple GUI - Palletization Algorithm */
 
 * {
     margin: 0;
@@ -14,7 +14,7 @@
     position: relative;
 }
 
-/* Logo - menor e melhor posicionado */
+/* Company logo - compact and optimally positioned */
 .logo-container {
     position: absolute;
     top: 15px;
@@ -32,7 +32,7 @@
     border-radius: 6px;
 }
 
-/* Conteúdo principal */
+/* Main content layout */
 .main-content {
     flex: 1;
     display: flex;
@@ -40,7 +40,7 @@
     gap: 20px;
 }
 
-/* Área de visualização */
+/* Primary visualization area */
 .visualization-area {
     flex: 6;
     background: white;
@@ -48,9 +48,9 @@
     padding: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border-left: 4px solid var(--primary-color);
-    display: flex;              /* esta propriedade já deve existir */
-    flex-direction: column;     /* esta também já deve existir */
-    justify-content: space-between;  /* esta é a nova propriedade crucial */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .visualization-area h2 {
@@ -58,7 +58,7 @@
     margin-bottom: 5px;
     text-align: center;
     font-size: 1.4rem;
-    flex-shrink: 0; /* Não encolhe */
+    flex-shrink: 0; /* Prevents shrinking */
 }
 
 .pallet-display {
@@ -74,7 +74,7 @@
     border: 2px solid #e1f5fe;
 }
 
-/* Palete vista de cima - base da palete */
+/* Pallet top view - base platform */
 .pallet-base {
     position: absolute;
     top: 50%;
@@ -88,7 +88,7 @@
     border: 2px solid #6d4c41;
 }
 
-/* Container para as caixas organizadas sobre a palete */
+/* Container for organized boxes on the pallet */
 .box-stack {
     position: absolute;
     top: 50%;
@@ -103,7 +103,7 @@
     padding: 10px;
 }
 
-/* Caixas vistas de cima - formato retangular */
+/* Boxes viewed from above - rectangular format */
 .stacked-box {
     border-radius: 4px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -118,7 +118,7 @@
     z-index: 10;
 }
 
-/* Efeito de profundidade nas caixas */
+/* Depth effect for stacked boxes */
 .stacked-box::before {
     content: '';
     position: absolute;
@@ -145,7 +145,7 @@
     border-top: 3px solid #e65100;
 }
 
-/* Centro de massa - posição (x,y) vista de cima */
+/* Center of mass indicator - position (x,y) top view */
 .center-mass {
     position: absolute;
     top: 45%;
@@ -161,7 +161,7 @@
     z-index: 20;
 }
 
-/* Indicador de coordenadas do centro de massa */
+/* Center of mass coordinate indicator */
 .center-mass::after {
     content: '';
     position: absolute;
@@ -180,7 +180,7 @@
     50% { transform: translateX(-50%) scale(1.2); }
 }
 
-/* Painel de informações */
+/* Information panel */
 .info-panel {
     display: flex;
     justify-content: space-around;
@@ -208,7 +208,7 @@
     color: var(--primary-color);
 }
 
-/* Área de métricas */
+/* Metrics display area */
 .metrics-area {
     flex: 4;
     display: flex;
@@ -239,24 +239,24 @@
     text-align: center;
 }
 
-/* Mapa de calor */
+/* Weight distribution heatmap */
 .heat-grid {
     display: grid;
-    grid-template-columns: repeat(3, 32px); /* Tamanho fixo em vez de 1fr */
-    gap: 1px; /* Gap uniforme tanto horizontal quanto vertical */
+    grid-template-columns: repeat(3, 32px); /* Fixed size instead of 1fr */
+    gap: 1px; /* Uniform gap both horizontal and vertical */
     margin-bottom: 10px;
-    justify-content: center; /* Centraliza o grid no container */
-    padding: 5px; /* Adiciona um pouco de padding para não colar nas bordas */
+    justify-content: center; /* Centers the grid in container */
+    padding: 5px; /* Adds padding to avoid edge collision */
 }
 
 .heat-cell {
-    width: 32px; /* Ligeiramente aumentado para compensar o gap menor */
-    height: 32px; /* Ligeiramente aumentado para compensar o gap menor */
-    border-radius: 2px; /* Reduzido para aparência mais industrial/palete */
-    border: 1px solid rgba(255,255,255,0.2); /* Adiciona borda sutil para definição */
+    width: 32px; /* Slightly increased to compensate for smaller gap */
+    height: 32px; /* Slightly increased to compensate for smaller gap */
+    border-radius: 2px; /* Reduced for more industrial/pallet appearance */
+    border: 1px solid rgba(255,255,255,0.2); /* Adds subtle border for definition */
 }
 
-/* Cores da distribuição de peso com maior contraste */
+/* Weight distribution colors with higher contrast */
 .heat-cell.low { 
     background: linear-gradient(145deg, #81c784, #66bb6a);
     border-color: rgba(255,255,255,0.3);
@@ -295,7 +295,7 @@
 .legend-dot.medium { background: #ffb74d; }
 .legend-dot.high { background: #f44336; }
 
-/* Gráfico de pizza */
+/* Pie chart visualization */
 .efficiency-chart {
     text-align: center;
 }
@@ -339,7 +339,7 @@
 .dot.occupied { background: var(--primary-color); }
 .dot.free { background: #e0e0e0; }
 
-/* Gráfico de barras */
+/* Bar chart visualization */
 .bar-chart {
     display: flex;
     justify-content: space-around;
@@ -367,7 +367,7 @@
     color: #666;
 }
 
-/* Barra de status */
+/* Application status bar */
 .status-bar {
     background: linear-gradient(135deg, #2c3e50, #34495e);
     color: white;
@@ -394,7 +394,7 @@
     color: var(--secondary-color);
 }
 
-/* Rodapé */
+/* Application footer */
 .footer {
     background: linear-gradient(135deg, #2c3e50, #34495e);
     color: #bdc3c7;
@@ -406,7 +406,7 @@
     font-size: 0.9rem;
 }
 
-/* Responsivo - ajustado para logo menor */
+/* Responsive design - adjusted for smaller logo */
 @media (max-width: 900px) {
     .main-content {
         flex-direction: column;
@@ -438,11 +438,11 @@
 
 
 /* ========================================= */
-/* BOTÃO NEXT - TEMPORÁRIO PARA TESTE      */
-/* TODO: REMOVER ESTE CÓDIGO MAIS TARDE    */
+/* NEXT BUTTON - TEMPORARY FOR TESTING     */
+/* TODO: REMOVE THIS CODE LATER            */
 /* ========================================= */
 
-/* Botão Next - Canto inferior direito (para teste) */
+/* Next button - Bottom right corner (for testing) */
 .next-button {
     position: fixed;
     bottom: 20px;
@@ -470,7 +470,7 @@
     transform: scale(0.95);
 }
 
-/* Seta em CSS puro */
+/* Pure CSS arrow */
 .next-button::after {
     content: '';
     width: 12px;
@@ -478,10 +478,10 @@
     border-top: 3px solid white;
     border-right: 3px solid white;
     transform: rotate(45deg);
-    margin-left: 3px; /* Pequeno ajuste para centralizar melhor */
+    margin-left: 3px; /* Small adjustment for better centering */
 }
 
-/* Tooltip opcional */
+/* Optional tooltip */
 .next-button:hover::before {
     content: 'Next Page';
     position: absolute;
@@ -497,5 +497,5 @@
 }
 
 /* ========================================= */
-/* FIM DO CÓDIGO TEMPORÁRIO                 */
+/* END OF TEMPORARY CODE                    */
 /* ========================================= */

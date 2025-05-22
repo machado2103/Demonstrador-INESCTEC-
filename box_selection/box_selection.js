@@ -1,16 +1,16 @@
-// box_selection.js - JavaScript para a página de seleção de caixas
+// box_selection.js - JavaScript for the box selection page
 document.addEventListener('DOMContentLoaded', function() {
-    // Constantes
+    // Application constants
     const MAX_BOXES = 5;
     const MIN_BOXES = 0;
     
-    // Elementos da UI
+    // UI element references
     const decrementButtons = document.querySelectorAll('.decrement');
     const incrementButtons = document.querySelectorAll('.increment');
     const nextButton = document.getElementById('next-step-btn');
     const notification = document.getElementById('max-boxes-notification');
     
-    // Inicializar contadores
+    // Initialize counter state with default values
     const counters = {
         1: parseInt(document.getElementById('counter-1').textContent) || 1,
         2: parseInt(document.getElementById('counter-2').textContent) || 1,
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
         4: parseInt(document.getElementById('counter-4').textContent) || 0
     };
     
-    // Adicionar evento de clique nos botões de decremento
+    // Attach event listeners to decrement buttons
     decrementButtons.forEach(button => {
         button.addEventListener('click', function() {
             const boxType = this.getAttribute('data-box');
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Adicionar evento de clique nos botões de incremento
+    // Attach event listeners to increment buttons
     incrementButtons.forEach(button => {
         button.addEventListener('click', function() {
             const boxType = this.getAttribute('data-box');
@@ -34,19 +34,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Adicionar evento de clique no botão de próxima etapa
+    // Handle navigation to the next page
     if (nextButton) {
         nextButton.addEventListener('click', function() {
-            // Salvar contadores no localStorage para uso posterior
+            // Persist box selections in localStorage for next page
             localStorage.setItem('boxSelections', JSON.stringify(counters));
             
-            // Redirecionar para a GUI
-            console.log('Avançando para a GUI com as seguintes caixas:', counters);
+            // Navigate to main GUI interface
+            console.log('Advancing to GUI with selected boxes:', counters);
             window.location.href = '../GUI/index.html';
         });
     }
     
-    // Função para decrementar o contador
+    // Decrements the counter for specified box type
     function decrementCounter(boxType) {
         if (counters[boxType] > MIN_BOXES) {
             counters[boxType]--;
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Função para incrementar o contador
+    // Increments the counter for specified box type with validation
     function incrementCounter(boxType) {
         if (counters[boxType] < MAX_BOXES) {
             counters[boxType]++;
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Função para atualizar a exibição do contador
+    // Updates the counter display element in the DOM
     function updateCounterDisplay(boxType) {
         const counterElement = document.getElementById(`counter-${boxType}`);
         if (counterElement) {
@@ -72,11 +72,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Função para mostrar a notificação de número máximo de caixas
+    // Displays notification when maximum box limit is reached
     function showMaxBoxesNotification() {
         notification.classList.add('show');
         
-        // Remover a notificação após 2.5 segundos
+        // Auto-hide notification after 2.5 seconds
         setTimeout(function() {
             notification.classList.remove('show');
         }, 2500);

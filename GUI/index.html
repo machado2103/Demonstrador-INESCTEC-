@@ -1,54 +1,54 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GUI - Algoritmo de Paletização</title>
+    <title>GUI - Palletization Algorithm</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="GUI.css">
 </head>
 <body>
     <div class="gui-container">
-        <!-- Logo no canto superior direito -->
+        <!-- INESCTEC logo -->
         <div class="logo-container">
-            <img id="company-logo" src="../images/logo.jpg" alt="Logo da Empresa">
+            <img id="company-logo" src="../images/logo.jpg" alt="INESCTEC Logo">
         </div>
 
-        <!-- Conteúdo principal -->
+        <!-- Main app content -->
         <main class="main-content">
-            <!-- Área de visualização (esquerda) -->
+            <!-- Visualization area (left side) -->
             <section class="visualization-area">
                 <h2>2D Visualization</h2>
                 
                 <div class="pallet-display">
-                    <!-- Palete vista de cima -->
+                    <!-- Pallet (top view) -->
                     <div class="pallet-scene">
                         <div class="pallet-base"></div>
                         <div class="box-stack">
-                            <!-- Primeira linha de caixas -->
+                            <!-- First row of boxes -->
                             <div class="stacked-box box-1"></div>
                             <div class="stacked-box box-2"></div>
                             <div class="stacked-box box-1"></div>
                             <div class="stacked-box box-3"></div>
                             
-                            <!-- Segunda linha de caixas -->
+                            <!-- Second row of boxes -->
                             <div class="stacked-box box-2"></div>
                             <div class="stacked-box box-1"></div>
                             <div class="stacked-box box-3"></div>
                             <div class="stacked-box box-2"></div>
                             
-                            <!-- Terceira linha de caixas -->
+                            <!-- Third row of boxes -->
                             <div class="stacked-box box-3"></div>
                             <div class="stacked-box box-1"></div>
                             <div class="stacked-box box-2"></div>
                             <div class="stacked-box box-1"></div>
                         </div>
-                        <!-- Centro de massa -->
+                        <!-- Center of mass indicator -->
                         <div class="center-mass"></div>
                     </div>
                 </div>
                 
-                <!-- Informações básicas -->
+                <!-- Basic information panel -->
                 <div class="info-panel">
                     <div class="info-group">
                         <span class="info-label">Boxes Placed:</span>
@@ -65,11 +65,11 @@
                 </div>
             </section>
 
-            <!-- Área de métricas (direita) -->
+            <!-- Metrics area (right side) -->
             <section class="metrics-area">
                 <h2>Performance Metrics</h2>
                 
-                <!-- Distribuição de peso -->
+                <!-- Weight distribution heatmap -->
                 <div class="metric-card">
                     <h3>Weight Distribution</h3>
                     <div class="heatmap">
@@ -92,7 +92,7 @@
                     </div>
                 </div>
 
-                <!-- Eficiência -->
+                <!-- Volume efficiency pie chart -->
                 <div class="metric-card">
                     <h3>Volume Efficiency</h3>
                     <div class="efficiency-chart">
@@ -107,7 +107,7 @@
                     </div>
                 </div>
 
-                <!-- Eficiência por camada -->
+                <!-- Layer-by-layer efficiency bar chart -->
                 <div class="metric-card">
                     <h3>Layer Efficiency</h3>
                     <div class="bar-chart">
@@ -132,7 +132,7 @@
             </section>
         </main>
 
-        <!-- Barra inferior -->
+        <!-- Status bar with key metrics -->
         <footer class="status-bar">
             <div class="status-group">
                 <span class="status-label"><strong>Center of Mass Deviation:</strong></span>
@@ -148,14 +148,14 @@
             </div>
         </footer>
 
-        <!-- Rodapé -->
+        <!-- Application footer -->
         <div class="footer">
             <p>Developed by INESCTEC &copy; 2025</p>
         </div>
     </div>
 
         <!-- ============================================ -->
-        <!-- BOTÃO TEMPORÁRIO PARA TESTE - REMOVER DEPOIS -->
+        <!-- TEMPORARY BUTTON FOR TESTING - REMOVE LATER -->
         <!-- ============================================ -->
         <div class="next-button" onclick="window.location.href='../ending_page/index.html'"></div>
         <!-- ============================================ -->

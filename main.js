@@ -1,14 +1,16 @@
-// main.js - Electron main process (updated)
+// main.js - Electron main process
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const cowsay = require('cowsay');
 
 // Desabilitar sandbox e uso de shared memory para evitar erros no Linux
-app.commandLine.appendSwitch('no-sandbox');
-app.commandLine.appendSwitch('disable-dev-shm-usage');
+//app.commandLine.appendSwitch('no-sandbox');
+//app.commandLine.appendSwitch('disable-dev-shm-usage');
+
 
 let mainWindow;
 
-// Criar a janela principal
+// Create main window
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -20,16 +22,28 @@ function createWindow() {
     }
   });
 
-  // Carregar a página HTML
+  // Load HTML file
   mainWindow.loadFile('index.html');
   
-  // Descomentar esta linha para abrir o DevTools para debugging
-  //mainWindow.webContents.openDevTools();
+  //Descomentar esta linha para abrir o DevTools para debugging
+  //-------------------------------------------------------------
+  //mainWindow.webContents.openDevTools();                      |
+  //-------------------------------------------------------------
+
 }
 
-// Inicializar o aplicativo
+// Initialize the App
 app.whenReady().then(() => {
+  const startupMessage = cowsay.say({
+    text: "Mooooooo",
+    e: "oO",  // olhos da vaca (opcional)
+    T: "U "   // língua da vaca (opcional)
+  });
+    
+  console.log(startupMessage);
+
   createWindow();
+
 
   app.on('activate', function () {
     // No macOS, recreate a window quando o ícone do dock é clicado e não há outras janelas abertas
@@ -37,7 +51,7 @@ app.whenReady().then(() => {
   });
 });
 
-// Manipular evento de navegação
+// Manipulates the navigation event
 ipcMain.on('navigate', (event, pagePath) => {
   console.log('Evento de navegação recebido:', pagePath);
   if (mainWindow) {
@@ -47,7 +61,7 @@ ipcMain.on('navigate', (event, pagePath) => {
   }
 });
 
-// Sair quando todas as janelas estiverem fechadas (exceto no macOS)
+// Exits when all windows are closed (Note: except on macOS)
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
 });

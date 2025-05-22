@@ -1,4 +1,4 @@
-/* Reset e configuração básica */
+/* Global reset and basic configuration */
 * {
     margin: 0;
     padding: 0;
@@ -6,7 +6,7 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Variáveis de cores da empresa */
+/* Company color variables */
 :root {
     --primary-color: rgb(8, 148, 194);     /* Maincolor */
     --secondary-color: rgb(99, 203, 241);  /* Secondarycolor */
@@ -14,13 +14,13 @@
     --dark-color: rgb(5, 85, 112);         /* Darker shade for text */
 }
 
-/* Estilos básicos */
+/* Basic styles */
 body {
     background-color: var(--light-color);
     color: var(--dark-color);
 }
 
-/* Tela de espera */
+/* Waiting screen */
 .waiting-screen {
     display: flex;
     flex-direction: column;
@@ -90,7 +90,7 @@ footer {
     font-size: 0.9rem;
 }
 
-/* Responsividade básica */
+/* Basic responsiveness */
 @media (max-width: 768px) {
     .main-title {
         font-size: 2.2rem;
@@ -122,7 +122,9 @@ footer {
     .subtitle {
         font-size: 1rem;
     }
-}/* Estilos para a tela de espera */
+}
+
+/* Waiting screen styles */
 .waiting-screen {
     display: flex;
     flex-direction: column;
@@ -230,17 +232,17 @@ footer {
     z-index: 2;
 }
 
-/* Classe para ocultar elementos */
+/* Class to hide elements */
 .hidden {
     display: none !important;
 }
 
-/* Aplicação principal - envolver o conteúdo original */
+/* Main application - wrap original content */
 .application-container {
-    display: none; /* Inicialmente oculto */
+    display: none; /* Initially hidden */
 }
 
-/* Adicionar classe para mostrar a aplicação principal */
+/* Add class to show main application */
 .application-container.visible {
     display: block;
 }
@@ -279,7 +281,7 @@ header {
     box-shadow: 0 2px 5px rgba(8, 148, 194, 0.2);
 }
 
-/* Adicionar logo e estilo de cabeçalho melhorado */
+/* Add logo and improved header styling */
 header h1 {
     font-size: 1.8rem;
     position: relative;
@@ -336,7 +338,7 @@ main {
     height: calc(100vh - 132px);
 }
 
-/* Adicionar um pequeno efeito ao passar o rato sobre painéis */
+/* Add subtle hover effect for panels */
 .panel {
     background-color: white;
     border-radius: 8px;
