@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize counter state with default values
     const counters = {
-        1: parseInt(document.getElementById('counter-1').textContent) || 1,
-        2: parseInt(document.getElementById('counter-2').textContent) || 1,
-        3: parseInt(document.getElementById('counter-3').textContent) || 2,
+        1: parseInt(document.getElementById('counter-1').textContent) || 0,
+        2: parseInt(document.getElementById('counter-2').textContent) || 0,
+        3: parseInt(document.getElementById('counter-3').textContent) || 0,
         4: parseInt(document.getElementById('counter-4').textContent) || 0
     };
     
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showMaxBoxesNotification() {
         notification.classList.add('show');
         
-        // Auto-hide notification after 2.5 seconds
+        // Auto-hide notification after 2.5s
         setTimeout(function() {
             notification.classList.remove('show');
         }, 2500);
