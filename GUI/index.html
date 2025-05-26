@@ -1,75 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GUI - Palletization Algorithm</title>
+    <title>GUI - Algoritmo de Paletização</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="GUI.css">
 </head>
 <body>
     <div class="gui-container">
-        <!-- INESCTEC logo -->
+        <!-- Logo no canto superior direito -->
         <div class="logo-container">
-            <img id="company-logo" src="../images/logo.jpg" alt="INESCTEC Logo">
+            <img id="company-logo" src="../images/logo.jpg" alt="Logo da Empresa">
         </div>
 
-        <!-- Main app content -->
+        <!-- Conteúdo principal -->
         <main class="main-content">
-            <!-- Visualization area (left side) -->
+            <!-- Área de visualização (esquerda) -->
             <section class="visualization-area">
-                <h2>2D Visualization</h2>
+                <h2>3D Visualization</h2>
                 
-                <div class="pallet-display">
-                    <!-- Pallet (top view) -->
-                    <div class="pallet-scene">
-                        <div class="pallet-base"></div>
-                        <div class="box-stack">
-                            <!-- First row of boxes -->
-                            <div class="stacked-box box-1"></div>
-                            <div class="stacked-box box-2"></div>
-                            <div class="stacked-box box-1"></div>
-                            <div class="stacked-box box-3"></div>
-                            
-                            <!-- Second row of boxes -->
-                            <div class="stacked-box box-2"></div>
-                            <div class="stacked-box box-1"></div>
-                            <div class="stacked-box box-3"></div>
-                            <div class="stacked-box box-2"></div>
-                            
-                            <!-- Third row of boxes -->
-                            <div class="stacked-box box-3"></div>
-                            <div class="stacked-box box-1"></div>
-                            <div class="stacked-box box-2"></div>
-                            <div class="stacked-box box-1"></div>
-                        </div>
-                        <!-- Center of mass indicator -->
-                        <div class="center-mass"></div>
-                    </div>
+                <!-- Container for Three.js - this is where our 3D scene will be rendered -->
+                <div id="threejs-container" class="threejs-container">
+                    <!-- Loading message will be replaced by 3D canvas -->
+                    <div class="threejs-loading">Initializing 3D Scene...</div>
                 </div>
                 
-                <!-- Basic information panel -->
+                <!-- Informações básicas -->
                 <div class="info-panel">
                     <div class="info-group">
                         <span class="info-label">Boxes Placed:</span>
-                        <span class="info-value" id="boxes-placed">12</span>
+                        <span class="info-value" id="boxes-count">0</span>
                     </div>
                     <div class="info-group">
                         <span class="info-label">Current Height:</span>
-                        <span class="info-value" id="current-height">50cm</span>
+                        <span class="info-value" id="current-height">0cm</span>
                     </div>
                     <div class="info-group">
                         <span class="info-label">Time:</span>
-                        <span class="info-value" id="execution-time">0.0s</span>
+                        <span class="info-value" id="simulation-time">0.0s</span>
                     </div>
                 </div>
             </section>
 
-            <!-- Metrics area (right side) -->
+            <!-- Área de métricas (direita) -->
             <section class="metrics-area">
                 <h2>Performance Metrics</h2>
                 
-                <!-- Weight distribution heatmap -->
+                <!-- Distribuição de peso -->
                 <div class="metric-card">
                     <h3>Weight Distribution</h3>
                     <div class="heatmap">
@@ -92,22 +70,22 @@
                     </div>
                 </div>
 
-                <!-- Volume efficiency pie chart -->
+                <!-- Eficiência -->
                 <div class="metric-card">
-                    <h3>Volume Efficiency</h3>
+                    <h3>Area/Volume Efficiency</h3>
                     <div class="efficiency-chart">
                         <div class="pie-chart">
                             <div class="pie-fill"></div>
-                            <div class="pie-text" id="pie-efficiency">99.7%</div>
+                            <div class="pie-text">75%</div>
                         </div>
                         <div class="efficiency-info">
-                            <div><span class="dot occupied"></span>Occupied: <span id="occupied-percentage">99.7%</span></div>
-                            <div><span class="dot free"></span>Free: <span id="free-percentage">0.3%</span></div>
+                            <div><span class="dot occupied"></span>Occupied: 75%</div>
+                            <div><span class="dot free"></span>Free: 25%</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Layer-by-layer efficiency bar chart -->
+                <!-- Eficiência por camada -->
                 <div class="metric-card">
                     <h3>Layer Efficiency</h3>
                     <div class="bar-chart">
@@ -132,35 +110,41 @@
             </section>
         </main>
 
-        <!-- Status bar with key metrics -->
+        <!-- Barra inferior -->
         <footer class="status-bar">
             <div class="status-group">
-                <span class="status-label"><strong>Center of Mass Deviation:</strong></span>
-                <span class="status-value" id="mass-deviation">0.5cm</span>
+                <span class="status-label">Center of Mass Deviation:</span>
+                <span class="status-value" id="center-mass">0.0cm</span>
             </div>
             <div class="status-group">
-                <span class="status-label"><strong>Collisions:</strong></span>
+                <span class="status-label">Collisions:</span>
                 <span class="status-value" id="collisions">0</span>
             </div>
             <div class="status-group">
-                <span class="status-label"><strong>Global Efficiency:</strong></span>
-                <span class="status-value" id="global-efficiency">99.7%</span>
+                <span class="status-label">Global Efficiency:</span>
+                <span class="status-value" id="global-efficiency">0.0%</span>
             </div>
         </footer>
 
-        <!-- Application footer -->
+        <!-- Rodapé -->
         <div class="footer">
             <p>Developed by INESCTEC &copy; 2025</p>
         </div>
     </div>
 
-        <!-- ============================================ -->
-        <!-- TEMPORARY BUTTON FOR TESTING - REMOVE LATER -->
-        <!-- ============================================ -->
-        <div class="next-button" onclick="window.location.href='../ending_page/index.html'"></div>
-        <!-- ============================================ -->
-    </div>
-
-    <script src="GUI.js"></script>
+    <!-- Three.js Library - loaded from CDN for reliability -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- OrbitControls for camera interaction - essential for 3D navigation -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Our custom Three.js setup - the foundation of our 3D visualization -->
+    <script src="3d-viewer/js/three-setup.js"></script>
+    
+    <!-- Data loading system - handles parsing of palletization files -->
+    <script src="3d-viewer/js/pallet-loader.js"></script>
+    
+    <!-- Main application controller - orchestrates all components -->
+    <script src="3d-viewer/js/main.js"></script>
 </body>
 </html>

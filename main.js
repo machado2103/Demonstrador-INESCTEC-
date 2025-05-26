@@ -27,7 +27,7 @@ function createWindow() {
   
   //Descomentar esta linha para abrir o DevTools para debugging
   //-------------------------------------------------------------
-  //mainWindow.webContents.openDevTools();                      |
+  mainWindow.webContents.openDevTools();                      
   //-------------------------------------------------------------
 
 }

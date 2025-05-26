@@ -40,7 +40,7 @@
     gap: 20px;
 }
 
-/* Primary visualization area */
+/* Primary visualization area - prepared for Three.js */
 .visualization-area {
     flex: 6;
     background: white;
@@ -55,129 +55,44 @@
 
 .visualization-area h2 {
     color: var(--primary-color);
-    margin-bottom: 5px;
+    margin-bottom: 15px;
     text-align: center;
     font-size: 1.4rem;
-    flex-shrink: 0; /* Prevents shrinking */
+    flex-shrink: 0;
 }
 
-.pallet-display {
+/* Three.js container - optimized for large screens */
+.threejs-container {
     background: linear-gradient(to bottom, #e3f2fd, #bbdefb);
     border-radius: 8px;
     flex: 1;
-    min-height: 300px;
+    min-height: 500px; /* Increased for optimal viewing on large screens */
     position: relative;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 2px solid #e1f5fe;
+    overflow: hidden; /* Important for Three.js canvas */
 }
 
-/* Pallet top view - base platform */
-.pallet-base {
+/* Canvas styling for Three.js */
+.threejs-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    border-radius: 6px;
+}
+
+/* Loading indicator for Three.js (optional) */
+.threejs-loading {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 300px;
-    height: 200px;
-    background: linear-gradient(145deg, #8d6e63, #5d4037);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    border: 2px solid #6d4c41;
-}
-
-/* Container for organized boxes on the pallet */
-.box-stack {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 280px;
-    height: 180px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 4px;
-    padding: 10px;
-}
-
-/* Boxes viewed from above - rectangular format */
-.stacked-box {
-    border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    border: 2px solid rgba(255,255,255,0.3);
-    transition: transform 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.stacked-box:hover {
-    transform: scale(1.05);
-    z-index: 10;
-}
-
-/* Depth effect for stacked boxes */
-.stacked-box::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
-    pointer-events: none;
-}
-
-.box-1 {
-    background: linear-gradient(145deg, #64b5f6, #1976d2);
-    border-top: 3px solid #0d47a1;
-}
-
-.box-2 {
-    background: linear-gradient(145deg, #81c784, #388e3c);
-    border-top: 3px solid #1b5e20;
-}
-
-.box-3 {
-    background: linear-gradient(145deg, #ffb74d, #f57c00);
-    border-top: 3px solid #e65100;
-}
-
-/* Center of mass indicator - position (x,y) top view */
-.center-mass {
-    position: absolute;
-    top: 45%;
-    left: 55%;
-    transform: translate(-50%, -50%);
-    width: 16px;
-    height: 16px;
-    background: radial-gradient(circle, #f44336, #d32f2f);
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(244, 67, 54, 0.8);
-    border: 2px solid white;
-    animation: pulse 2s infinite;
-    z-index: 20;
-}
-
-/* Center of mass coordinate indicator */
-.center-mass::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border: 2px dashed rgba(244, 67, 54, 0.5);
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.2); }
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: bold;
 }
 
 /* Information panel */
@@ -242,18 +157,18 @@
 /* Weight distribution heatmap */
 .heat-grid {
     display: grid;
-    grid-template-columns: repeat(3, 32px); /* Fixed size instead of 1fr */
-    gap: 1px; /* Uniform gap both horizontal and vertical */
+    grid-template-columns: repeat(3, 32px);
+    gap: 1px;
     margin-bottom: 10px;
-    justify-content: center; /* Centers the grid in container */
-    padding: 5px; /* Adds padding to avoid edge collision */
+    justify-content: center;
+    padding: 5px;
 }
 
 .heat-cell {
-    width: 32px; /* Slightly increased to compensate for smaller gap */
-    height: 32px; /* Slightly increased to compensate for smaller gap */
-    border-radius: 2px; /* Reduced for more industrial/pallet appearance */
-    border: 1px solid rgba(255,255,255,0.2); /* Adds subtle border for definition */
+    width: 32px;
+    height: 32px;
+    border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
 /* Weight distribution colors with higher contrast */
@@ -406,37 +321,6 @@
     font-size: 0.9rem;
 }
 
-/* Responsive design - adjusted for smaller logo */
-@media (max-width: 900px) {
-    .main-content {
-        flex-direction: column;
-        padding: 15px;
-    }
-    
-    .visualization-area {
-        margin-bottom: 20px;
-    }
-    
-    .pallet-display {
-        height: 250px;
-    }
-    
-    .status-bar {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .logo-container {
-        top: 10px;
-        right: 10px;
-    }
-    
-    #company-logo {
-        height: 25px;
-    }
-}
-
-
 /* ========================================= */
 /* NEXT BUTTON - TEMPORARY FOR TESTING     */
 /* TODO: REMOVE THIS CODE LATER            */
@@ -478,7 +362,7 @@
     border-top: 3px solid white;
     border-right: 3px solid white;
     transform: rotate(45deg);
-    margin-left: 3px; /* Small adjustment for better centering */
+    margin-left: 3px;
 }
 
 /* Optional tooltip */
