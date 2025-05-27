@@ -3,7 +3,7 @@
  * This file orchestrates the entire palletization simulator,
  * connecting the 3D visualization with data loading and user interface
  * 
- * Save this as: GUI/3d-viewer/main.js
+ * Save this as: GUI/3d-viewer/js/main.js
  */
 
 class PalletizationApp {
@@ -45,11 +45,14 @@ class PalletizationApp {
             // Set up user interface controls
             this.setupUI();
             
-            // Inform user about how to load data
+            // Show welcome message
             this.showWelcomeMessage();
             
+            // Load Crosslog data if available (you can customize this part)
+            // this.loadCrosslogData(); // Uncomment when ready to load data
+            
             this.isInitialized = true;
-            console.log('Palletization Application fully initialized and ready!');
+            console.log('Palletization Application fully initialized and ready for Crosslog data!');
             
         } catch (error) {
             console.error('Failed to initialize application:', error);
@@ -113,9 +116,6 @@ class PalletizationApp {
     setupUI() {
         console.log('Setting up user interface controls...');
         
-        // File input for loading data files
-        this.createFileInput();
-        
         // Navigation controls for switching between pallets
         this.createNavigationControls();
         
@@ -129,33 +129,10 @@ class PalletizationApp {
     }
     
     /**
-     * Create file input control for loading palletization data
+     * Create navigation controls for switching between pallets and controlling simulation
      */
-    createFileInput() {
-        // Create a hidden file input element
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.txt';
-        fileInput.style.display = 'none';
-        fileInput.id = 'data-file-input';
-        document.body.appendChild(fileInput);
-        
-        // Handle file selection
-        fileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                console.log('User selected file:', file.name);
-                this.loadDataFile(file);
-            }
-        });
-        
-        // Create a visible button to trigger file selection
-        const loadButton = this.createControlButton('📁 Load Data File', () => {
-            console.log('Load button clicked');
-            fileInput.click();
-        });
-        
-        // Add the button to the visualization area
+    createNavigationControls() {
+        // Create controls container
         const visualizationArea = document.querySelector('.visualization-area');
         if (visualizationArea) {
             const controlsContainer = document.createElement('div');
@@ -172,29 +149,31 @@ class PalletizationApp {
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             `;
             
-            controlsContainer.appendChild(loadButton);
             visualizationArea.insertBefore(controlsContainer, visualizationArea.children[1]);
-            console.log('Added file input controls to visualization area');
         }
-    }
-    
-    /**
-     * Create navigation controls for switching between pallets
-     */
-    createNavigationControls() {
+        
         const controlsContainer = document.querySelector('.controls-container');
         if (!controlsContainer) return;
         
-        // Previous pallet button
-        const prevButton = this.createControlButton('◀ Previous', () => {
+        // Restart button - allows restarting current pallet animation from beginning
+        const restartButton = this.createControlButton('🔄 Restart', () => {
+            this.restartCurrentPallet();
+        });
+        restartButton.id = 'restart-pallet-btn';
+        restartButton.disabled = true; // Initially disabled until data is loaded
+        restartButton.title = 'Restart current pallet animation from the beginning';
+        
+        // Previous pallet button - renamed to be more specific
+        const prevButton = this.createControlButton('◀ Previous Box', () => {
             if (this.dataLoader) {
                 this.dataLoader.previousPallet();
             }
         });
         prevButton.id = 'prev-pallet-btn';
         prevButton.disabled = true;
+        prevButton.title = 'Go to previous pallet solution';
         
-        // Pallet counter display
+        // Pallet counter display - now shows count without placeholder text
         const palletCounter = document.createElement('span');
         palletCounter.id = 'pallet-counter';
         palletCounter.style.cssText = `
@@ -207,24 +186,38 @@ class PalletizationApp {
             color: #2c3e50;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             font-size: 0.9rem;
+            min-width: 100px;
+            justify-content: center;
         `;
-        palletCounter.textContent = 'No data loaded';
+        palletCounter.textContent = '0 of 0'; // Clear, informative default instead of "Ready for data"
         
-        // Next pallet button  
-        const nextButton = this.createControlButton('Next ▶', () => {
+        // Next pallet button - renamed to be more specific
+        const nextButton = this.createControlButton('Next Box ▶', () => {
             if (this.dataLoader) {
                 this.dataLoader.nextPallet();
             }
         });
         nextButton.id = 'next-pallet-btn';
         nextButton.disabled = true;
+        nextButton.title = 'Go to next pallet solution';
         
-        // Add all controls to container
+        // Finished pallet button - completes current pallet quickly
+        const finishedButton = this.createControlButton('⚡ Finished Pallet', () => {
+            this.finishCurrentPallet();
+        });
+        finishedButton.id = 'finished-pallet-btn';
+        finishedButton.disabled = true; // Initially disabled until animation is running
+        finishedButton.title = 'Complete current pallet animation instantly';
+        
+        // Add all controls to container in the specified order
+        // Order: Restart, Previous Box, Counter, Next Box, Finished Pallet
+        controlsContainer.appendChild(restartButton);
         controlsContainer.appendChild(prevButton);
         controlsContainer.appendChild(palletCounter);
         controlsContainer.appendChild(nextButton);
+        controlsContainer.appendChild(finishedButton);
         
-        console.log('Added navigation controls');
+        console.log('Added enhanced navigation controls with restart and finish functionality');
     }
     
     /**
@@ -323,20 +316,140 @@ class PalletizationApp {
     }
     
     /**
-     * Update navigation button states
+     * Update navigation button states with enhanced logic for new controls
+     * This function acts like a traffic controller, determining which buttons should be active
      */
     updateNavigationButtons() {
+        // Get references to all our control buttons
         const prevBtn = document.getElementById('prev-pallet-btn');
         const nextBtn = document.getElementById('next-pallet-btn');
+        const restartBtn = document.getElementById('restart-pallet-btn');
+        const finishedBtn = document.getElementById('finished-pallet-btn');
         
-        if (prevBtn && nextBtn && this.dataLoader) {
-            prevBtn.disabled = this.dataLoader.currentPalletIndex <= 0;
-            nextBtn.disabled = this.dataLoader.currentPalletIndex >= this.dataLoader.allPallets.length - 1;
+        // Only proceed if we have data loaded and buttons exist
+        if (!this.dataLoader || !prevBtn || !nextBtn || !restartBtn || !finishedBtn) {
+            return;
+        }
+        
+        const hasData = this.dataLoader.allPallets.length > 0;
+        const currentIndex = this.dataLoader.currentPalletIndex;
+        const totalPallets = this.dataLoader.allPallets.length;
+        
+        if (hasData) {
+            // Navigation buttons logic - enable based on position in sequence
+            prevBtn.disabled = currentIndex <= 0; // Can't go before the first pallet
+            nextBtn.disabled = currentIndex >= totalPallets - 1; // Can't go after the last pallet
+            
+            // Restart button logic - enable when there's data to restart
+            // This button should always be available when data is loaded
+            restartBtn.disabled = false;
+            
+            // Finished pallet button logic - enable when there might be animation to complete
+            // In a more sophisticated implementation, we might check if animation is actually running
+            // For now, we enable it whenever data is loaded
+            finishedBtn.disabled = false;
+            
+            console.log('Button states updated - Previous:', !prevBtn.disabled, 
+                       'Next:', !nextBtn.disabled, 'Restart: enabled, Finished: enabled');
+        } else {
+            // No data loaded - disable all buttons except basic navigation structure
+            prevBtn.disabled = true;
+            nextBtn.disabled = true;
+            restartBtn.disabled = true;
+            finishedBtn.disabled = true;
+            
+            console.log('No data loaded - all control buttons disabled');
         }
     }
     
     /**
+     * Restart the current pallet animation from the beginning
+     * This function demonstrates advanced state management in interactive applications
+     */
+    restartCurrentPallet() {
+        if (!this.dataLoader || this.dataLoader.allPallets.length === 0) {
+            console.log('No data available to restart');
+            return;
+        }
+        
+        console.log('=== Restarting Current Pallet Animation ===');
+        
+        // Step 1: Clear any pending animation timeouts to prevent conflicts
+        // This is crucial - without this, old and new animations would overlap
+        this.dataLoader.clearCurrentBoxes();
+        
+        // Step 2: Provide visual feedback to user
+        this.showMessage('Restarting pallet animation...');
+        
+        // Step 3: Get current pallet index and reload it
+        const currentIndex = this.dataLoader.currentPalletIndex;
+        console.log('Restarting pallet', currentIndex + 1, 'of', this.dataLoader.allPallets.length);
+        
+        // Step 4: Reload the current pallet with fresh animation
+        // This creates a clean slate while maintaining the same pallet selection
+        this.dataLoader.loadPallet(currentIndex);
+        
+        // Step 5: Update button states
+        this.updateNavigationButtons();
+        
+        console.log('✓ Pallet restart completed successfully');
+    }
+    
+    /**
+     * Finish the current pallet animation quickly
+     * This function demonstrates elegant animation acceleration techniques
+     */
+    finishCurrentPallet() {
+        if (!this.dataLoader || this.dataLoader.allPallets.length === 0) {
+            console.log('No data available to finish');
+            return;
+        }
+        
+        const currentPallet = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex];
+        const currentBoxCount = this.simulator.boxes.length;
+        const totalBoxCount = currentPallet.boxes.length;
+        
+        // Check if animation is already complete
+        if (currentBoxCount >= totalBoxCount) {
+            console.log('Pallet animation already complete');
+            this.showMessage('Pallet already complete');
+            return;
+        }
+        
+        console.log('=== Fast-Completing Current Pallet ===');
+        console.log('Current boxes:', currentBoxCount, '/ Total boxes:', totalBoxCount);
+        
+        // Step 1: Provide visual feedback
+        this.showMessage('Completing pallet instantly...');
+        
+        // Step 2: Temporarily store original animation speed
+        const originalSpeed = this.dataLoader.animationSpeed;
+        
+        // Step 3: Set ultra-fast animation speed (10ms between boxes)
+        this.dataLoader.animationSpeed = 10;
+        
+        // Step 4: Clear current boxes and restart with fast animation
+        // This ensures we get all boxes, not just the remaining ones
+        this.dataLoader.clearCurrentBoxes();
+        this.dataLoader.loadPallet(this.dataLoader.currentPalletIndex);
+        
+        // Step 5: Restore original animation speed after a delay
+        // Calculate delay: remaining boxes * 10ms + safety buffer
+        const remainingBoxes = totalBoxCount;
+        const completionTime = remainingBoxes * 10 + 500; // 500ms safety buffer
+        
+        setTimeout(() => {
+            this.dataLoader.animationSpeed = originalSpeed;
+            this.showMessage(`Pallet completed with ${totalBoxCount} boxes`);
+            console.log('✓ Fast completion finished - animation speed restored');
+        }, completionTime);
+        
+        console.log('✓ Fast completion initiated - will complete in ~' + (completionTime/1000) + ' seconds');
+    }
+    
+    /**
      * Update pallet counter display
+     * This function keeps users informed about their current position in the pallet sequence
      */
     updatePalletCounter() {
         const counter = document.getElementById('pallet-counter');
@@ -348,69 +461,85 @@ class PalletizationApp {
     }
     
     /**
-     * Load a data file from user input
+     * Show welcome message for Crosslog data integration
      */
-    async loadDataFile(file) {
+    showWelcomeMessage() {
+        console.log('=== Palletization Simulator - Ready for Crosslog Data ===');
+        console.log('✓ 3D visualization initialized');
+        console.log('✓ Crosslog data parser ready');
+        console.log('✓ Realistic pallet visualization loaded');
+        console.log('');
+        console.log('System ready to process Crosslog format data files');
+        console.log('Use navigation controls to explore different pallets when data is loaded');
+        console.log('Adjust animation speed as needed using the speed slider');
+        console.log('Use mouse to rotate, zoom, and pan the 3D view');
+        console.log('');
+        console.log('To load Crosslog data: call window.palletApp.loadCrosslogData(textContent)');
+    }
+    
+    /**
+     * Load Crosslog formatted data directly
+     * This method is specifically designed for Crosslog data format
+     * 
+     * @param {string} crosslogContent - The complete Crosslog data file content
+     * @param {string} fileName - Optional filename for identification
+     */
+    loadCrosslogData(crosslogContent, fileName = 'Crosslog Data') {
         try {
-            console.log('Loading data file:', file.name, '(' + (file.size / 1024).toFixed(1) + ' KB)');
-            this.showMessage('Loading palletization data...');
+            console.log('=== Loading Crosslog Data ===');
+            console.log('Source:', fileName);
+            console.log('Content length:', crosslogContent.length, 'characters');
             
-            // Read the file content
-            const fileContent = await this.readFileAsText(file);
-            console.log('File read successfully, content length:', fileContent.length, 'characters');
-            
-            // Parse the data
-            const parsedData = this.dataLoader.parseDataFile(fileContent);
+            // Parse the Crosslog data using our existing parser
+            const parsedData = this.dataLoader.parseDataFile(crosslogContent);
             this.currentDataFile = parsedData;
             
-            // Load the first pallet
+            // Validate that we have valid Crosslog data
             if (parsedData.pallets.length > 0) {
-                console.log('Starting to load first pallet...');
-                this.dataLoader.loadPallet(0);
-                this.showMessage(`Successfully loaded ${parsedData.pallets.length} pallets from ${file.name}`);
+                console.log('✓ Successfully parsed Crosslog data');
+                console.log('  - Order ID:', parsedData.orderInfo.orderId);
+                console.log('  - Total pallets:', parsedData.pallets.length);
+                console.log('  - Total boxes:', this.dataLoader.getTotalBoxCount());
                 
-                // Enable navigation controls
+                // Load the first pallet automatically
+                console.log('Loading first pallet...');
+                this.dataLoader.loadPallet(0);
+                
+                // Enable all navigation controls now that we have data
+                // This is where the interface comes alive with interactive possibilities
                 const prevBtn = document.getElementById('prev-pallet-btn');
                 const nextBtn = document.getElementById('next-pallet-btn');
-                if (prevBtn && nextBtn) {
-                    prevBtn.disabled = false;
+                const restartBtn = document.getElementById('restart-pallet-btn');
+                const finishedBtn = document.getElementById('finished-pallet-btn');
+                
+                if (prevBtn && nextBtn && restartBtn && finishedBtn) {
+                    // Enable restart and finished buttons immediately - they're always useful with data
+                    restartBtn.disabled = false;
+                    finishedBtn.disabled = false;
+                    
+                    // Navigation buttons depend on having multiple pallets
+                    prevBtn.disabled = parsedData.pallets.length <= 1;
                     nextBtn.disabled = parsedData.pallets.length <= 1;
+                    
+                    console.log('✓ All control buttons activated and configured');
                 }
                 
-                console.log('Data loading completed successfully!');
+                // Update status and provide user feedback
+                this.showMessage(`Loaded ${parsedData.pallets.length} pallets from Crosslog data`);
+                console.log('✓ Crosslog data loading completed successfully!');
+                
+                return true;
             } else {
-                this.showError('No valid pallet data found in the file');
+                console.error('✗ No valid pallets found in Crosslog data');
+                this.showError('No valid pallet data found in the Crosslog file');
+                return false;
             }
             
         } catch (error) {
-            console.error('Error loading data file:', error);
-            this.showError('Failed to load the data file. Please check the file format and try again.');
+            console.error('✗ Error loading Crosslog data:', error);
+            this.showError('Failed to parse the Crosslog data. Please check the file format.');
+            return false;
         }
-    }
-    
-    /**
-     * Show welcome message with instructions
-     */
-    showWelcomeMessage() {
-        console.log('Welcome to the Palletization Simulator!');
-        console.log('To get started:');
-        console.log('1. Click the "📁 Load Data File" button');
-        console.log('2. Select your palletization data file (.txt format)');
-        console.log('3. Use navigation controls to explore different pallets');
-        console.log('4. Adjust animation speed as needed');
-        console.log('Use mouse to rotate and zoom the 3D view');
-    }
-    
-    /**
-     * Utility function to read a file as text
-     */
-    readFileAsText(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (event) => resolve(event.target.result);
-            reader.onerror = (error) => reject(error);
-            reader.readAsText(file);
-        });
     }
     
     /**

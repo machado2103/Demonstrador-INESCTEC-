@@ -171,65 +171,199 @@ class PalletSimulator {
     }
     
     /**
-     * Create the wooden pallet base
-     * This serves as the foundation for all our boxes
+     * Create a realistic wooden pallet with proper structure
+     * This creates a pallet similar to standard EUR/EPAL pallets
      */
     createPallet() {
         // Pallet dimensions (in centimeters, scaled down for display)
         const palletWidth = 12;   // 1200mm = 12 units in our scale
         const palletDepth = 8;    // 800mm = 8 units in our scale  
-        const palletHeight = 0.15; // 15cm = 0.15 units in our scale
+        const palletHeight = 0.144; // 14.4cm = 0.144 units (standard pallet height)
         
-        // Create the main pallet platform geometry
-        const palletGeometry = new THREE.BoxGeometry(palletWidth, palletHeight, palletDepth);
+        // Create the realistic pallet structure
+        this.createRealisticPalletStructure(palletWidth, palletDepth, palletHeight);
         
-        // Create a wood-like material with brown color and some texture
-        const palletMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x8D6E63, // Brown color for wood
-        });
-        
-        // Create the mesh (geometry + material = visible object)
-        this.pallet = new THREE.Mesh(palletGeometry, palletMaterial);
-        
-        // Position the pallet so its top surface is at y=0 (ground level)
-        this.pallet.position.y = -palletHeight / 2;
-        
-        // Enable the pallet to receive shadows from boxes above
-        this.pallet.receiveShadow = true;
-        
-        // Add wooden slats for more realistic appearance
-        this.createPalletSlats(palletWidth, palletDepth, palletHeight);
-        
-        // Add the pallet to our scene
-        this.scene.add(this.pallet);
-        
-        console.log('Pallet created with dimensions:', palletWidth, 'x', palletDepth, 'x', palletHeight);
+        console.log('Realistic pallet created with dimensions:', palletWidth, 'x', palletDepth, 'x', palletHeight);
     }
     
     /**
-     * Create wooden slats on the pallet for more realistic appearance
+     * Create the complete structure of a realistic pallet
+     * Includes top deck boards, bottom deck boards, and support blocks
      */
-    createPalletSlats(width, depth, height) {
-        const slatMaterial = new THREE.MeshLambertMaterial({ color: 0x6D4C41 });
+    createRealisticPalletStructure(width, depth, height) {
+        // Wood materials with different tones for realism
+        const topBoardMaterial = new THREE.MeshLambertMaterial({ color: 0xD4A574 }); // Light wood
+        const bottomBoardMaterial = new THREE.MeshLambertMaterial({ color: 0xB8956A }); // Medium wood  
+        const blockMaterial = new THREE.MeshLambertMaterial({ color: 0x8D6E63 }); // Dark wood
         
-        // Create longitudinal slats (running along the length)
-        const numSlats = 5;
-        const slatWidth = 0.3;
-        const slatThickness = 0.05;
+        // Create top deck boards (where boxes will be placed)
+        this.createTopDeckBoards(width, depth, height, topBoardMaterial);
         
-        for (let i = 0; i < numSlats; i++) {
-            const slatGeometry = new THREE.BoxGeometry(width, slatThickness, slatWidth);
-            const slat = new THREE.Mesh(slatGeometry, slatMaterial);
+        // Create bottom deck boards (structural support)
+        this.createBottomDeckBoards(width, depth, height, bottomBoardMaterial);
+        
+        // Create support blocks and stringers
+        this.createSupportStructure(width, depth, height, blockMaterial);
+        
+        console.log('Created realistic pallet structure with top boards, bottom boards, and support blocks');
+    }
+    
+    /**
+     * Create the top deck boards - the surface where boxes are placed
+     */
+    createTopDeckBoards(width, depth, height) {
+        const boardMaterial = new THREE.MeshLambertMaterial({ color: 0xD4A574 });
+        const boardThickness = 0.02; // 2cm thick boards
+        const boardWidth = 0.10; // 10cm wide boards
+        const topPosition = height / 2 - boardThickness / 2;
+        
+        // Create 7 top boards running along the width (1200mm direction)
+        const numTopBoards = 7;
+        const boardSpacing = depth / (numTopBoards + 1);
+        
+        for (let i = 0; i < numTopBoards; i++) {
+            const boardGeometry = new THREE.BoxGeometry(width, boardThickness, boardWidth);
+            const board = new THREE.Mesh(boardGeometry, boardMaterial);
             
-            // Position slats evenly across the depth
-            const slatPosition = (i - (numSlats - 1) / 2) * (depth / numSlats);
-            slat.position.set(0, height / 2, slatPosition);
-            slat.receiveShadow = true;
+            // Position boards with proper spacing
+            const boardPosition = (i - (numTopBoards - 1) / 2) * boardSpacing;
+            board.position.set(0, topPosition, boardPosition);
+            board.castShadow = true;
+            board.receiveShadow = true;
             
-            this.scene.add(slat);
+            this.scene.add(board);
         }
         
-        console.log(`Created ${numSlats} wooden slats for realistic pallet appearance`);
+        console.log(`Created ${numTopBoards} top deck boards`);
+    }
+    
+    /**
+     * Create the bottom deck boards - structural support underneath
+     */
+    createBottomDeckBoards(width, depth, height) {
+        const boardMaterial = new THREE.MeshLambertMaterial({ color: 0xB8956A });
+        const boardThickness = 0.02; // 2cm thick boards
+        const boardWidth = 0.10; // 10cm wide boards
+        const bottomPosition = -height / 2 + boardThickness / 2;
+        
+        // Create 5 bottom boards running along the width (1200mm direction)
+        const numBottomBoards = 5;
+        const boardSpacing = depth / (numBottomBoards + 1);
+        
+        for (let i = 0; i < numBottomBoards; i++) {
+            const boardGeometry = new THREE.BoxGeometry(width, boardThickness, boardWidth);
+            const board = new THREE.Mesh(boardGeometry, boardMaterial);
+            
+            // Position boards with proper spacing
+            const boardPosition = (i - (numBottomBoards - 1) / 2) * boardSpacing;
+            board.position.set(0, bottomPosition, boardPosition);
+            board.castShadow = true;
+            board.receiveShadow = true;
+            
+            this.scene.add(board);
+        }
+        
+        console.log(`Created ${numBottomBoards} bottom deck boards`);
+    }
+    
+    /**
+     * Create support structure - blocks and stringers that give the pallet its strength
+     */
+    createSupportStructure(width, depth, height) {
+        const blockMaterial = new THREE.MeshLambertMaterial({ color: 0x8D6E63 });
+        
+        // Create corner blocks
+        this.createCornerBlocks(width, depth, height, blockMaterial);
+        
+        // Create center blocks
+        this.createCenterBlocks(width, depth, height, blockMaterial);
+        
+        // Create stringers (the long structural pieces)
+        this.createStringers(width, depth, height, blockMaterial);
+    }
+    
+    /**
+     * Create corner support blocks
+     */
+    createCornerBlocks(width, depth, height) {
+        const blockMaterial = new THREE.MeshLambertMaterial({ color: 0x8D6E63 });
+        const blockWidth = 0.10;
+        const blockDepth = 0.10;
+        const blockHeight = height - 0.04; // Height minus top and bottom board thickness
+        
+        // Position for corner blocks
+        const positions = [
+            [-width/2 + blockWidth/2, 0, -depth/2 + blockDepth/2], // Front left
+            [width/2 - blockWidth/2, 0, -depth/2 + blockDepth/2],   // Front right
+            [-width/2 + blockWidth/2, 0, depth/2 - blockDepth/2],   // Back left
+            [width/2 - blockWidth/2, 0, depth/2 - blockDepth/2]     // Back right
+        ];
+        
+        positions.forEach((pos, index) => {
+            const blockGeometry = new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth);
+            const block = new THREE.Mesh(blockGeometry, blockMaterial);
+            block.position.set(pos[0], pos[1], pos[2]);
+            block.castShadow = true;
+            block.receiveShadow = true;
+            this.scene.add(block);
+        });
+        
+        console.log('Created 4 corner support blocks');
+    }
+    
+    /**
+     * Create center support blocks
+     */
+    createCenterBlocks(width, depth, height) {
+        const blockMaterial = new THREE.MeshLambertMaterial({ color: 0x8D6E63 });
+        const blockWidth = 0.10;
+        const blockDepth = 0.10;
+        const blockHeight = height - 0.04;
+        
+        // Center blocks along the length
+        const centerPositions = [
+            [0, 0, -depth/2 + blockDepth/2], // Front center
+            [0, 0, depth/2 - blockDepth/2]   // Back center
+        ];
+        
+        centerPositions.forEach((pos) => {
+            const blockGeometry = new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth);
+            const block = new THREE.Mesh(blockGeometry, blockMaterial);
+            block.position.set(pos[0], pos[1], pos[2]);
+            block.castShadow = true;
+            block.receiveShadow = true;
+            this.scene.add(block);
+        });
+        
+        console.log('Created 2 center support blocks');
+    }
+    
+    /**
+     * Create stringers - the long structural pieces that connect the blocks
+     */
+    createStringers(width, depth, height) {
+        const stringerMaterial = new THREE.MeshLambertMaterial({ color: 0x8D6E63 });
+        const stringerWidth = width;
+        const stringerDepth = 0.08;
+        const stringerHeight = 0.06;
+        
+        // Three stringers running along the width
+        const stringerPositions = [
+            [0, -height/4, -depth/2 + stringerDepth/2], // Front stringer
+            [0, -height/4, 0],                          // Center stringer  
+            [0, -height/4, depth/2 - stringerDepth/2]   // Back stringer
+        ];
+        
+        stringerPositions.forEach((pos) => {
+            const stringerGeometry = new THREE.BoxGeometry(stringerWidth, stringerHeight, stringerDepth);
+            const stringer = new THREE.Mesh(stringerGeometry, stringerMaterial);
+            stringer.position.set(pos[0], pos[1], pos[2]);
+            stringer.castShadow = true;
+            stringer.receiveShadow = true;
+            this.scene.add(stringer);
+        });
+        
+        console.log('Created 3 structural stringers');
     }
     
     /**

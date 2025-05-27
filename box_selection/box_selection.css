@@ -71,7 +71,7 @@
     margin-bottom: 1rem;
 }
 
-/* Individual box item with hover effects */
+/* Individual box item (w/ hover effects) */
 .box-item {
     background-color: white;
     border-radius: 8px;
@@ -90,7 +90,7 @@
     transform: translateY(-2px);
 }
 
-/* Box image container with fixed dimensions */
+/* Box image container (with fixed dimensions) */
 .box-image {
     display: flex;
     justify-content: center;
@@ -246,7 +246,7 @@
     border-width: 0;
 }
 
-/* Footer section with company branding */
+/* Footer section with INESCTEC "licence" */
 .box-selection-footer {
     background-color: var(--primary-color);
     color: white;
