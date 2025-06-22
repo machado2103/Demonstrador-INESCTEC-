@@ -119,8 +119,8 @@ class PalletizationApp {
         // Navigation controls for switching between pallets
         this.createNavigationControls();
         
-        // Simulation speed controls
-        this.createSpeedControls();
+        // Speed controls removed as requested - functionality preserved but not displayed
+        // this.createSpeedControls();
         
         // Information display updates
         this.setupInfoDisplays();
