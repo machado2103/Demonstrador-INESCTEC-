@@ -1,14 +1,10 @@
 /**
- * Center of Mass Calculator for Palletization Simulator
+ * Center of Mass Calculator for Palletization Simulator - DYNAMIC UNITS
  * 
- * This file handles all physics calculations related to center of mass analysis.
- * It provides a dedicated, focused system for weight distribution calculations
- * that can be easily maintained and extended.
- * 
- * Key Concepts:
- * - Center of Mass: The point where all mass can be considered concentrated
- * - Weighted Average: Each box "pulls" the center proportional to its weight
- * - Coordinate System: Uses pallet center (0,0) as reference point
+ * ENHANCED UNIT SYSTEM:
+ * - Shows mm when deviation < 10mm (more precise for small deviations)
+ * - Shows cm when deviation >= 10mm (cleaner for larger deviations)
+ * - Automatic unit selection for best readability
  * 
  * Save this as: GUI/3d-viewer/js/center-of-mass.js
  */
@@ -17,8 +13,8 @@ class CenterOfMassCalculator {
     constructor() {
         // Physics constants and configuration
         this.palletDimensions = {
-            length: 12.0,    // 1200mm in our coordinate system
-            width: 8.0,      // 800mm in our coordinate system
+            length: 12.0,    // 1200mm in our coordinate system (1 unit = 1cm)
+            width: 8.0,      // 800mm in our coordinate system (1 unit = 1cm)
             centerX: 0,      // Pallet center X coordinate
             centerZ: 0       // Pallet center Z coordinate
         };
@@ -28,7 +24,7 @@ class CenterOfMassCalculator {
             x: 0,            // X coordinate of center of mass
             z: 0,            // Z coordinate of center of mass (we ignore Y for top-down analysis)
             totalWeight: 0,  // Total weight of all boxes
-            deviation: 0,    // Distance from pallet center
+            deviation: 0,    // Distance from pallet center (in units, where 1 unit = 1cm)
             boxCount: 0      // Number of boxes included in calculation
         };
         
@@ -37,6 +33,7 @@ class CenterOfMassCalculator {
         this.isDebugMode = false;
         
         console.log('CenterOfMassCalculator initialized with pallet dimensions:', this.palletDimensions);
+        console.log('Unit system: 1 coordinate unit = 1cm');
     }
     
     /**
@@ -126,7 +123,7 @@ class CenterOfMassCalculator {
         });
         
         // Log completion
-        console.log(`✓ Center of mass calculated: (${centerX.toFixed(3)}, ${centerZ.toFixed(3)}) with deviation ${deviation.toFixed(3)} from center`);
+        console.log(`✓ Center of mass calculated: (${centerX.toFixed(3)}, ${centerZ.toFixed(3)}) with deviation ${deviation.toFixed(3)} units from center`);
         console.log(`Total weight: ${totalWeight}kg across ${validBoxCount} boxes`);
         
         return this.getCurrentResult();
@@ -190,7 +187,8 @@ class CenterOfMassCalculator {
         const result = { ...this.currentCenterOfMass };
         
         // Add additional analysis properties
-        result.deviationCm = this.currentCenterOfMass.deviation * 100; // Convert to centimeters
+        result.deviationMm = this.currentCenterOfMass.deviation * 10; // Convert units to mm (1 unit = 1cm = 10mm)
+        result.deviationCm = this.currentCenterOfMass.deviation; // Deviation in cm (direct units)
         result.deviationPercentage = this.calculateDeviationPercentage();
         result.stabilityRating = this.calculateStabilityRating();
         result.isWithinSafeZone = this.isWithinSafeZone();
@@ -220,12 +218,12 @@ class CenterOfMassCalculator {
      * @returns {string} Stability rating (Excellent, Good, Fair, Poor)
      */
     calculateStabilityRating() {
-        const deviationCm = this.currentCenterOfMass.deviation * 100;
+        const deviationMm = this.currentCenterOfMass.deviation * 10; // Convert to mm
         
-        if (deviationCm <= 5) return 'Excellent';
-        if (deviationCm <= 15) return 'Good';
-        if (deviationCm <= 30) return 'Fair';
-        return 'Poor';
+        if (deviationMm <= 50) return 'Excellent';     // <= 5cm
+        if (deviationMm <= 150) return 'Good';         // <= 15cm  
+        if (deviationMm <= 300) return 'Fair';         // <= 30cm
+        return 'Poor';                                 // > 30cm
     }
     
     /**
@@ -233,17 +231,69 @@ class CenterOfMassCalculator {
      * @returns {boolean} True if within safe zone
      */
     isWithinSafeZone() {
-        const deviationCm = this.currentCenterOfMass.deviation * 100;
-        return deviationCm <= 25; // 25cm deviation considered safe
+        const deviationMm = this.currentCenterOfMass.deviation * 10; // Convert to mm
+        return deviationMm <= 250; // 25cm deviation considered safe
     }
     
     /**
-     * Get formatted deviation string for display
+     * ENHANCED: Get formatted deviation string with dynamic units for display
+     * Shows mm for small deviations, cm for larger ones
      * @returns {string} Formatted deviation for UI display
      */
     getFormattedDeviation() {
-        const deviationCm = this.currentCenterOfMass.deviation * 100;
-        return `${deviationCm.toFixed(1)}cm`;
+        const deviationMm = this.currentCenterOfMass.deviation * 10; // Convert to mm
+        
+        if (deviationMm < 10) {
+            // Show in millimeters for precise small deviations
+            return `${deviationMm.toFixed(1)}mm`;
+        } else {
+            // Show in centimeters for larger deviations (cleaner display)
+            const deviationCm = this.currentCenterOfMass.deviation;
+            return `${deviationCm.toFixed(1)}cm`;
+        }
+    }
+    
+    /**
+     * ENHANCED: Get formatted deviation with specific unit
+     * @param {string} unit - 'mm' or 'cm'
+     * @returns {string} Formatted deviation in specified unit
+     */
+    getFormattedDeviationInUnit(unit) {
+        if (unit === 'mm') {
+            const deviationMm = this.currentCenterOfMass.deviation * 10;
+            return `${deviationMm.toFixed(1)}mm`;
+        } else if (unit === 'cm') {
+            const deviationCm = this.currentCenterOfMass.deviation;
+            return `${deviationCm.toFixed(1)}cm`;
+        } else {
+            return this.getFormattedDeviation(); // Default dynamic formatting
+        }
+    }
+    
+    /**
+     * ENHANCED: Get deviation values in both units
+     * @returns {Object} Deviation values in both mm and cm with formatting info
+     */
+    getDeviationMetrics() {
+        const deviationMm = this.currentCenterOfMass.deviation * 10;
+        const deviationCm = this.currentCenterOfMass.deviation;
+        
+        return {
+            mm: {
+                value: deviationMm,
+                formatted: `${deviationMm.toFixed(1)}mm`,
+                precision: deviationMm < 10 ? 1 : 0
+            },
+            cm: {
+                value: deviationCm,
+                formatted: `${deviationCm.toFixed(1)}cm`,
+                precision: 1
+            },
+            // Recommended display format
+            display: this.getFormattedDeviation(),
+            // Which unit is recommended for this value
+            recommendedUnit: deviationMm < 10 ? 'mm' : 'cm'
+        };
     }
     
     /**
@@ -277,11 +327,17 @@ class CenterOfMassCalculator {
      */
     getAnalysisReport() {
         const result = this.getCurrentResult();
+        const metrics = this.getDeviationMetrics();
         
         return {
             summary: {
                 centerOfMass: { x: result.x, z: result.z },
-                deviation: result.deviationCm,
+                deviation: {
+                    mm: metrics.mm.value,
+                    cm: metrics.cm.value,
+                    display: metrics.display,
+                    recommendedUnit: metrics.recommendedUnit
+                },
                 stabilityRating: result.stabilityRating,
                 isWithinSafeZone: result.isWithinSafeZone
             },
@@ -302,12 +358,13 @@ class CenterOfMassCalculator {
      */
     generateRecommendations(result) {
         const recommendations = [];
+        const deviationMm = result.deviationMm;
         
-        if (result.deviationCm > 25) {
+        if (deviationMm > 250) { // > 25cm
             recommendations.push('Consider redistributing heavier boxes closer to pallet center');
         }
         
-        if (result.deviationCm > 15) {
+        if (deviationMm > 150) { // > 15cm
             recommendations.push('Monitor stability during transport');
         }
         
@@ -319,22 +376,59 @@ class CenterOfMassCalculator {
             recommendations.push('Low box count - center of mass calculation may be less reliable');
         }
         
+        // Add precision-based recommendations
+        if (deviationMm < 10) {
+            recommendations.push('Very precise positioning - deviation under 1cm');
+        }
+        
         return recommendations;
     }
     
     /**
-     * Visualize center of mass data in console (for debugging)
+     * ENHANCED: Visualize center of mass data in console with dynamic units
      */
     visualizeInConsole() {
         const result = this.getCurrentResult();
+        const metrics = this.getDeviationMetrics();
         
         console.log('=== CENTER OF MASS ANALYSIS ===');
-        console.log(`Position: (${result.x.toFixed(3)}, ${result.z.toFixed(3)})`);
-        console.log(`Deviation: ${result.deviationCm.toFixed(1)}cm`);
+        console.log(`Position: (${result.x.toFixed(3)}, ${result.z.toFixed(3)}) units`);
+        console.log(`Deviation: ${metrics.display} (${metrics.mm.formatted} / ${metrics.cm.formatted})`);
+        console.log(`Recommended Unit: ${metrics.recommendedUnit}`);
         console.log(`Stability: ${result.stabilityRating}`);
         console.log(`Total Weight: ${result.totalWeight}kg`);
         console.log(`Box Count: ${result.boxCount}`);
         console.log('===============================');
+    }
+    
+    /**
+     * ENHANCED: Debug method with unit system explanation
+     */
+    debugUnitSystem() {
+        console.log('=== UNIT SYSTEM DEBUG ===');
+        console.log('Coordinate System:');
+        console.log('  - 1 coordinate unit = 1cm');
+        console.log('  - Pallet: 12.0 × 8.0 units = 120cm × 80cm');
+        console.log('  - Center: (0, 0)');
+        console.log('');
+        console.log('Display Logic:');
+        console.log('  - If deviation < 10mm → show in mm (more precise)');
+        console.log('  - If deviation >= 10mm → show in cm (cleaner)');
+        console.log('');
+        console.log('Current State:');
+        
+        if (this.currentCenterOfMass.boxCount > 0) {
+            const metrics = this.getDeviationMetrics();
+            console.log(`  - Raw deviation: ${this.currentCenterOfMass.deviation.toFixed(3)} units`);
+            console.log(`  - In mm: ${metrics.mm.formatted}`);
+            console.log(`  - In cm: ${metrics.cm.formatted}`);
+            console.log(`  - Display: ${metrics.display}`);
+            console.log(`  - Recommended: ${metrics.recommendedUnit}`);
+        } else {
+            console.log('  - No boxes loaded');
+        }
+        
+        console.log('=========================');
     }
 }
 

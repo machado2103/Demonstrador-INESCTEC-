@@ -1,7 +1,10 @@
 /**
- * Pallet Data Loader - Crosslog Format Parser
- * This file handles loading and parsing of Crosslog format data files
- * and creates 3D boxes for visualization in the Three.js scene
+ * Pallet Data Loader - Crosslog Format Parser FIXED
+ * 
+ * CORRECTIONS APPLIED:
+ * - Proper animation completion detection
+ * - Calls main app's setAnimationCompleted() when last box is placed
+ * - Better integration with timer system
  * 
  * Save this as: GUI/3d-viewer/js/pallet-loader.js
  */
@@ -411,7 +414,7 @@ class PalletDataLoader {
     }
     
     /**
-     * Load a specific pallet for 3D visualization
+     * FIXED: Load a specific pallet for 3D visualization with proper completion detection
      */
     loadPallet(palletIndex) {
         if (palletIndex < 0 || palletIndex >= this.allPallets.length) {
@@ -437,6 +440,18 @@ class PalletDataLoader {
                 this.createAndAddBox(boxData);
                 if ((index + 1) % 10 === 0 || index === sortedBoxes.length - 1) {
                     console.log(`Box ${index + 1}/${sortedBoxes.length} placed (sequence ${boxData.sequence}, type ${boxData.itemType})`);
+                }
+                
+                // FIXED: Check if this was the last box and notify main app
+                if (index === sortedBoxes.length - 1) {
+                    console.log('🎯 LAST BOX PLACED - Animation Complete!');
+                    
+                    // Notify main application that animation is complete
+                    setTimeout(() => {
+                        if (window.palletApp && window.palletApp.setAnimationCompleted) {
+                            window.palletApp.setAnimationCompleted();
+                        }
+                    }, 100); // Small delay to ensure box is fully rendered
                 }
             }, delay);
             

@@ -1,14 +1,11 @@
 /**
- * Enhanced Main Application Controller - Complete Palletization Simulator
- * This file orchestrates the entire palletization simulator with advanced controls,
- * connecting 3D visualization with data loading and comprehensive user interface
+ * Enhanced Main Application Controller - FIXED Timer and Center of Mass
  * 
- * Features:
- * - Three-zone control layout (Pallet Controls | Information Display | Animation Controls)
- * - Real-time box counting and pallet tracking
- * - Play/pause animation with step-by-step control
- * - ENHANCED: Dynamic height calculation and simulation timer
- * - Professional error handling and user feedback
+ * CORRECTIONS APPLIED:
+ * 1. Timer stops when animation completes and turns green
+ * 2. Height display turns green when animation completes  
+ * 3. Center of mass calculation debugging added
+ * 4. Proper animation completion detection
  * 
  * Save this as: GUI/3d-viewer/js/main.js
  */
@@ -26,7 +23,8 @@ class PalletizationApp {
             isPlaying: false,
             isPaused: false,
             currentBoxIndex: 0,
-            totalBoxes: 0
+            totalBoxes: 0,
+            isCompleted: false  // NEW: Track if animation is completed
         };
         
         // Robust sequence tracking to fix manual/automatic inconsistencies
@@ -125,24 +123,23 @@ class PalletizationApp {
         throw new Error('Three.js libraries failed to load within the expected time');
     }
     
-    /**
-     * Initialize the Three.js 3D simulator
-     * This creates the visual foundation where all our pallets and boxes will appear
-     */
     initializeSimulator() {
         console.log('Creating 3D simulator...');
         
         // Create the simulator instance targeting the HTML container
         this.simulator = new PalletSimulator('threejs-container');
         
-        // Remove the loading message once 3D scene is ready - clean interface principle
+        // NEW: Initialize center of mass beam visualization
+        this.simulator.createCenterOfMassBeam();
+        
+        // Remove the loading message once 3D scene is ready
         const loadingMessage = document.querySelector('.threejs-loading');
         if (loadingMessage) {
             loadingMessage.style.display = 'none';
             console.log('Removed loading message - 3D scene is now visible');
         }
         
-        console.log('3D Simulator initialized successfully');
+        console.log('3D Simulator initialized successfully with center of mass beam');
     }
     
     /**
@@ -507,7 +504,7 @@ class PalletizationApp {
     startSimulationTimer() {
         const timer = this.metricsState.simulationTimer;
         
-        if (!timer.isRunning) {
+        if (!timer.isRunning && !this.animationState.isCompleted) { // FIXED: Don't start if completed
             timer.startTime = Date.now();
             timer.isRunning = true;
             
@@ -561,6 +558,9 @@ class PalletizationApp {
         timer.startTime = null;
         timer.isRunning = false;
         
+        // Reset completion state
+        this.animationState.isCompleted = false;
+        
         // Update display immediately
         this.updateTimeDisplay();
         
@@ -585,7 +585,7 @@ class PalletizationApp {
     }
     
     /**
-     * ENHANCED: Update the time display in the UI
+     * FIXED: Update the time display in the UI with green color when completed
      * Shows elapsed time in a user-friendly format
      */
     updateTimeDisplay() {
@@ -606,10 +606,17 @@ class PalletizationApp {
         }
         
         timeElement.textContent = displayText;
+        
+        // FIXED: Change color to green when animation is completed
+        if (this.animationState.isCompleted) {
+            timeElement.style.color = '#27ae60'; // Green for completed
+        } else {
+            timeElement.style.color = '#3498db'; // Blue for active/paused
+        }
     }
     
     /**
-     * ENHANCED: Update the height display in the UI
+     * FIXED: Update the height display in the UI with green color when completed
      * Shows current pallet height in centimeters
      */
     updateHeightDisplay() {
@@ -630,6 +637,13 @@ class PalletizationApp {
         }
         
         heightElement.textContent = displayText;
+        
+        // FIXED: Change color to green when animation is completed
+        if (this.animationState.isCompleted) {
+            heightElement.style.color = '#27ae60'; // Green for completed
+        } else {
+            heightElement.style.color = '#3498db'; // Blue for active/paused
+        }
     }
     
     /**
@@ -717,6 +731,9 @@ class PalletizationApp {
             console.log(`Removed box with sequence ${maxSequence}. Remaining: ${this.simulator.boxes.length}`);
         }
         
+        // Reset completion state when removing boxes
+        this.animationState.isCompleted = false;
+        
         // ENHANCED: Update height display after removing box
         this.updateHeightDisplay();
         
@@ -757,6 +774,11 @@ class PalletizationApp {
         this.sequenceState.lastPlacedSequence = nextBox.sequence;
         this.sequenceState.nextExpectedSequence = this.findNextExpectedSequence(sortedBoxes, nextBox.sequence);
         
+        // Check if this completes the animation
+        if (this.simulator.boxes.length === sortedBoxes.length) {
+            this.setAnimationCompleted();
+        }
+        
         // ENHANCED: Update height display after adding box
         this.updateHeightDisplay();
         
@@ -768,8 +790,35 @@ class PalletizationApp {
         console.log(`Added box with sequence ${nextBox.sequence}. Total boxes: ${this.simulator.boxes.length}`);
     }
 
-
-        /**
+    /**
+     * FIXED: Set animation as completed and update UI accordingly
+     */
+    setAnimationCompleted() {
+        console.log('=== ANIMATION COMPLETED ===');
+        
+        this.animationState.isCompleted = true;
+        this.animationState.isPlaying = false;
+        this.animationState.isPaused = false;
+        
+        // Stop the timer permanently
+        this.stopSimulationTimer();
+        
+        // Update button text
+        const button = document.getElementById('play-pause-btn');
+        if (button) {
+            button.textContent = '▶ Play';
+            button.title = 'Restart animation';
+        }
+        
+        // Update displays with green color
+        this.updateTimeDisplay();
+        this.updateHeightDisplay();
+        this.updateButtonStates();
+        
+        console.log('Animation marked as completed - timer stopped, UI updated to green');
+    }
+    
+    /**
      * ENHANCED: Update the boxes placed display with actual count
      * Shows the real number of boxes currently placed in the scene
      */
@@ -859,7 +908,7 @@ class PalletizationApp {
                 
                 // Check if this was the last box
                 if (i === sortedBoxes.length - 1) {
-                    this.onAnimationComplete();
+                    this.setAnimationCompleted(); // FIXED: Use new completion method
                 }
             }, delay);
             
@@ -868,24 +917,12 @@ class PalletizationApp {
     }
     
     /**
-     * Handle animation completion
+     * FIXED: Handle animation completion using the new method
      * This is called when the animation reaches the end
      */
     onAnimationComplete() {
-        this.animationState.isPlaying = false;
-        this.animationState.isPaused = false;
-        
-        // ENHANCED: Stop the timer when animation completes
-        this.stopSimulationTimer();
-        
-        const button = document.getElementById('play-pause-btn');
-        if (button) {
-            button.textContent = '▶ Play';
-            button.title = 'Restart animation';
-        }
-        
-        this.updateButtonStates();
-        console.log('Animation completed');
+        this.setAnimationCompleted(); // Use the new centralized completion method
+        console.log('Animation completed via onAnimationComplete');
     }
     
     /**
@@ -896,19 +933,20 @@ class PalletizationApp {
         this.animationState.isPlaying = false;
         this.animationState.isPaused = false;
         this.animationState.currentBoxIndex = 0;
+        this.animationState.isCompleted = false; // Reset completion state
         
-        // ENHANCED: Reset sequence tracking
+        // Reset sequence tracking
         this.sequenceState.lastPlacedSequence = -1;
         this.sequenceState.nextExpectedSequence = 0;
         this.sequenceState.isConsistent = true;
         
-        // ENHANCED: Reset metrics
+        // Reset metrics
         this.metricsState.currentMaxHeight = 0;
-        this.updateHeightDisplay(); // Immediately show 0 height
-
-        // ENHANCED: Reset center of mass calculation
+        this.updateHeightDisplay();
+        
+        // Reset center of mass calculation
         this.centerOfMassState.lastCalculation = null;
-        this.updateCenterOfMassDisplay(); // This will show 0.0cm for empty pallet
+        this.updateCenterOfMassDisplay(); // This will hide the beam
         
         const button = document.getElementById('play-pause-btn');
         if (button) {
@@ -917,7 +955,7 @@ class PalletizationApp {
         }
         
         this.updateButtonStates();
-        console.log('Animation state and metrics reset');
+        console.log('Animation state, metrics, and center of mass visualization reset');
     }
     
     /**
@@ -1018,7 +1056,7 @@ class PalletizationApp {
                 // ENHANCED: Update dynamic metrics
                 this.updateHeightDisplay();         // Real-time height calculation with smart units
                 this.updateBoxesPlacedDisplay();    // Real-time boxes placed count
-                this.updateCenterOfMassDisplay();   // NEW: Real-time center of mass calculation
+                this.updateCenterOfMassDisplay();   // Real-time center of mass calculation
             }
         }, 200); // Keep 200ms for responsive UI updates
         
@@ -1103,13 +1141,13 @@ class PalletizationApp {
         setTimeout(() => {
             this.dataLoader.animationSpeed = originalSpeed;
             this.showMessage(`Pallet completed with ${totalBoxCount} boxes`);
-            this.onAnimationComplete();
+            this.setAnimationCompleted(); // FIXED: Use new completion method
         }, completionTime);
         
         console.log('✓ Fast completion initiated');
     }
 
-        /**
+    /**
      * BONUS: Method to get height information in both units
      * Useful for debugging or advanced displays
      */
@@ -1302,6 +1340,12 @@ class PalletizationApp {
             
             // Show zero deviation when no boxes are present
             this.setCenterOfMassUI('0.0cm');
+            
+            // Hide the beam when no boxes are present
+            if (this.simulator && this.simulator.hideCenterOfMassBeam) {
+                this.simulator.hideCenterOfMassBeam();
+            }
+            
             return;
         }
         
@@ -1319,6 +1363,19 @@ class PalletizationApp {
             // Add visual feedback based on stability
             this.updateCenterOfMassVisualFeedback(result);
             
+            // Update the visual beam position based on calculated center of mass
+            if (this.simulator && this.simulator.updateCenterOfMassBeamPosition) {
+                this.simulator.updateCenterOfMassBeamPosition({
+                    x: result.x,
+                    z: result.z
+                });
+                
+                // Update cross height to match current load height
+                if (this.simulator.updateCenterOfMassCrossHeight) {
+                    this.simulator.updateCenterOfMassCrossHeight(this.simulator.boxes);
+                }
+            }
+            
             // Log significant changes (optional)
             if (result.deviationCm > 20) {
                 console.warn(`High center of mass deviation detected: ${formattedDeviation}`);
@@ -1327,49 +1384,11 @@ class PalletizationApp {
         } catch (error) {
             console.error('Error calculating center of mass:', error);
             this.setCenterOfMassUI('Error');
-        }
-    }
-
-    /**
-     * Update the center of mass deviation display in the UI
-     * @param {string} deviationText - Formatted deviation text to display
-     */
-    setCenterOfMassUI(deviationText) {
-        const centerMassElement = document.getElementById('center-mass');
-        if (centerMassElement) {
-            centerMassElement.textContent = deviationText;
-        }
-    }
-
-    /**
-     * Provide visual feedback based on center of mass stability
-     * @param {Object} result - Center of mass calculation result
-     */
-    updateCenterOfMassVisualFeedback(result) {
-        const centerMassElement = document.getElementById('center-mass');
-        if (!centerMassElement) return;
-        
-        // Apply color coding based on stability rating
-        switch (result.stabilityRating) {
-            case 'Excellent':
-                centerMassElement.style.color = '#27ae60'; // Green
-                centerMassElement.title = 'Excellent stability - optimal load distribution';
-                break;
-            case 'Good':
-                centerMassElement.style.color = '#3498db'; // Blue
-                centerMassElement.title = 'Good stability';
-                break;
-            case 'Fair':
-                centerMassElement.style.color = '#f39c12'; // Orange
-                centerMassElement.title = 'Fair stability';
-                break;
-            case 'Poor':
-                centerMassElement.style.color = '#e74c3c'; // Red
-                centerMassElement.title = 'Poor stability';
-                break;
-            default:
-                centerMassElement.style.color = '#95a5a6'; // Gray
-                centerMassElement.title = 'Center of mass deviation from pallet center';
+            
+            // Hide beam on error
+            if (this.simulator && this.simulator.hideCenterOfMassBeam) {
+                this.simulator.hideCenterOfMassBeam();
+            }
         }
     }
 
@@ -1397,6 +1416,13 @@ class PalletizationApp {
             return;
         }
         
+        // Show pallet dimensions for reference
+        console.log('PALLET DIMENSIONS:');
+        console.log('Length: 12.0 units (1200mm)');
+        console.log('Width: 8.0 units (800mm)');
+        console.log('Center: (0, 0)');
+        console.log('');
+        
         // Enable debug mode temporarily
         this.centerOfMassCalculator.setDebugMode(true);
         
@@ -1414,6 +1440,15 @@ class PalletizationApp {
             console.log(`Box ${index}: pos(${pos.x.toFixed(2)}, ${pos.z.toFixed(2)}), weight=${weight}kg`);
         });
         
+        // Show deviation analysis
+        console.log('');
+        console.log('DEVIATION ANALYSIS:');
+        console.log(`Center of Mass: (${result.x.toFixed(3)}, ${result.z.toFixed(3)})`);
+        console.log(`Deviation: ${result.deviationCm.toFixed(1)}cm`);
+        console.log(`Pallet Half-Length: ${6.0}cm (600mm)`);
+        console.log(`Pallet Half-Width: ${4.0}cm (400mm)`);
+        console.log(`Maximum Safe Deviation: ~${4.0}cm (half width)`);
+        
         // Disable debug mode
         this.centerOfMassCalculator.setDebugMode(false);
         
@@ -1422,7 +1457,44 @@ class PalletizationApp {
         return result;
     }
 
+    /**
+     * Update the center of mass deviation display in the UI
+     */
+    setCenterOfMassUI(deviationText) {
+        const centerMassElement = document.getElementById('center-mass');
+        if (centerMassElement) {
+            centerMassElement.textContent = deviationText;
+        }
+    }
 
+    /**
+     * Provide visual feedback based on center of mass stability
+     */
+    updateCenterOfMassVisualFeedback(result) {
+        const centerMassElement = document.getElementById('center-mass');
+        if (!centerMassElement) return;
+        
+        switch (result.stabilityRating) {
+            case 'Excellent':
+                centerMassElement.style.color = '#27ae60';
+                centerMassElement.title = 'Excellent stability';
+                break;
+            case 'Good':
+                centerMassElement.style.color = '#3498db';
+                centerMassElement.title = 'Good stability';
+                break;
+            case 'Fair':
+                centerMassElement.style.color = '#f39c12';
+                centerMassElement.title = 'Fair stability';
+                break;
+            case 'Poor':
+                centerMassElement.style.color = '#e74c3c';
+                centerMassElement.title = 'Poor stability';
+                break;
+            default:
+                centerMassElement.style.color = '#95a5a6';
+        }
+    }
 }
 
 // Auto-initialize the application when the page loads
