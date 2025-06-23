@@ -117,34 +117,45 @@ class PalletSimulator {
         console.log('WebGL renderer created and added to DOM');
     }
     
-    /**
-     * Create lighting - without lights, our 3D world would be completely dark
+        /**
+     * Create lighting optimized for data visualization clarity
      */
     createLights() {
-        // Ambient light provides soft, even illumination from all directions
-        // Think of this as the general daylight that fills a room
-        this.ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        // Strong ambient light provides even illumination from all directions
+        // Think of this as having light panels on every wall of a photography studio
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(this.ambientLight);
         
-        // Directional light simulates sunlight - strong, parallel rays
-        // This creates shadows and gives objects more dimensional appearance
-        this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        // Primary directional light - reduced intensity to minimize harsh shadows
+        this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
         this.directionalLight.position.set(10, 10, 5);
         this.directionalLight.castShadow = true;
         
-        // Configure shadow properties for better quality
-        this.directionalLight.shadow.mapSize.width = 2048;
-        this.directionalLight.shadow.mapSize.height = 2048;
+        // Configure softer shadows for better visual comfort
+        this.directionalLight.shadow.mapSize.width = 1024;  // Reduced for softer edges
+        this.directionalLight.shadow.mapSize.height = 1024;
         this.directionalLight.shadow.camera.near = 0.5;
         this.directionalLight.shadow.camera.far = 50;
-        this.directionalLight.shadow.camera.left = -10;
-        this.directionalLight.shadow.camera.right = 10;
-        this.directionalLight.shadow.camera.top = 10;
-        this.directionalLight.shadow.camera.bottom = -10;
+        this.directionalLight.shadow.camera.left = -15;     // Expanded for tall pallets
+        this.directionalLight.shadow.camera.right = 15;
+        this.directionalLight.shadow.camera.top = 15;
+        this.directionalLight.shadow.camera.bottom = -15;
         
         this.scene.add(this.directionalLight);
         
-        console.log('Lighting system created with ambient and directional lights');
+        // OPTIONAL: Add fill lights to eliminate remaining shadows
+        // These are like the lights used in professional photography studios
+        const fillLight1 = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight1.position.set(-10, 8, -5);  // Opposite side of main light
+        fillLight1.castShadow = false;         // No additional shadows
+        this.scene.add(fillLight1);
+        
+        const fillLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
+        fillLight2.position.set(5, 10, -10);   // Third angle for complete coverage
+        fillLight2.castShadow = false;
+        this.scene.add(fillLight2);
+        
+        console.log('Data visualization lighting created');
     }
     
     /**
@@ -160,8 +171,8 @@ class PalletSimulator {
             this.controls.enableDamping = true; // Smooth camera movement
             this.controls.dampingFactor = 0.05;
             this.controls.screenSpacePanning = false;
-            this.controls.minDistance = 3;
-            this.controls.maxDistance = 20;
+            this.controls.minDistance = 2;
+            this.controls.maxDistance = 50;
             this.controls.maxPolarAngle = Math.PI / 2; // Prevent camera from going below ground
             
             console.log('OrbitControls initialized for camera interaction');

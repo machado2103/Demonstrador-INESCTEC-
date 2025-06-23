@@ -1,379 +1,504 @@
 /**
- * Pallet Data Loader and Parser
- * This system reads and interprets palletization data files,
- * converting text-based coordinates into 3D visualizations
+ * Pallet Data Loader - Crosslog Format Parser
+ * This file handles loading and parsing of Crosslog format data files
+ * and creates 3D boxes for visualization in the Three.js scene
  * 
- * Save this as: GUI/3d-viewer/pallet-loader.js
+ * Save this as: GUI/3d-viewer/js/pallet-loader.js
  */
 
 class PalletDataLoader {
     constructor(simulator) {
+        // Reference to the 3D simulator for adding/removing boxes
         this.simulator = simulator;
-        this.palletData = null;      // Stores parsed pallet information
-        this.currentPalletIndex = 0; // Which pallet we're currently viewing
-        this.allPallets = [];        // Array containing all parsed pallets
-        this.boxColors = {};         // Color mapping for different item types
-        this.animationSpeed = 500;   // Milliseconds between box placements
         
-        this.initializeColors();
+        // Data storage for parsed information
+        this.allPallets = [];           // Array of all parsed pallets
+        this.currentPalletIndex = 0;    // Currently selected pallet
+        this.orderInfo = {};            // Order metadata
+        
+        // Animation control
+        this.animationSpeed = 500;      // Milliseconds between box placements
+        this.animationTimeouts = [];    // Track active timeouts for cleanup
+        
+        // Color system for different item types
+        this.itemTypeColors = new Map(); // Maps item_type to consistent colors
+        this.colorPalette = [
+            0x3498db,  // Blue
+            0xe74c3c,  // Red  
+            0x2ecc71,  // Green
+            0xf39c12,  // Orange
+            0x9b59b6,  // Purple
+            0x1abc9c,  // Turquoise
+            0xe67e22,  // Dark Orange
+            0x34495e,  // Dark Blue-Gray
+            0xff6b6b,  // Light Red
+            0x4ecdc4,  // Light Turquoise
+            0x45b7d1,  // Sky Blue
+            0x96ceb4,  // Mint Green
+            0xffeaa7,  // Light Yellow
+            0xdda0dd,  // Plum
+            0x74b9ff,  // Bright Blue
+            0xa29bfe   // Light Purple
+        ];
+        
         console.log('PalletDataLoader initialized with animation speed:', this.animationSpeed, 'ms');
     }
     
     /**
-     * Initialize color palette for different box types
-     * Each item type gets a consistent color for easy identification
-     */
-    initializeColors() {
-        // Predefined color palette for different item types
-        // These colors are chosen to be distinct and professional-looking
-        this.colorPalette = [
-            0x3498db, // Blue
-            0xe74c3c, // Red  
-            0x2ecc71, // Green
-            0xf39c12, // Orange
-            0x9b59b6, // Purple
-            0x1abc9c, // Turquoise
-            0xe67e22, // Dark Orange
-            0x34495e, // Dark Blue-Grey
-            0x16a085, // Dark Turquoise
-            0x27ae60, // Dark Green
-            0x8e44ad, // Dark Purple
-            0x2980b9, // Dark Blue
-            0xc0392b, // Dark Red
-            0xd35400, // Dark Orange-Red
-            0x7f8c8d, // Grey
-            0x95a5a6  // Light Grey
-        ];
-        
-        console.log('Initialized color palette with', this.colorPalette.length, 'distinct colors');
-    }
-    
-    /**
-     * Parse a complete palletization data file
-     * This method extracts all pallet and box information from the text format
-     * 
-     * @param {string} fileContent - Raw text content from the data file
-     * @returns {Object} Parsed data structure containing all pallets and their boxes
+     * Parse a complete Crosslog data file
+     * This method processes the entire file structure and extracts all pallets
      */
     parseDataFile(fileContent) {
-        console.log('Starting to parse palletization data...');
+        console.log('=== Starting Crosslog Data Parsing ===');
+        console.log('File size:', fileContent.length, 'characters');
         
-        const lines = fileContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        // Clean and split the file into lines
+        const lines = fileContent.trim().split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        console.log('Total lines to process:', lines.length);
+        
+        // Initialize parsing state
+        let currentLineIndex = 0;
         const parsedData = {
             orderInfo: {},
             pallets: []
         };
         
-        let currentSection = null;
-        let currentPallet = null;
-        let lineIndex = 0;
-        
-        console.log('Processing', lines.length, 'lines of data');
-        
-        while (lineIndex < lines.length) {
-            const line = lines[lineIndex];
+        // Parse order header information
+        try {
+            const orderParseResult = this.parseOrderHeader(lines, currentLineIndex);
+            parsedData.orderInfo = orderParseResult.orderInfo;
+            currentLineIndex = orderParseResult.nextLineIndex;
             
-            // Identify different sections of the data file
-            if (line.startsWith('[order_id]')) {
-                parsedData.orderInfo.orderId = parseInt(lines[lineIndex + 1]);
-                console.log('Found order ID:', parsedData.orderInfo.orderId);
-                lineIndex += 2;
-                continue;
-            }
-            
-            if (line.startsWith('[pallet_quantity]')) {
-                parsedData.orderInfo.palletQuantity = parseInt(lines[lineIndex + 1]);
-                console.log('Expected number of pallets:', parsedData.orderInfo.palletQuantity);
-                lineIndex += 2;
-                continue;
-            }
-            
-            if (line.startsWith('[pallet_id')) {
-                // Start of a new pallet definition
-                currentPallet = this.parsePalletHeader(lines, lineIndex);
-                console.log('Starting pallet', currentPallet.id, 'with dimensions:', 
-                           currentPallet.width + 'x' + currentPallet.depth + 'x' + currentPallet.height);
-                lineIndex += 2; // Skip header line and data line
-                continue;
-            }
-            
-            if (line.startsWith('[total_volume')) {
-                // Parse volume and efficiency metrics
-                const metrics = this.parsePalletMetrics(lines, lineIndex);
-                if (currentPallet) {
-                    currentPallet.metrics = metrics;
-                    console.log('Added metrics to pallet', currentPallet.id, 
-                               '- Efficiency:', (metrics.occupiedVolume / metrics.totalVolume * 100).toFixed(1) + '%');
-                }
-                lineIndex += 2;
-                continue;
-            }
-            
-            if (line.startsWith('[item_quantity]')) {
-                // Parse the number of items and then the item definitions
-                const itemQuantity = parseInt(lines[lineIndex + 1]);
-                if (currentPallet) {
-                    currentPallet.itemQuantity = itemQuantity;
-                    console.log('Parsing', itemQuantity, 'boxes for pallet', currentPallet.id);
-                    
-                    // Parse all box definitions for this pallet
-                    const boxes = this.parseBoxDefinitions(lines, lineIndex + 2, itemQuantity);
-                    currentPallet.boxes = boxes;
-                    
-                    // Add completed pallet to our collection
-                    parsedData.pallets.push(currentPallet);
-                    console.log('Completed pallet', currentPallet.id, 'with', boxes.length, 'boxes');
-                }
-                
-                // Skip past all the box definition lines
-                lineIndex += 2 + itemQuantity;
-                continue;
-            }
-            
-            lineIndex++;
+            console.log('✓ Order header parsed:', parsedData.orderInfo);
+        } catch (error) {
+            throw new Error(`Failed to parse order header: ${error.message}`);
         }
         
+        // Parse each pallet sequentially
+        for (let palletIndex = 0; palletIndex < parsedData.orderInfo.palletQuantity; palletIndex++) {
+            try {
+                console.log(`--- Parsing Pallet ${palletIndex + 1} ---`);
+                
+                const palletParseResult = this.parseSinglePallet(lines, currentLineIndex, palletIndex);
+                parsedData.pallets.push(palletParseResult.palletData);
+                currentLineIndex = palletParseResult.nextLineIndex;
+                
+                console.log(`✓ Pallet ${palletIndex + 1} parsed:`, palletParseResult.palletData.boxes.length, 'boxes');
+                
+            } catch (error) {
+                console.error(`✗ Failed to parse pallet ${palletIndex + 1}:`, error.message);
+                throw new Error(`Failed to parse pallet ${palletIndex + 1}: ${error.message}`);
+            }
+        }
+        
+        // Store the parsed data and prepare for visualization
         this.allPallets = parsedData.pallets;
-        console.log(`Successfully parsed ${parsedData.pallets.length} pallets with total of ${this.getTotalBoxCount()} boxes`);
+        this.orderInfo = parsedData.orderInfo;
+        
+        // Assign consistent colors to item types across all pallets
+        this.assignItemTypeColors();
+        
+        console.log('✓ Crosslog parsing completed successfully!');
+        console.log('  - Total pallets loaded:', this.allPallets.length);
+        console.log('  - Total boxes across all pallets:', this.getTotalBoxCount());
+        console.log('  - Unique item types found:', this.itemTypeColors.size);
         
         return parsedData;
     }
     
     /**
-     * Parse pallet header information (dimensions, weight, etc.)
+     * Parse the order header section of the Crosslog file
+     * This extracts order ID and total pallet quantity
      */
-    parsePalletHeader(lines, startIndex) {
-        const headerLine = lines[startIndex + 1];
-        const parts = headerLine.split('\t').map(part => part.trim());
+    parseOrderHeader(lines, startIndex) {
+        let currentIndex = startIndex;
+        const orderInfo = {};
+        
+        // Parse [order_id]
+        if (!lines[currentIndex] || lines[currentIndex] !== '[order_id]') {
+            throw new Error(`Expected [order_id] at line ${currentIndex + 1}, found: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
+        
+        orderInfo.orderId = parseInt(lines[currentIndex]);
+        if (isNaN(orderInfo.orderId)) {
+            throw new Error(`Invalid order ID at line ${currentIndex + 1}: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
+        
+        // Parse [pallet_quantity]
+        if (!lines[currentIndex] || lines[currentIndex] !== '[pallet_quantity]') {
+            throw new Error(`Expected [pallet_quantity] at line ${currentIndex + 1}, found: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
+        
+        orderInfo.palletQuantity = parseInt(lines[currentIndex]);
+        if (isNaN(orderInfo.palletQuantity) || orderInfo.palletQuantity <= 0) {
+            throw new Error(`Invalid pallet quantity at line ${currentIndex + 1}: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
         
         return {
-            id: parseInt(parts[0]),
-            width: parseFloat(parts[1]),   // X dimension in mm
-            depth: parseFloat(parts[2]),   // Y dimension in mm  
-            height: parseFloat(parts[3]),  // Z dimension in mm
-            weight: parseFloat(parts[4]),  // Pallet weight in grams
-            totalLoad: parseFloat(parts[5]) // Total load including boxes
+            orderInfo: orderInfo,
+            nextLineIndex: currentIndex
         };
     }
     
     /**
-     * Parse volume and efficiency metrics for a pallet
+     * Parse a single pallet section from the Crosslog data
+     * This is the missing function that coordinates parsing one complete pallet
      */
-    parsePalletMetrics(lines, startIndex) {
-        const metricsLine = lines[startIndex + 1];
-        const parts = metricsLine.split('\t').map(part => part.trim());
-        
-        return {
-            totalVolume: parseFloat(parts[0]),
-            occupiedVolume: parseFloat(parts[1]),
-            m1: parseFloat(parts[2]),
-            m2: parseFloat(parts[3])
+    parseSinglePallet(lines, startIndex, palletIndex) {
+        let currentIndex = startIndex;
+        const palletData = {
+            id: palletIndex,
+            metadata: {},
+            boxes: []
         };
-    }
-    
-    /**
-     * Parse all box definitions for a single pallet
-     * Each box has position, dimensions, type, weight, and other properties
-     */
-    parseBoxDefinitions(lines, startIndex, quantity) {
-        const boxes = [];
         
-        for (let i = 0; i < quantity; i++) {
-            const lineIndex = startIndex + i;
-            if (lineIndex >= lines.length) break;
-            
-            const boxLine = lines[lineIndex];
-            const parts = boxLine.split('\t').map(part => part.trim());
-            
-            if (parts.length >= 11) {
-                const box = {
-                    // Position coordinates (convert from mm to our 3D units)
-                    xmin: parseFloat(parts[0]) * 0.01,  // Convert mm to units
-                    ymin: parseFloat(parts[1]) * 0.01,
-                    zmin: parseFloat(parts[2]) * 0.01,
-                    xmax: parseFloat(parts[3]) * 0.01,
-                    ymax: parseFloat(parts[4]) * 0.01,
-                    zmax: parseFloat(parts[5]) * 0.01,
-                    
-                    // Box properties
-                    sequence: parseInt(parts[6]),
-                    itemType: parseInt(parts[7]),
-                    weight: parseFloat(parts[8]),
-                    k: parseInt(parts[9]),
-                    irregular: parseInt(parts[10]),
-                    
-                    // Calculate dimensions from coordinates
-                    width: (parseFloat(parts[3]) - parseFloat(parts[0])) * 0.01,
-                    depth: (parseFloat(parts[4]) - parseFloat(parts[1])) * 0.01,
-                    height: (parseFloat(parts[5]) - parseFloat(parts[2])) * 0.01,
-                    
-                    // Calculate center position for 3D placement
-                    centerX: ((parseFloat(parts[3]) + parseFloat(parts[0])) / 2) * 0.01,
-                    centerY: ((parseFloat(parts[4]) + parseFloat(parts[1])) / 2) * 0.01,
-                    centerZ: ((parseFloat(parts[5]) + parseFloat(parts[2])) / 2) * 0.01
-                };
+        console.log(`Starting to parse pallet ${palletIndex + 1} from line ${currentIndex + 1}`);
+        
+        // Parse pallet header: [pallet_id x y z weight total_load]
+        const palletHeaderResult = this.parsePalletHeader(lines, currentIndex);
+        palletData.metadata = palletHeaderResult.metadata;
+        currentIndex = palletHeaderResult.nextLineIndex;
+        console.log(`Pallet header parsed, now at line ${currentIndex + 1}`);
+        
+        // Parse volume metrics: [total_volume total_occupied_volume m1 m2]
+        const volumeMetricsResult = this.parseVolumeMetrics(lines, currentIndex);
+        palletData.metadata.volumeMetrics = volumeMetricsResult.metrics;
+        currentIndex = volumeMetricsResult.nextLineIndex;
+        console.log(`Volume metrics parsed, now at line ${currentIndex + 1}`);
+        
+        // Parse item quantity: [item_quantity]
+        const itemQuantityResult = this.parseItemQuantity(lines, currentIndex);
+        const expectedBoxCount = itemQuantityResult.itemQuantity;
+        currentIndex = itemQuantityResult.nextLineIndex;
+        console.log(`Expected ${expectedBoxCount} boxes, starting box parsing at line ${currentIndex + 1}`);
+        
+        // Parse all boxes for this pallet with enhanced debugging
+        for (let boxIndex = 0; boxIndex < expectedBoxCount; boxIndex++) {
+            try {
+                const boxParseResult = this.parseBoxData(lines, currentIndex, boxIndex);
+                palletData.boxes.push(boxParseResult.boxData);
+                currentIndex = boxParseResult.nextLineIndex;
                 
-                boxes.push(box);
+                // Only log every 10th box to avoid console spam, plus first and last
+                if (boxIndex === 0 || boxIndex === expectedBoxCount - 1 || (boxIndex + 1) % 10 === 0) {
+                    console.log(`Parsed box ${boxIndex + 1}/${expectedBoxCount} for pallet ${palletIndex + 1}, next line: ${currentIndex + 1}`);
+                }
+            } catch (error) {
+                throw new Error(`Failed to parse box ${boxIndex + 1} in pallet ${palletIndex + 1}: ${error.message}`);
             }
         }
         
-        return boxes;
-    }
-    
-    /**
-     * Get color for a specific item type
-     * Ensures consistent colors across the entire simulation
-     */
-    getColorForItemType(itemType) {
-        if (!this.boxColors[itemType]) {
-            // Assign a color from our palette, cycling through if we have many types
-            const colorIndex = Object.keys(this.boxColors).length % this.colorPalette.length;
-            this.boxColors[itemType] = this.colorPalette[colorIndex];
-            console.log('Assigned color', this.boxColors[itemType].toString(16), 'to item type', itemType);
+        // Final validation and logging
+        console.log(`Finished parsing ${expectedBoxCount} boxes for pallet ${palletIndex + 1}`);
+        console.log(`Current line index: ${currentIndex + 1}, total lines: ${lines.length}`);
+        
+        // Check if we have more content to parse
+        if (currentIndex < lines.length) {
+            console.log(`Next line content: "${lines[currentIndex]}"`);
         }
-        return this.boxColors[itemType];
+        
+        // Validate that we got the expected number of boxes
+        if (palletData.boxes.length !== expectedBoxCount) {
+            throw new Error(`Box count mismatch in pallet ${palletIndex + 1}: expected ${expectedBoxCount}, got ${palletData.boxes.length}`);
+        }
+        
+        return {
+            palletData: palletData,
+            nextLineIndex: currentIndex
+        };
     }
     
     /**
-     * Create a 3D box mesh from box data
-     * This converts our parsed data into actual 3D objects
+     * Parse pallet header line: [pallet_id x y z weight total_load]
      */
-    createBoxMesh(boxData) {
-        // Create the geometry using the calculated dimensions
-        const geometry = new THREE.BoxGeometry(
-            boxData.width,
-            boxData.height,
-            boxData.depth
-        );
+    parsePalletHeader(lines, startIndex) {
+        let currentIndex = startIndex;
         
-        // Get consistent color for this item type
-        const color = this.getColorForItemType(boxData.itemType);
+        if (!lines[currentIndex] || !lines[currentIndex].includes('pallet_id')) {
+            throw new Error(`Expected pallet header at line ${currentIndex + 1}, found: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
         
-        // Create material with some visual enhancement
-        const material = new THREE.MeshLambertMaterial({
-            color: color,
-            transparent: true,
-            opacity: 0.8,
+        const headerData = lines[currentIndex].split('\t').map(s => s.trim());
+        if (headerData.length < 6) {
+            throw new Error(`Invalid pallet header format at line ${currentIndex + 1}: ${lines[currentIndex]}`);
+        }
+        
+        const metadata = {
+            palletId: parseInt(headerData[0]),
+            dimensions: {
+                x: parseFloat(headerData[1]),
+                y: parseFloat(headerData[2]), 
+                z: parseFloat(headerData[3])
+            },
+            weight: parseFloat(headerData[4]),
+            totalLoad: parseFloat(headerData[5])
+        };
+        
+        currentIndex++;
+        return {
+            metadata: metadata,
+            nextLineIndex: currentIndex
+        };
+    }
+    
+    /**
+     * Parse volume metrics line: [total_volume total_occupied_volume m1 m2]
+     */
+    parseVolumeMetrics(lines, startIndex) {
+        let currentIndex = startIndex;
+        
+        if (!lines[currentIndex] || !lines[currentIndex].includes('total_volume')) {
+            throw new Error(`Expected volume metrics at line ${currentIndex + 1}, found: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
+        
+        const metricsData = lines[currentIndex].split('\t').map(s => s.trim());
+        if (metricsData.length < 4) {
+            throw new Error(`Invalid volume metrics format at line ${currentIndex + 1}: ${lines[currentIndex]}`);
+        }
+        
+        const metrics = {
+            totalVolume: parseFloat(metricsData[0]),
+            occupiedVolume: parseFloat(metricsData[1]),
+            efficiency1: parseFloat(metricsData[2]),
+            efficiency2: parseFloat(metricsData[3])
+        };
+        
+        currentIndex++;
+        return {
+            metrics: metrics,
+            nextLineIndex: currentIndex
+        };
+    }
+    
+    /**
+     * Parse item quantity line and skip the descriptive header that follows
+     */
+    parseItemQuantity(lines, startIndex) {
+        let currentIndex = startIndex;
+        
+        if (!lines[currentIndex] || lines[currentIndex] !== '[item_quantity]') {
+            throw new Error(`Expected [item_quantity] at line ${currentIndex + 1}, found: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
+        
+        const itemQuantity = parseInt(lines[currentIndex]);
+        if (isNaN(itemQuantity) || itemQuantity < 0) {
+            throw new Error(`Invalid item quantity at line ${currentIndex + 1}: ${lines[currentIndex]}`);
+        }
+        currentIndex++;
+        
+        // NEW: Skip the descriptive header line that follows
+        // This line looks like: [xmin ymin zmin xmax ymax zmax sequence item_type weight k irregular]
+        if (currentIndex < lines.length && 
+            lines[currentIndex] && 
+            lines[currentIndex].includes('xmin') && 
+            lines[currentIndex].includes('sequence')) {
+            
+            console.log(`Skipping descriptive header at line ${currentIndex + 1}: "${lines[currentIndex]}"`);
+            currentIndex++; // Skip the header line
+        }
+        
+        console.log(`Item quantity parsed: ${itemQuantity} boxes, ready to parse data starting at line ${currentIndex + 1}`);
+        
+        return {
+            itemQuantity: itemQuantity,
+            nextLineIndex: currentIndex
+        };
+    }
+    
+    /**
+     * Parse individual box data line with enhanced validation
+     * Format: [xmin ymin zmin xmax ymax zmax sequence item_type weight k irregular]
+     */
+    parseBoxData(lines, startIndex, boxIndex) {
+        let currentIndex = startIndex;
+        
+        if (currentIndex >= lines.length) {
+            throw new Error(`Reached end of file while looking for box ${boxIndex + 1} data at line ${currentIndex + 1}`);
+        }
+        
+        if (!lines[currentIndex]) {
+            throw new Error(`Missing box data at line ${currentIndex + 1} for box ${boxIndex + 1}`);
+        }
+        
+        // Check if this line looks like box data (should start with numbers, not brackets)
+        const lineContent = lines[currentIndex].trim();
+        if (lineContent.startsWith('[') || lineContent.includes('pallet_id') || lineContent.includes('total_volume') || lineContent.includes('item_quantity')) {
+            throw new Error(`Expected box data at line ${currentIndex + 1}, but found header: "${lineContent}"`);
+        }
+        
+        const boxData = lines[currentIndex].split('\t').map(s => s.trim());
+        if (boxData.length < 11) {
+            throw new Error(`Invalid box data format at line ${currentIndex + 1}: expected 11 fields, got ${boxData.length}. Content: "${lines[currentIndex]}"`);
+        }
+        
+        // Validate that the first few fields are numbers (basic sanity check)
+        for (let i = 0; i < 6; i++) {
+            if (isNaN(parseFloat(boxData[i]))) {
+                throw new Error(`Invalid coordinate data at line ${currentIndex + 1}, field ${i + 1}: "${boxData[i]}" is not a number`);
+            }
+        }
+        
+        // Parse coordinates and convert from mm to our 3D units
+        const box = {
+            // Original coordinates in mm
+            coordinates: {
+                xmin: parseFloat(boxData[0]),
+                ymin: parseFloat(boxData[1]), 
+                zmin: parseFloat(boxData[2]),
+                xmax: parseFloat(boxData[3]),
+                ymax: parseFloat(boxData[4]),
+                zmax: parseFloat(boxData[5])
+            },
+            // Calculate box center and dimensions in our 3D units
+            position: {
+                x: (parseFloat(boxData[0]) + parseFloat(boxData[3])) / 2 * 0.01,
+                y: (parseFloat(boxData[2]) + parseFloat(boxData[5])) / 2 * 0.01,
+                z: (parseFloat(boxData[1]) + parseFloat(boxData[4])) / 2 * 0.01
+            },
+            dimensions: {
+                width: (parseFloat(boxData[3]) - parseFloat(boxData[0])) * 0.01,
+                height: (parseFloat(boxData[5]) - parseFloat(boxData[2])) * 0.01,
+                depth: (parseFloat(boxData[4]) - parseFloat(boxData[1])) * 0.01
+            },
+            // Metadata
+            sequence: parseInt(boxData[6]),
+            itemType: parseInt(boxData[7]),
+            weight: parseFloat(boxData[8]),
+            k: parseFloat(boxData[9]),
+            irregular: parseInt(boxData[10])
+        };
+        
+        // Adjust position to be relative to pallet center
+        box.position.x -= 6.0;  
+        box.position.z -= 4.0;  
+        box.position.y += 0.72; 
+        
+        currentIndex++;
+        return {
+            boxData: box,
+            nextLineIndex: currentIndex
+        };
+    }
+    
+    /**
+     * Assign consistent colors to item types across all pallets
+     */
+    assignItemTypeColors() {
+        console.log('--- Assigning Item Type Colors ---');
+        
+        const allItemTypes = new Set();
+        this.allPallets.forEach(pallet => {
+            pallet.boxes.forEach(box => {
+                allItemTypes.add(box.itemType);
+            });
         });
         
-        // Create the mesh
-        const mesh = new THREE.Mesh(geometry, material);
+        const itemTypeArray = Array.from(allItemTypes).sort((a, b) => a - b);
+        itemTypeArray.forEach((itemType, index) => {
+            const colorIndex = index % this.colorPalette.length;
+            this.itemTypeColors.set(itemType, this.colorPalette[colorIndex]);
+            console.log(`Item type ${itemType} → Color #${this.colorPalette[colorIndex].toString(16)}`);
+        });
         
-        // Position the box at its calculated center
-        // Note: coordinate system conversion from data format to Three.js format
-        mesh.position.set(
-            boxData.centerX - 6, // Offset to center on pallet (12/2 = 6)
-            boxData.centerZ,     // Z becomes Y in our coordinate system
-            boxData.centerY - 4  // Offset to center on pallet (8/2 = 4)
-        );
-        
-        // Enable shadows
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        
-        // Store reference to original data for debugging and interaction
-        mesh.userData = boxData;
-        
-        return mesh;
+        console.log(`✓ Assigned colors to ${this.itemTypeColors.size} unique item types`);
     }
     
     /**
-     * Load and display a specific pallet with animated box placement
+     * Load a specific pallet for 3D visualization
      */
-    loadPallet(palletIndex = 0) {
+    loadPallet(palletIndex) {
         if (palletIndex < 0 || palletIndex >= this.allPallets.length) {
             console.error('Invalid pallet index:', palletIndex);
             return;
         }
         
-        // Clear existing boxes
+        console.log(`=== Loading Pallet ${palletIndex + 1} for Visualization ===`);
+        
         this.clearCurrentBoxes();
-        
-        const pallet = this.allPallets[palletIndex];
         this.currentPalletIndex = palletIndex;
+        const currentPallet = this.allPallets[palletIndex];
         
-        console.log(`Loading pallet ${pallet.id} with ${pallet.boxes.length} boxes`);
+        console.log('Pallet metadata:', currentPallet.metadata);
+        console.log('Starting animation for', currentPallet.boxes.length, 'boxes');
         
-        // Create and add all boxes for this pallet with animation
-        pallet.boxes.forEach((boxData, index) => {
-            setTimeout(() => {
-                const boxMesh = this.createBoxMesh(boxData);
-                this.simulator.scene.add(boxMesh);
-                this.simulator.boxes.push(boxMesh);
-                
-                // Update UI counters
-                this.updateUI();
-                
-                // Log progress every 10 boxes
-                if ((index + 1) % 10 === 0 || index === pallet.boxes.length - 1) {
-                    console.log(`Placed ${index + 1}/${pallet.boxes.length} boxes`);
+        const sortedBoxes = [...currentPallet.boxes].sort((a, b) => a.sequence - b.sequence);
+        
+        sortedBoxes.forEach((boxData, index) => {
+            const delay = index * this.animationSpeed;
+            
+            const timeoutId = setTimeout(() => {
+                this.createAndAddBox(boxData);
+                if ((index + 1) % 10 === 0 || index === sortedBoxes.length - 1) {
+                    console.log(`Box ${index + 1}/${sortedBoxes.length} placed (sequence ${boxData.sequence}, type ${boxData.itemType})`);
                 }
-            }, index * this.animationSpeed);
-        });
-    }
-    
-    /**
-     * Clear all boxes from the current scene
-     */
-    clearCurrentBoxes() {
-        console.log('Clearing', this.simulator.boxes.length, 'boxes from scene');
-        
-        this.simulator.boxes.forEach(box => {
-            this.simulator.scene.remove(box);
-            // Dispose of geometry and materials to free memory
-            box.geometry.dispose();
-            box.material.dispose();
-        });
-        this.simulator.boxes = [];
-    }
-    
-    /**
-     * Update the user interface with current pallet information
-     */
-    updateUI() {
-        if (this.allPallets.length === 0) return;
-        
-        const currentPallet = this.allPallets[this.currentPalletIndex];
-        
-        // Update box count
-        const boxCountElement = document.getElementById('boxes-count');
-        if (boxCountElement) {
-            boxCountElement.textContent = this.simulator.boxes.length;
-        }
-        
-        // Update height (find the highest box)
-        let maxHeight = 0;
-        this.simulator.boxes.forEach(box => {
-            const boxTop = box.position.y + (box.userData.height / 2);
-            maxHeight = Math.max(maxHeight, boxTop);
+            }, delay);
+            
+            this.animationTimeouts.push(timeoutId);
         });
         
-        const heightElement = document.getElementById('current-height');
-        if (heightElement) {
-            heightElement.textContent = `${(maxHeight * 100).toFixed(1)}cm`;
-        }
+        console.log(`✓ Animation started - ${sortedBoxes.length} boxes will be placed over ${(sortedBoxes.length * this.animationSpeed / 1000).toFixed(1)} seconds`);
+    }
+    
+    /**
+     * Create a 3D box mesh and add it to the scene
+     */
+    createAndAddBox(boxData) {
+        const geometry = new THREE.BoxGeometry(
+            boxData.dimensions.width,
+            boxData.dimensions.height,
+            boxData.dimensions.depth
+        );
         
-        // Update efficiency
-        const efficiencyElement = document.getElementById('global-efficiency');
-        if (efficiencyElement && currentPallet.metrics) {
-            const efficiency = (currentPallet.metrics.occupiedVolume / currentPallet.metrics.totalVolume * 100);
-            efficiencyElement.textContent = `${efficiency.toFixed(1)}%`;
+        const color = this.itemTypeColors.get(boxData.itemType) || 0x808080;
+        
+        const material = new THREE.MeshLambertMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 0.9 
+        });
+        
+        const box = new THREE.Mesh(geometry, material);
+        
+        box.position.set(
+            boxData.position.x,
+            boxData.position.y,
+            boxData.position.z
+        );
+        
+        box.castShadow = true;
+        box.receiveShadow = true;
+        
+        box.userData = {
+            sequence: boxData.sequence,
+            itemType: boxData.itemType,
+            weight: boxData.weight,
+            originalCoordinates: boxData.coordinates
+        };
+        
+        this.simulator.scene.add(box);
+        this.simulator.boxes.push(box);
+    }
+    
+    /**
+     * Navigation methods
+     */
+    previousPallet() {
+        if (this.currentPalletIndex > 0) {
+            this.loadPallet(this.currentPalletIndex - 1);
+        } else {
+            console.log('Already at first pallet');
         }
     }
     
-    /**
-     * Get total number of boxes across all pallets
-     */
-    getTotalBoxCount() {
-        return this.allPallets.reduce((total, pallet) => total + pallet.boxes.length, 0);
-    }
-    
-    /**
-     * Navigate to next pallet
-     */
     nextPallet() {
         if (this.currentPalletIndex < this.allPallets.length - 1) {
-            console.log('Navigating to next pallet');
             this.loadPallet(this.currentPalletIndex + 1);
         } else {
             console.log('Already at last pallet');
@@ -381,17 +506,53 @@ class PalletDataLoader {
     }
     
     /**
-     * Navigate to previous pallet
+     * Clear all current boxes from the scene
      */
-    previousPallet() {
-        if (this.currentPalletIndex > 0) {
-            console.log('Navigating to previous pallet');
-            this.loadPallet(this.currentPalletIndex - 1);
-        } else {
-            console.log('Already at first pallet');
+    clearCurrentBoxes() {
+        console.log('Clearing current boxes and animations...');
+        
+        this.animationTimeouts.forEach(timeoutId => {
+            clearTimeout(timeoutId);
+        });
+        this.animationTimeouts = [];
+        
+        this.simulator.boxes.forEach(box => {
+            this.simulator.scene.remove(box);
+            if (box.geometry) box.geometry.dispose();
+            if (box.material) box.material.dispose();
+        });
+        this.simulator.boxes = [];
+        
+        console.log('✓ Scene cleared and resources disposed');
+    }
+    
+    /**
+     * Utility methods
+     */
+    getTotalBoxCount() {
+        return this.allPallets.reduce((total, pallet) => total + pallet.boxes.length, 0);
+    }
+    
+    getStatistics() {
+        if (this.allPallets.length === 0) {
+            return null;
         }
+        
+        const stats = {
+            totalPallets: this.allPallets.length,
+            totalBoxes: this.getTotalBoxCount(),
+            itemTypes: this.itemTypeColors.size,
+            averageBoxesPerPallet: Math.round(this.getTotalBoxCount() / this.allPallets.length),
+            palletDetails: this.allPallets.map((pallet, index) => ({
+                id: index + 1,
+                boxCount: pallet.boxes.length,
+                efficiency: pallet.metadata.volumeMetrics ? 
+                    (pallet.metadata.volumeMetrics.efficiency1 * 100).toFixed(1) + '%' : 'N/A'
+            }))
+        };
+        
+        return stats;
     }
 }
 
-// Export for use in other files
 window.PalletDataLoader = PalletDataLoader;
