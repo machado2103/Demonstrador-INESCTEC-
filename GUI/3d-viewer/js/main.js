@@ -7,6 +7,7 @@
  * - Three-zone control layout (Pallet Controls | Information Display | Animation Controls)
  * - Real-time box counting and pallet tracking
  * - Play/pause animation with step-by-step control
+ * - ENHANCED: Dynamic height calculation and simulation timer
  * - Professional error handling and user feedback
  * 
  * Save this as: GUI/3d-viewer/js/main.js
@@ -15,21 +16,53 @@
 class PalletizationApp {
     constructor() {
         // Core application components
-        this.simulator = null;              // Three.js 3D visualization engine
-        this.dataLoader = null;             // Crosslog data parser and loader
-        this.isInitialized = false;         // Application initialization state
-        this.currentDataFile = null;        // Currently loaded data reference
+        this.simulator = null;
+        this.dataLoader = null;
+        this.isInitialized = false;
+        this.currentDataFile = null;
         
-        // Animation state management - this tracks the current state of box placement
-        // Think of this as the "brain" that remembers where we are in the animation
+        // Animation state management
         this.animationState = {
-            isPlaying: false,               // Is animation currently running?
-            isPaused: false,                // Is animation paused (vs stopped)?
-            currentBoxIndex: 0,             // How many boxes are currently placed?
-            totalBoxes: 0                   // How many boxes should be in this pallet?
+            isPlaying: false,
+            isPaused: false,
+            currentBoxIndex: 0,
+            totalBoxes: 0
         };
         
-        console.log('PalletizationApp constructor called - preparing for advanced control');
+        // Robust sequence tracking to fix manual/automatic inconsistencies
+        this.sequenceState = {
+            lastPlacedSequence: -1,     // Last sequence actually placed
+            nextExpectedSequence: 0,    // Next sequence that should be placed
+            isConsistent: true          // Flag to detect inconsistencies
+        };
+        
+        // Dynamic metrics tracking system for real-time information
+        this.metricsState = {
+            // Height calculation system
+            palletTopY: 0.61,           // Y coordinate of pallet top surface
+            boxFloorOffset: 0.72,       // Additional Y offset applied to boxes
+            currentMaxHeight: 0,        // Current highest point in cm
+            
+            // Simulation timer system
+            simulationTimer: {
+                startTime: null,        // When current simulation session started
+                elapsedTime: 0,         // Total elapsed time in milliseconds
+                isRunning: false,       // Is timer currently running
+                pausedTime: 0,          // Time accumulated before current session
+                displayInterval: null   // Interval for updating display
+            }
+        };
+        
+        //Center of Mass calculation system
+        this.centerOfMassCalculator = new CenterOfMassCalculator();
+        this.centerOfMassState = {
+            isEnabled: true,            // Whether to calculate center of mass
+            updateFrequency: 300,       // How often to recalculate (ms)
+            lastCalculation: null,      // Last calculation result
+            calculationHistory: []      // History for trend analysis
+        };
+        
+        console.log('PalletizationApp constructor - all systems initialized');
         this.init();
     }
     
@@ -62,7 +95,7 @@ class PalletizationApp {
             await this.loadDefaultCrosslogData();
             
             this.isInitialized = true;
-            console.log('Enhanced Palletization Application fully initialized with advanced controls!');
+            console.log('Enhanced Palletization Application fully initialized with dynamic metrics!');
             
         } catch (error) {
             console.error('Failed to initialize application:', error);
@@ -132,7 +165,7 @@ class PalletizationApp {
         // Create the main navigation controls with three-zone layout
         this.createNavigationControls();
         
-        // Set up automatic information display updates
+        // Set up automatic information display updates with enhanced metrics
         this.setupInfoDisplays();
         
         console.log('Enhanced user interface controls set up successfully');
@@ -280,7 +313,7 @@ class PalletizationApp {
             width: 100%;
         `;
         
-        // Create pallet control buttons with consistent sizing
+        // Create pallet control buttons with enhanced functionality
         const restartButton = this.createControlButton('Restart', () => {
             this.restartCurrentPallet();
         }, 'small');
@@ -292,6 +325,7 @@ class PalletizationApp {
             if (this.dataLoader) {
                 this.dataLoader.previousPallet();
                 this.resetAnimationState();
+                this.resetSimulationTimer(); // ENHANCED: Reset timer when changing pallets
             }
         }, 'small');
         prevPalletButton.id = 'prev-pallet-btn';
@@ -302,6 +336,7 @@ class PalletizationApp {
             if (this.dataLoader) {
                 this.dataLoader.nextPallet();
                 this.resetAnimationState();
+                this.resetSimulationTimer(); // ENHANCED: Reset timer when changing pallets
             }
         }, 'small');
         nextPalletButton.id = 'next-pallet-btn';
@@ -351,7 +386,7 @@ class PalletizationApp {
             width: 100%;
         `;
         
-        // Create animation control buttons
+        // Create animation control buttons with enhanced functionality
         const stepBackButton = this.createControlButton('Previous Box', () => {
             this.stepBackwardOneBox();
         }, 'small');
@@ -385,7 +420,7 @@ class PalletizationApp {
         controlsContainer.appendChild(boxCounter);
         controlsContainer.appendChild(rightButtons);
         
-        console.log('Professional grid-based navigation controls created with perfect alignment');
+        console.log('Professional grid-based navigation controls created with enhanced functionality');
     }
     
     /**
@@ -433,7 +468,172 @@ class PalletizationApp {
     }
     
     /**
-     * Toggle between play and pause states
+     * ENHANCED: Calculate the current height of the pallet stack
+     * Returns height in centimeters from pallet top surface to highest box
+     */
+    calculateCurrentHeight() {
+        if (!this.simulator || this.simulator.boxes.length === 0) {
+            return 0; // No boxes placed yet
+        }
+        
+        // Find the highest point among all boxes
+        let maxY = -Infinity;
+        
+        this.simulator.boxes.forEach(box => {
+            // Calculate the top of this box: position + half height
+            const boxTop = box.position.y + (box.geometry.parameters.height / 2);
+            if (boxTop > maxY) {
+                maxY = boxTop;
+            }
+        });
+        
+        // Calculate height from pallet surface to highest box top
+        // Reference level is pallet top surface + box floor offset
+        const referenceLevel = this.metricsState.palletTopY + this.metricsState.boxFloorOffset;
+        const heightInUnits = maxY - referenceLevel;
+        
+        // Convert to centimeters (1 unit = 1cm in our coordinate system)
+        const heightInCm = Math.max(0, heightInUnits * 100);
+        
+        // Store for reference and return
+        this.metricsState.currentMaxHeight = heightInCm;
+        return heightInCm;
+    }
+    
+    /**
+     * ENHANCED: Start the simulation timer
+     * Called when animation begins or resumes
+     */
+    startSimulationTimer() {
+        const timer = this.metricsState.simulationTimer;
+        
+        if (!timer.isRunning) {
+            timer.startTime = Date.now();
+            timer.isRunning = true;
+            
+            // Start the display update interval (update every 100ms for smooth display)
+            timer.displayInterval = setInterval(() => {
+                this.updateTimeDisplay();
+            }, 100);
+            
+            console.log('Simulation timer started');
+        }
+    }
+    
+    /**
+     * ENHANCED: Stop or pause the simulation timer
+     * Called when animation is paused or stopped
+     */
+    stopSimulationTimer() {
+        const timer = this.metricsState.simulationTimer;
+        
+        if (timer.isRunning) {
+            // Calculate elapsed time for this session
+            const sessionTime = Date.now() - timer.startTime;
+            timer.pausedTime += sessionTime;
+            
+            timer.isRunning = false;
+            timer.startTime = null;
+            
+            // Clear the display update interval
+            if (timer.displayInterval) {
+                clearInterval(timer.displayInterval);
+                timer.displayInterval = null;
+            }
+            
+            console.log(`Simulation timer paused. Total elapsed: ${this.getTotalElapsedTime()}ms`);
+        }
+    }
+    
+    /**
+     * ENHANCED: Reset the simulation timer to zero
+     * Called when restarting pallet or changing to different pallet
+     */
+    resetSimulationTimer() {
+        const timer = this.metricsState.simulationTimer;
+        
+        // Stop any running timer
+        this.stopSimulationTimer();
+        
+        // Reset all timer values
+        timer.elapsedTime = 0;
+        timer.pausedTime = 0;
+        timer.startTime = null;
+        timer.isRunning = false;
+        
+        // Update display immediately
+        this.updateTimeDisplay();
+        
+        console.log('Simulation timer reset');
+    }
+    
+    /**
+     * ENHANCED: Get the total elapsed simulation time in milliseconds
+     * Includes both completed sessions and current session if running
+     */
+    getTotalElapsedTime() {
+        const timer = this.metricsState.simulationTimer;
+        
+        let totalTime = timer.pausedTime;
+        
+        // Add current session time if timer is running
+        if (timer.isRunning && timer.startTime) {
+            totalTime += (Date.now() - timer.startTime);
+        }
+        
+        return totalTime;
+    }
+    
+    /**
+     * ENHANCED: Update the time display in the UI
+     * Shows elapsed time in a user-friendly format
+     */
+    updateTimeDisplay() {
+        const timeElement = document.getElementById('simulation-time');
+        if (!timeElement) return;
+        
+        const totalMs = this.getTotalElapsedTime();
+        const seconds = totalMs / 1000;
+        
+        // Format time nicely - different formats for different durations
+        let displayText;
+        if (seconds < 60) {
+            displayText = `${seconds.toFixed(1)}s`;
+        } else {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            displayText = `${minutes}:${remainingSeconds.toFixed(1).padStart(4, '0')}`;
+        }
+        
+        timeElement.textContent = displayText;
+    }
+    
+    /**
+     * ENHANCED: Update the height display in the UI
+     * Shows current pallet height in centimeters
+     */
+    updateHeightDisplay() {
+        const heightElement = document.getElementById('current-height');
+        if (!heightElement) return;
+        
+        const currentHeightCm = this.calculateCurrentHeight();
+        
+        // Smart unit conversion logic
+        let displayText;
+        if (currentHeightCm >= 100) {
+            // Convert to meters when height is 100cm or more
+            const heightInMeters = currentHeightCm / 100;
+            displayText = `${heightInMeters.toFixed(2)}m`;
+        } else {
+            // Keep in centimeters for values under 100cm
+            displayText = `${currentHeightCm.toFixed(1)}cm`;
+        }
+        
+        heightElement.textContent = displayText;
+    }
+    
+    /**
+     * ENHANCED: Toggle between play and pause states with timer integration
      * This is the central control for animation state management
      */
     togglePlayPause() {
@@ -452,6 +652,9 @@ class PalletizationApp {
             button.textContent = '▶ Play';
             button.title = 'Resume animation';
             
+            // ENHANCED: Stop the simulation timer
+            this.stopSimulationTimer();
+            
             console.log('Animation paused at box', this.simulator.boxes.length);
         } else {
             // Resume or start animation
@@ -466,6 +669,9 @@ class PalletizationApp {
             button.textContent = '⏸ Pause';
             button.title = 'Pause animation';
             
+            // ENHANCED: Start the simulation timer
+            this.startSimulationTimer();
+            
             console.log('Animation started/resumed');
         }
         
@@ -473,7 +679,7 @@ class PalletizationApp {
     }
     
     /**
-     * Step backward by removing one box
+     * ENHANCED: Step backward by removing one box with height updates
      * This provides precise control over the visualization
      */
     stepBackwardOneBox() {
@@ -482,25 +688,47 @@ class PalletizationApp {
             return;
         }
         
-        // Remove the last box that was added - this maintains the sequence integrity
-        const lastBox = this.simulator.boxes.pop();
-        this.simulator.scene.remove(lastBox);
+        // Find the box with the highest sequence (last placed logically)
+        let lastBox = null;
+        let maxSequence = -1;
+        let maxSequenceIndex = -1;
         
-        // Dispose of resources to prevent memory leaks
-        if (lastBox.geometry) lastBox.geometry.dispose();
-        if (lastBox.material) lastBox.material.dispose();
+        this.simulator.boxes.forEach((box, index) => {
+            if (box.userData.sequence > maxSequence) {
+                maxSequence = box.userData.sequence;
+                lastBox = box;
+                maxSequenceIndex = index;
+            }
+        });
+        
+        if (lastBox) {
+            // Remove the box from the scene
+            this.simulator.scene.remove(lastBox);
+            this.simulator.boxes.splice(maxSequenceIndex, 1);
+            
+            // Dispose of resources to prevent memory leaks
+            if (lastBox.geometry) lastBox.geometry.dispose();
+            if (lastBox.material) lastBox.material.dispose();
+            
+            // ENHANCED: Update sequence tracking
+            this.sequenceState.lastPlacedSequence = this.findCurrentMaxSequence();
+            this.sequenceState.nextExpectedSequence = maxSequence; // The removed sequence becomes next expected
+            
+            console.log(`Removed box with sequence ${maxSequence}. Remaining: ${this.simulator.boxes.length}`);
+        }
+        
+        // ENHANCED: Update height display after removing box
+        this.updateHeightDisplay();
         
         // Update our animation state tracking
         this.animationState.currentBoxIndex = this.simulator.boxes.length;
         this.updateBoxCounter();
         this.updateButtonStates();
-        
-        console.log(`Removed box. Current count: ${this.simulator.boxes.length}`);
     }
     
     /**
-     * Step forward by adding one box
-     * This allows users to build the pallet manually, box by box
+     * ENHANCED: Step forward by adding one box with sequence tracking and height updates
+     * Now uses sequence-based tracking instead of simple box count for consistency
      */
     stepForwardOneBox() {
         if (!this.dataLoader || this.dataLoader.allPallets.length === 0) {
@@ -509,26 +737,104 @@ class PalletizationApp {
         }
         
         const currentPallet = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex];
-        const currentBoxCount = this.simulator.boxes.length;
+        const sortedBoxes = [...currentPallet.boxes].sort((a, b) => a.sequence - b.sequence);
         
-        if (currentBoxCount >= currentPallet.boxes.length) {
-            console.log('All boxes already placed');
+        // ENHANCED: Instead of using boxes.length as direct index
+        // Find the next box based on sequence logic
+        const nextBoxIndex = this.findNextBoxToPlace(sortedBoxes);
+        
+        if (nextBoxIndex === -1) {
+            console.log('All boxes already placed or sequence completed');
             return;
         }
         
-        // Get the next box to place (sorted by sequence to maintain proper order)
-        const sortedBoxes = [...currentPallet.boxes].sort((a, b) => a.sequence - b.sequence);
-        const nextBox = sortedBoxes[currentBoxCount];
+        const nextBox = sortedBoxes[nextBoxIndex];
         
         // Add the box to the scene
         this.dataLoader.createAndAddBox(nextBox);
+        
+        // ENHANCED: Update sequence tracking
+        this.sequenceState.lastPlacedSequence = nextBox.sequence;
+        this.sequenceState.nextExpectedSequence = this.findNextExpectedSequence(sortedBoxes, nextBox.sequence);
+        
+        // ENHANCED: Update height display after adding box
+        this.updateHeightDisplay();
         
         // Update our state tracking
         this.animationState.currentBoxIndex = this.simulator.boxes.length;
         this.updateBoxCounter();
         this.updateButtonStates();
         
-        console.log(`Added box ${currentBoxCount + 1}. Current count: ${this.simulator.boxes.length}`);
+        console.log(`Added box with sequence ${nextBox.sequence}. Total boxes: ${this.simulator.boxes.length}`);
+    }
+
+
+        /**
+     * ENHANCED: Update the boxes placed display with actual count
+     * Shows the real number of boxes currently placed in the scene
+     */
+    updateBoxesPlacedDisplay() {
+        const boxesElement = document.getElementById('boxes-count');
+        if (!boxesElement) return;
+        
+        const currentBoxCount = this.simulator ? this.simulator.boxes.length : 0;
+        boxesElement.textContent = currentBoxCount.toString();
+        
+        // Optional: Add visual feedback based on progress
+        if (this.dataLoader && this.dataLoader.allPallets.length > 0) {
+            const totalBoxes = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex].boxes.length;
+            const progressPercentage = (currentBoxCount / totalBoxes) * 100;
+            
+            // Change color based on completion percentage
+            if (progressPercentage === 100) {
+                boxesElement.style.color = '#27ae60'; // Green for complete
+            } else {
+                boxesElement.style.color = '#3498db'; // Blue for the rest
+            }
+        }
+    }
+    
+    /**
+     * ENHANCED: Find the next box that should be placed based on current scene state
+     * This ensures consistency regardless of how we got to the current state
+     */
+    findNextBoxToPlace(sortedBoxes) {
+        // Get all sequences currently placed in the scene
+        const placedSequences = new Set(
+            this.simulator.boxes.map(box => box.userData.sequence)
+        );
+        
+        // Find the first sequence that hasn't been placed yet
+        for (let i = 0; i < sortedBoxes.length; i++) {
+            const sequence = sortedBoxes[i].sequence;
+            if (!placedSequences.has(sequence)) {
+                console.log(`Next box to place: sequence ${sequence} (index ${i})`);
+                return i;
+            }
+        }
+        
+        // All boxes have been placed
+        return -1;
+    }
+    
+    /**
+     * ENHANCED: Calculate what the next expected sequence should be
+     */
+    findNextExpectedSequence(sortedBoxes, currentSequence) {
+        const currentIndex = sortedBoxes.findIndex(box => box.sequence === currentSequence);
+        if (currentIndex === -1 || currentIndex === sortedBoxes.length - 1) {
+            return -1; // Sequence not found or it's the last one
+        }
+        return sortedBoxes[currentIndex + 1].sequence;
+    }
+    
+    /**
+     * ENHANCED: Find the current maximum sequence in the scene
+     */
+    findCurrentMaxSequence() {
+        if (this.simulator.boxes.length === 0) return -1;
+        
+        return Math.max(...this.simulator.boxes.map(box => box.userData.sequence));
     }
     
     /**
@@ -569,6 +875,9 @@ class PalletizationApp {
         this.animationState.isPlaying = false;
         this.animationState.isPaused = false;
         
+        // ENHANCED: Stop the timer when animation completes
+        this.stopSimulationTimer();
+        
         const button = document.getElementById('play-pause-btn');
         if (button) {
             button.textContent = '▶ Play';
@@ -580,13 +889,26 @@ class PalletizationApp {
     }
     
     /**
-     * Reset animation state
+     * ENHANCED: Reset animation state with metrics integration
      * This is called when changing pallets or restarting
      */
     resetAnimationState() {
         this.animationState.isPlaying = false;
         this.animationState.isPaused = false;
         this.animationState.currentBoxIndex = 0;
+        
+        // ENHANCED: Reset sequence tracking
+        this.sequenceState.lastPlacedSequence = -1;
+        this.sequenceState.nextExpectedSequence = 0;
+        this.sequenceState.isConsistent = true;
+        
+        // ENHANCED: Reset metrics
+        this.metricsState.currentMaxHeight = 0;
+        this.updateHeightDisplay(); // Immediately show 0 height
+
+        // ENHANCED: Reset center of mass calculation
+        this.centerOfMassState.lastCalculation = null;
+        this.updateCenterOfMassDisplay(); // This will show 0.0cm for empty pallet
         
         const button = document.getElementById('play-pause-btn');
         if (button) {
@@ -595,6 +917,7 @@ class PalletizationApp {
         }
         
         this.updateButtonStates();
+        console.log('Animation state and metrics reset');
     }
     
     /**
@@ -682,24 +1005,28 @@ class PalletizationApp {
     }
     
     /**
-     * Set up automatic updates for information displays
-     * This creates a continuous feedback loop for the user interface
+     * ENHANCED: Modified setupInfoDisplays to include the new box counter
+     * This ensures all dynamic information updates properly
      */
     setupInfoDisplays() {
-        // Create a periodic update for dynamic information
         setInterval(() => {
             if (this.dataLoader && this.dataLoader.allPallets.length > 0) {
-                this.updateButtonStates();      // Keep buttons in sync with state
-                this.updatePalletCounter();     // Update pallet information
-                this.updateBoxCounter();        // Update box count information
+                this.updateButtonStates();          // Keep buttons in sync with state
+                this.updatePalletCounter();         // Update pallet information
+                this.updateBoxCounter();            // Update box count information
+                
+                // ENHANCED: Update dynamic metrics
+                this.updateHeightDisplay();         // Real-time height calculation with smart units
+                this.updateBoxesPlacedDisplay();    // Real-time boxes placed count
+                this.updateCenterOfMassDisplay();   // NEW: Real-time center of mass calculation
             }
-        }, 200);
+        }, 200); // Keep 200ms for responsive UI updates
         
-        console.log('Set up automatic UI updates with enhanced feedback');
+        console.log('Enhanced automatic UI updates set up with center of mass calculation');
     }
     
     /**
-     * Restart the current pallet animation from the beginning
+     * ENHANCED: Restart the current pallet animation from the beginning with timer reset
      * This provides a clean slate while maintaining the same pallet selection
      */
     restartCurrentPallet() {
@@ -716,6 +1043,9 @@ class PalletizationApp {
         // Reset our animation state
         this.resetAnimationState();
         
+        // ENHANCED: Reset simulation timer for fresh start
+        this.resetSimulationTimer();
+        
         // Provide visual feedback to user
         this.showMessage('Restarting pallet animation...');
         
@@ -723,7 +1053,10 @@ class PalletizationApp {
         const currentIndex = this.dataLoader.currentPalletIndex;
         this.dataLoader.loadPallet(currentIndex);
         
-        console.log('✓ Pallet restart completed successfully');
+        // ENHANCED: Start timer when animation begins
+        this.startSimulationTimer();
+        
+        console.log('✓ Pallet restart completed successfully with timer reset');
     }
     
     /**
@@ -775,6 +1108,44 @@ class PalletizationApp {
         
         console.log('✓ Fast completion initiated');
     }
+
+        /**
+     * BONUS: Method to get height information in both units
+     * Useful for debugging or advanced displays
+     */
+    getHeightInfo() {
+        const heightCm = this.calculateCurrentHeight();
+        const heightM = heightCm / 100;
+        
+        return {
+            centimeters: heightCm,
+            meters: heightM,
+            displayText: heightCm >= 100 ? `${heightM.toFixed(2)}m` : `${heightCm.toFixed(1)}cm`,
+            isOverOneMeter: heightCm >= 100
+        };
+    }
+
+    /**
+     * BONUS: Method to get comprehensive box statistics
+     * Provides detailed information about box placement progress
+     */
+    getBoxStatistics() {
+        if (!this.simulator || !this.dataLoader || this.dataLoader.allPallets.length === 0) {
+            return null;
+        }
+        
+        const currentBoxCount = this.simulator.boxes.length;
+        const totalBoxes = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex].boxes.length;
+        const progressPercentage = (currentBoxCount / totalBoxes) * 100;
+        
+        return {
+            placed: currentBoxCount,
+            total: totalBoxes,
+            remaining: totalBoxes - currentBoxCount,
+            progressPercentage: progressPercentage,
+            isComplete: currentBoxCount === totalBoxes
+        };
+    }
     
     /**
      * Show welcome message for Crosslog data integration
@@ -785,13 +1156,15 @@ class PalletizationApp {
         console.log('✓ Crosslog data parser ready');
         console.log('✓ Three-zone control interface activated');
         console.log('✓ Real-time box counting and animation control enabled');
+        console.log('✓ Dynamic height calculation and simulation timer integrated');
         console.log('');
         console.log('Advanced Features Available:');
-        console.log('  - Play/pause animation control');
+        console.log('  - Play/pause animation control with timer integration');
         console.log('  - Step-by-step box placement and removal');
-        console.log('  - Real-time progress tracking');
+        console.log('  - Real-time progress tracking and height calculation');
         console.log('  - Enhanced camera zoom for tall pallets');
         console.log('  - Improved lighting for better visibility');
+        console.log('  - Sequence-based consistency for manual/automatic modes');
         console.log('');
         console.log('System ready for professional palletization analysis!');
     }
@@ -820,6 +1193,9 @@ class PalletizationApp {
                 // Load the first pallet automatically
                 console.log('Loading first pallet...');
                 this.dataLoader.loadPallet(0);
+                
+                // ENHANCED: Start simulation timer
+                this.startSimulationTimer();
                 
                 // Enable all navigation controls now that we have data
                 this.updateButtonStates();
@@ -868,10 +1244,17 @@ class PalletizationApp {
     }
     
     /**
-     * Clean up resources when the application is closed
+     * ENHANCED: Clean up resources when the application is closed
+     * Now properly disposes of timer intervals
      */
     dispose() {
         console.log('Disposing application resources...');
+        
+        // ENHANCED: Clean up timer resources
+        this.stopSimulationTimer();
+        if (this.metricsState.simulationTimer.displayInterval) {
+            clearInterval(this.metricsState.simulationTimer.displayInterval);
+        }
         
         if (this.simulator) {
             this.simulator.dispose();
@@ -881,8 +1264,165 @@ class PalletizationApp {
             this.dataLoader.clearCurrentBoxes();
         }
         
-        console.log('Application disposed successfully');
+        console.log('Application disposed successfully with metrics cleanup');
     }
+    
+    /**
+     * ENHANCED: Debug method to verify height calculations
+     * Use this to troubleshoot coordinate system issues
+     */
+    debugHeightCalculation() {
+        if (this.simulator.boxes.length === 0) {
+            console.log('No boxes to analyze');
+            return;
+        }
+        
+        console.log('=== HEIGHT CALCULATION DEBUG ===');
+        console.log('Pallet reference level:', this.metricsState.palletTopY + this.metricsState.boxFloorOffset);
+        
+        this.simulator.boxes.forEach((box, index) => {
+            const boxTop = box.position.y + (box.geometry.parameters.height / 2);
+            const boxBottom = box.position.y - (box.geometry.parameters.height / 2);
+            console.log(`Box ${index}: Y=${box.position.y.toFixed(2)}, Height=${box.geometry.parameters.height.toFixed(2)}, Top=${boxTop.toFixed(2)}, Bottom=${boxBottom.toFixed(2)}`);
+        });
+        
+        console.log('Calculated height:', this.calculateCurrentHeight().toFixed(2), 'cm');
+        console.log('===============================');
+    }
+
+    /**
+     * ENHANCED: Calculate center of mass and update UI display
+     * This method bridges the physics calculator with the user interface
+     */
+    updateCenterOfMassDisplay() {
+        // Only calculate if we have boxes and the system is enabled
+        if (!this.simulator || !this.simulator.boxes || 
+            this.simulator.boxes.length === 0 || 
+            !this.centerOfMassState.isEnabled) {
+            
+            // Show zero deviation when no boxes are present
+            this.setCenterOfMassUI('0.0cm');
+            return;
+        }
+        
+        try {
+            // Perform the physics calculation
+            const result = this.centerOfMassCalculator.calculateCenterOfMass(this.simulator.boxes);
+            
+            // Store the result for other systems to use
+            this.centerOfMassState.lastCalculation = result;
+            
+            // Update the UI with formatted deviation
+            const formattedDeviation = this.centerOfMassCalculator.getFormattedDeviation();
+            this.setCenterOfMassUI(formattedDeviation);
+            
+            // Add visual feedback based on stability
+            this.updateCenterOfMassVisualFeedback(result);
+            
+            // Log significant changes (optional)
+            if (result.deviationCm > 20) {
+                console.warn(`High center of mass deviation detected: ${formattedDeviation}`);
+            }
+            
+        } catch (error) {
+            console.error('Error calculating center of mass:', error);
+            this.setCenterOfMassUI('Error');
+        }
+    }
+
+    /**
+     * Update the center of mass deviation display in the UI
+     * @param {string} deviationText - Formatted deviation text to display
+     */
+    setCenterOfMassUI(deviationText) {
+        const centerMassElement = document.getElementById('center-mass');
+        if (centerMassElement) {
+            centerMassElement.textContent = deviationText;
+        }
+    }
+
+    /**
+     * Provide visual feedback based on center of mass stability
+     * @param {Object} result - Center of mass calculation result
+     */
+    updateCenterOfMassVisualFeedback(result) {
+        const centerMassElement = document.getElementById('center-mass');
+        if (!centerMassElement) return;
+        
+        // Apply color coding based on stability rating
+        switch (result.stabilityRating) {
+            case 'Excellent':
+                centerMassElement.style.color = '#27ae60'; // Green
+                centerMassElement.title = 'Excellent stability - optimal load distribution';
+                break;
+            case 'Good':
+                centerMassElement.style.color = '#3498db'; // Blue
+                centerMassElement.title = 'Good stability';
+                break;
+            case 'Fair':
+                centerMassElement.style.color = '#f39c12'; // Orange
+                centerMassElement.title = 'Fair stability';
+                break;
+            case 'Poor':
+                centerMassElement.style.color = '#e74c3c'; // Red
+                centerMassElement.title = 'Poor stability';
+                break;
+            default:
+                centerMassElement.style.color = '#95a5a6'; // Gray
+                centerMassElement.title = 'Center of mass deviation from pallet center';
+        }
+    }
+
+    /**
+     * Get detailed center of mass analysis for advanced users
+     * @returns {Object} Complete center of mass analysis or null if not available
+     */
+    getCenterOfMassAnalysis() {
+        if (!this.centerOfMassState.lastCalculation) {
+            return null;
+        }
+        
+        return this.centerOfMassCalculator.getAnalysisReport();
+    }
+
+    /**
+     * Debug method to analyze center of mass calculation
+     * Call this from browser console: window.palletApp.debugCenterOfMass()
+     */
+    debugCenterOfMass() {
+        console.log('=== CENTER OF MASS DEBUG ===');
+        
+        if (!this.simulator || this.simulator.boxes.length === 0) {
+            console.log('No boxes available for analysis');
+            return;
+        }
+        
+        // Enable debug mode temporarily
+        this.centerOfMassCalculator.setDebugMode(true);
+        
+        // Perform calculation with detailed logging
+        const result = this.centerOfMassCalculator.calculateCenterOfMass(this.simulator.boxes);
+        
+        // Show comprehensive analysis
+        this.centerOfMassCalculator.visualizeInConsole();
+        
+        // Show individual box contributions
+        console.log('Individual box analysis:');
+        this.simulator.boxes.forEach((box, index) => {
+            const weight = box.userData.weight || 0;
+            const pos = box.position;
+            console.log(`Box ${index}: pos(${pos.x.toFixed(2)}, ${pos.z.toFixed(2)}), weight=${weight}kg`);
+        });
+        
+        // Disable debug mode
+        this.centerOfMassCalculator.setDebugMode(false);
+        
+        console.log('========================');
+        
+        return result;
+    }
+
+
 }
 
 // Auto-initialize the application when the page loads
