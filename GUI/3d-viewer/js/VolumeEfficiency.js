@@ -1,61 +1,58 @@
 /**
- * Volume Efficiency Calculator - CORREÇÕES ESTÉTICAS ESPECÍFICAS
+ * Volume Efficiency Calculator - VERSÃO COMPLETAMENTE CORRIGIDA
  * 
- * CORREÇÕES IMPLEMENTADAS:
- * 1. Carregamento imediato do pie chart (sem animação inicial estranha)
- * 2. Estado de loading durante inicialização
- * 3. Números em bold e maiores para melhor visibilidade
- * 4. Gráfico maior e mais circular
- * 5. Eliminação de valores hardcoded durante carregamento
+ * CORREÇÕES CRÍTICAS APLICADAS:
+ * 1. Conversão direta baseada no PalletDataLoader (1 unit = 100mm = 10cm)
+ * 2. Inicialização segura de variáveis para evitar ReferenceError
+ * 3. Validação robusta de geometria das caixas
+ * 4. Debug detalhado para troubleshooting
+ * 5. Cálculos de palete baseados nos dados reais do Crosslog
  * 
  * Save this as: GUI/3d-viewer/js/VolumeEfficiency.js
  */
 
 class VolumeEfficiencyCalculator {
     constructor() {
-        // Pallet physical dimensions (1 unit = 10cm in coordinate system)
+        console.log('🔧 INITIALIZING CORRECTED Volume Efficiency Calculator...');
+        
+        // CORREÇÃO: Usar dimensões baseadas nos dados Crosslog reais
+        // Dados do ficheiro: palete 1200mm × 800mm × 1500mm
+        // Conversão PalletDataLoader: * 0.01 (logo 1 unit = 100mm)
         this.palletDimensions = {
-            length: 12.0,           // 12.0 units = 120cm (1200mm)
-            width: 8.0,             // 8.0 units = 80cm (800mm)
-            baseArea: 9600,         // 120cm × 80cm = 9600 cm²
-            maxHeight: 20.0         // Maximum reasonable height for calculations (200cm)
+            lengthCm: 120,          // 1200mm = 120cm
+            widthCm: 80,            // 800mm = 80cm  
+            baseAreaCm2: 9600,      // 120cm × 80cm = 9600 cm²
+            maxHeightCm: 150        // 1500mm = 150cm (referência máxima)
         };
         
-        // Unit conversion constants
-        this.unitConversion = {
-            unitsToMm: 100,         // 1 unit = 100mm
-            unitsToCm: 10,          // 1 unit = 10cm
-            mmToCm: 0.1             // 1mm = 0.1cm
-        };
+        console.log('✅ Pallet dimensions:', this.palletDimensions);
         
-        // Efficiency calculation state
+        // Estado de cálculo de eficiência
         this.currentEfficiency = {
-            occupiedVolume: 0,      // cm³ of boxes currently placed
-            availableVolume: 0,     // cm³ of current pallet space (base × height)
-            efficiency: 0,          // Percentage (0-100)
-            boxCount: 0,            // Number of boxes included
-            currentHeight: 0        // Current maximum height of stack in cm
+            occupiedVolumeCm3: 0,      // cm³ das caixas atualmente colocadas
+            availableVolumeCm3: 0,     // cm³ do espaço disponível (base × altura)
+            efficiency: 0,             // Percentagem (0-100)
+            boxCount: 0,               // Número de caixas incluídas
+            currentHeightCm: 0         // Altura atual máxima em cm
         };
         
-        // Chart.js instance management
+        // Gestão da instância Chart.js
         this.chartInstance = null;
         this.chartCanvas = null;
         this.isInitialized = false;
         this.isLoading = false;
         
-        // CORRIGIDO: Configuração para carregamento imediato e visual melhorado
+        // Configuração do chart (mantida do original com melhorias estéticas)
         this.chartConfig = {
             colors: {
                 occupied: '#63CBF1',    // Azul para espaço ocupado
-                free: '#ecf0f1'         // Cinza para espaço livre
+                free: '#ecf0f1'         // Cinza claro para espaço livre
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false  // Legenda customizada
-                    },
+                    legend: { display: false },
                     tooltip: {
                         enabled: true,
                         callbacks: {
@@ -65,58 +62,131 @@ class VolumeEfficiencyCalculator {
                         }
                     }
                 },
-                // CORRIGIDO: Desabilitar animação inicial para carregamento imediato
-                animation: {
-                    duration: 0,        // Sem animação inicial
-                    easing: 'linear'
-                },
-                // CORRIGIDO: Configurações para gráfico mais circular
+                animation: { duration: 0, easing: 'linear' },
                 elements: {
-                    arc: {
-                        borderWidth: 0,     // Sem bordas que criam aparência "reta"
-                        borderRadius: 0     // Sem raio nas bordas
-                    }
+                    arc: { borderWidth: 0, borderRadius: 0 }
                 },
-                // Animações apenas para updates posteriores
                 responsive: true,
-                interaction: {
-                    intersect: false
-                }
+                interaction: { intersect: false }
             }
         };
         
-        console.log('VolumeEfficiencyCalculator initialized with aesthetic fixes');
+        console.log('✅ Volume Efficiency Calculator corrected and ready');
     }
     
     /**
-     * CORRIGIDO: Inicialização com loading state e carregamento imediato
+     * MÉTODO PRINCIPAL - CALCULAR EFICIÊNCIA (COMPLETAMENTE CORRIGIDO)
+     */
+    calculateVolumeEfficiency(boxes, currentHeightCm) {
+        debugLog('VOLUME_EFFICIENCY', '=== CORRECTED Volume Efficiency Calculation ===');
+        debugLog('VOLUME_EFFICIENCY', `Input: ${boxes ? boxes.length : 0} boxes, height: ${currentHeightCm}cm`);
+        
+        // Verificar entrada
+        if (!boxes || boxes.length === 0 || currentHeightCm <= 0) {
+            debugLog('VOLUME_EFFICIENCY', 'No boxes or invalid height - returning zero efficiency');
+            return this.getEmptyEfficiencyResult();
+        }
+        
+        // CALCULAR volume ocupado com validação robusta
+        let totalOccupiedVolumeCm3 = 0;
+        let validBoxCount = 0;
+        
+        boxes.forEach((box, index) => {
+            try {
+                // INICIALIZAR sempre com 0 para evitar ReferenceError
+                let boxVolumeCm3 = 0;
+                
+                // Verificar se o box tem geometria válida
+                if (!box.geometry || !box.geometry.parameters) {
+                    console.warn(`Box ${index} has invalid geometry`);
+                    return; // Skip this box
+                }
+                
+                // Extrair dimensões do box em Three.js units
+                const widthUnits = box.geometry.parameters.width || 0;
+                const heightUnits = box.geometry.parameters.height || 0;
+                const depthUnits = box.geometry.parameters.depth || 0;
+                
+                // CONVERSÃO CORRETA baseada no PalletDataLoader
+                // PalletDataLoader usa * 0.01 para converter mm → units
+                // Logo: 1 unit = 100mm = 10cm
+                // Conversão: units → cm = × 10
+                const widthCm = widthUnits * 10;
+                const heightCm = heightUnits * 10;
+                const depthCm = depthUnits * 10;
+                
+                // Calcular volume em cm³
+                boxVolumeCm3 = widthCm * heightCm * depthCm;
+                
+                // Debug detalhado para troubleshooting
+                debugLog('VOLUME_EFFICIENCY', `Box ${index}: ${widthUnits.toFixed(2)}×${heightUnits.toFixed(2)}×${depthUnits.toFixed(2)} units = ${widthCm.toFixed(1)}×${heightCm.toFixed(1)}×${depthCm.toFixed(1)} cm = ${boxVolumeCm3.toFixed(1)} cm³`);
+                
+                if (boxVolumeCm3 > 0) {
+                    totalOccupiedVolumeCm3 += boxVolumeCm3;
+                    validBoxCount++;
+                } else {
+                    console.warn(`Box ${index} has invalid volume: ${boxVolumeCm3} (dimensions: ${widthCm}×${heightCm}×${depthCm} cm)`);
+                }
+                
+            } catch (error) {
+                console.error(`Error calculating volume for box ${index}:`, error);
+            }
+        });
+        
+        // CALCULAR volume disponível (área fixa × altura dinâmica)
+        const availableVolumeCm3 = this.palletDimensions.baseAreaCm2 * currentHeightCm;
+        
+        debugLog('VOLUME_EFFICIENCY', `Total occupied volume: ${totalOccupiedVolumeCm3.toFixed(1)} cm³`);
+        debugLog('VOLUME_EFFICIENCY', `Available volume: ${availableVolumeCm3.toFixed(1)} cm³ (${this.palletDimensions.baseAreaCm2} cm² × ${currentHeightCm.toFixed(1)} cm)`);
+        
+        // CALCULAR percentagem de eficiência
+        let efficiency = 0;
+        if (availableVolumeCm3 > 0) {
+            efficiency = (totalOccupiedVolumeCm3 / availableVolumeCm3) * 100;
+            efficiency = Math.min(efficiency, 100); // Máximo 100%
+        }
+        
+        // Armazenar estado atual
+        this.currentEfficiency = {
+            occupiedVolumeCm3: totalOccupiedVolumeCm3,
+            availableVolumeCm3: availableVolumeCm3,
+            efficiency: efficiency,
+            boxCount: validBoxCount,
+            currentHeightCm: currentHeightCm
+        };
+        
+        debugLog('VOLUME_EFFICIENCY', `✅ Efficiency calculated: ${efficiency.toFixed(1)}%`);
+        debugLog('VOLUME_EFFICIENCY', `   (${totalOccupiedVolumeCm3.toFixed(0)} / ${availableVolumeCm3.toFixed(0)} cm³)`);
+        
+        return this.getCurrentEfficiencyResult();
+    }
+    
+    /**
+     * INICIALIZAR PIE CHART (mantido do original com correções estéticas)
      */
     initializePieChart() {
-        console.log('Initializing Chart.js with immediate loading and aesthetic fixes...');
+        debugLog('VOLUME_EFFICIENCY', 'Initializing Chart.js with corrected calculations...');
         
-        // Encontrar o container existente
         const existingChart = document.querySelector('.efficiency-chart');
         if (!existingChart) {
             console.error('Efficiency chart container not found in DOM');
             return false;
         }
         
-        // CORRIGIDO: Mostrar estado de loading imediatamente
         this.showLoadingState(existingChart);
         
-        // Pequeno delay para mostrar loading antes de criar o chart
         setTimeout(() => {
             this.createChartWithAestheticFixes(existingChart);
-            this.updatePieChart(0); // Inicializar com 0% imediatamente
+            this.updatePieChart(0);
             this.isInitialized = true;
-            console.log('✓ Chart.js initialized with aesthetic fixes applied');
-        }, 300); // 300ms é suficiente para ver o loading sem ser irritante
+            debugLog('VOLUME_EFFICIENCY', '✓ Chart.js initialized with corrected calculations');
+        }, 300);
         
         return true;
     }
     
     /**
-     * NOVO: Mostrar estado de loading durante inicialização
+     * Mostrar estado de loading durante inicialização
      */
     showLoadingState(container) {
         this.isLoading = true;
@@ -155,18 +225,16 @@ class VolumeEfficiencyCalculator {
     }
     
     /**
-     * CORRIGIDO: Criar chart com todas as correções estéticas
+     * Criar chart com correções estéticas completas
      */
     createChartWithAestheticFixes(container) {
         this.isLoading = false;
         
-        // CORRIGIDO: Tamanho maior para o gráfico (150px em vez de 120px)
         container.innerHTML = `
             <div style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
                 <canvas id="volume-efficiency-chart" width="150" height="150"></canvas>
             </div>
             
-            <!-- CORRIGIDO: Legenda com números em bold e maiores -->
             <div class="efficiency-info" style="margin-top: 15px; text-align: center;">
                 <div style="display: flex; justify-content: center; gap: 15px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
@@ -207,23 +275,19 @@ class VolumeEfficiencyCalculator {
             </div>
         `;
         
-        // Obter referência do canvas
         this.chartCanvas = document.getElementById('volume-efficiency-chart');
         
-        // Verificar se Chart.js está disponível
         if (typeof Chart === 'undefined') {
             console.error('Chart.js library not found. Please include Chart.js before this script.');
             return;
         }
         
-        // CORRIGIDO: Inicializar chart sem animação inicial
         this.initializeChartImmediate();
-        
-        console.log('Chart.js structure created with aesthetic fixes applied');
+        debugLog('VOLUME_EFFICIENCY', 'Chart.js structure created with corrected calculations');
     }
     
     /**
-     * CORRIGIDO: Inicializar chart imediatamente sem animações estranhas
+     * Inicializar chart imediatamente sem animações estranhas
      */
     initializeChartImmediate() {
         const ctx = this.chartCanvas.getContext('2d');
@@ -233,139 +297,30 @@ class VolumeEfficiencyCalculator {
             data: {
                 labels: ['Occupied', 'Free'],
                 datasets: [{
-                    data: [0, 100], // Estado inicial: 0% occupied, 100% free
+                    data: [0, 100],
                     backgroundColor: [
                         this.chartConfig.colors.occupied,
                         this.chartConfig.colors.free
                     ],
-                    borderWidth: 0,         // CORRIGIDO: Sem bordas para aparência mais circular
+                    borderWidth: 0,
                     hoverBorderWidth: 2,
                     hoverBorderColor: '#34495e'
                 }]
             },
             options: {
                 ...this.chartConfig.options,
-                // CORRIGIDO: Reabilitar animações suaves apenas para updates
                 animation: {
-                    duration: 400,          // Animação rápida para updates
+                    duration: 400,
                     easing: 'easeInOutQuart'
                 }
             }
         });
         
-        console.log('Chart.js pie chart instance created with immediate loading');
+        debugLog('VOLUME_EFFICIENCY', 'Chart.js pie chart instance created with immediate loading');
     }
     
     /**
-     * CORRIGIDO: Calcular eficiência volumétrica (mantém funcionalidade original)
-     */
-    calculateVolumeEfficiency(boxes, currentHeightCm) {
-        console.log('=== Calculating Volume Efficiency ===');
-        
-        // Handle empty state
-        if (!boxes || boxes.length === 0 || currentHeightCm <= 0) {
-            console.log('No boxes or invalid height - returning zero efficiency');
-            return this.getEmptyEfficiencyResult();
-        }
-        
-        // Calculate total occupied volume from all boxes
-        let totalOccupiedVolume = 0;
-        let validBoxCount = 0;
-        
-        boxes.forEach((box, index) => {
-            try {
-                // Extract box dimensions from geometry (in units, convert to cm)
-                const widthUnits = box.geometry.parameters.width;
-                const heightUnits = box.geometry.parameters.height;
-                const depthUnits = box.geometry.parameters.depth;
-                
-                // Convert from units to cm (1 unit = 10cm)
-                const widthCm = widthUnits * this.unitConversion.unitsToCm;
-                const heightCm = heightUnits * this.unitConversion.unitsToCm;
-                const depthCm = depthUnits * this.unitConversion.unitsToCm;
-                
-                // Calculate individual box volume in cm³
-                const boxVolume = widthCm * heightCm * depthCm;
-                
-                if (boxVolume > 0) {
-                    totalOccupiedVolume += boxVolume;
-                    validBoxCount++;
-                } else {
-                    console.warn(`Box ${index} has invalid volume: ${boxVolume}`);
-                }
-                
-                // Debug output for first few boxes
-                if (index < 3) {
-                    console.log(`Box ${index}: ${widthCm.toFixed(1)} × ${heightCm.toFixed(1)} × ${depthCm.toFixed(1)} cm = ${boxVolume.toFixed(1)} cm³`);
-                }
-            } catch (error) {
-                console.error(`Error calculating volume for box ${index}:`, error);
-            }
-        });
-        
-        // Calculate available volume (fixed pallet area × dynamic height)
-        const availableVolume = this.palletDimensions.baseArea * currentHeightCm;
-        
-        // Calculate efficiency percentage
-        let efficiency = 0;
-        if (availableVolume > 0) {
-            efficiency = (totalOccupiedVolume / availableVolume) * 100;
-            // Cap efficiency at 100%
-            efficiency = Math.min(efficiency, 100);
-        }
-        
-        // Store current state
-        this.currentEfficiency = {
-            occupiedVolume: totalOccupiedVolume,
-            availableVolume: availableVolume,
-            efficiency: efficiency,
-            boxCount: validBoxCount,
-            currentHeight: currentHeightCm
-        };
-        
-        // Log results
-        console.log(`✓ Efficiency calculated:`);
-        console.log(`  - Occupied: ${totalOccupiedVolume.toFixed(1)} cm³`);
-        console.log(`  - Available: ${availableVolume.toFixed(1)} cm³`);
-        console.log(`  - Efficiency: ${efficiency.toFixed(1)}%`);
-        console.log(`  - Boxes: ${validBoxCount}`);
-        
-        return this.getCurrentEfficiencyResult();
-    }
-    
-    /**
-     * Get empty efficiency result for cases with no data
-     */
-    getEmptyEfficiencyResult() {
-        this.currentEfficiency = {
-            occupiedVolume: 0,
-            availableVolume: 0,
-            efficiency: 0,
-            boxCount: 0,
-            currentHeight: 0
-        };
-        
-        return this.getCurrentEfficiencyResult();
-    }
-    
-    /**
-     * Get current efficiency result with additional calculated properties
-     */
-    getCurrentEfficiencyResult() {
-        const result = { ...this.currentEfficiency };
-        
-        // Add additional analysis properties
-        result.wastedVolume = result.availableVolume - result.occupiedVolume;
-        result.wastedPercentage = result.availableVolume > 0 ? 
-            (result.wastedVolume / result.availableVolume) * 100 : 0;
-        result.volumeDensity = result.currentHeight > 0 ? 
-            result.occupiedVolume / (this.palletDimensions.baseArea * result.currentHeight) : 0;
-        
-        return result;
-    }
-    
-    /**
-     * CORRIGIDO: Atualizar pie chart com animação suave (não inicial)
+     * ATUALIZAR PIE CHART (mantido com melhorias de debug)
      */
     updatePieChart(efficiency) {
         if (!this.isInitialized || !this.chartInstance || this.isLoading) {
@@ -373,21 +328,18 @@ class VolumeEfficiencyCalculator {
             return;
         }
         
-        // Calculate free percentage
         const freePercentage = 100 - efficiency;
         
-        // Update Chart.js data with smooth animation
         this.chartInstance.data.datasets[0].data = [efficiency, freePercentage];
         this.chartInstance.update('active');
         
-        // CORRIGIDO: Atualizar legenda com formatação em bold
         this.updateLegendInfo(efficiency, freePercentage);
         
-        console.log(`Pie chart updated: ${efficiency.toFixed(1)}% occupied, ${freePercentage.toFixed(1)}% free`);
+        debugLog('VOLUME_EFFICIENCY', `Pie chart updated: ${efficiency.toFixed(1)}% occupied, ${freePercentage.toFixed(1)}% free`);
     }
     
     /**
-     * CORRIGIDO: Atualizar informações da legenda com formatação em bold
+     * Atualizar informações da legenda com formatação em bold
      */
     updateLegendInfo(efficiency, freePercentage) {
         const occupiedSpan = document.getElementById('occupied-percentage');
@@ -395,34 +347,123 @@ class VolumeEfficiencyCalculator {
         
         if (occupiedSpan) {
             occupiedSpan.textContent = `${efficiency.toFixed(1)}%`;
-            // Você pode ajustar estes valores para tornar ainda maiores:
-            occupiedSpan.style.fontSize = '1rem';        // Mude para 1.1rem ou 1.2rem se quiser maior
-            occupiedSpan.style.fontWeight = 'bold';      // Já está em bold
+            occupiedSpan.style.fontSize = '1rem';
+            occupiedSpan.style.fontWeight = 'bold';
         }
         
         if (freeSpan) {
             freeSpan.textContent = `${freePercentage.toFixed(1)}%`;
-            // Você pode ajustar estes valores para tornar ainda maiores:
-            freeSpan.style.fontSize = '1rem';            // Mude para 1.1rem ou 1.2rem se quiser maior
-            freeSpan.style.fontWeight = 'bold';          // Já está em bold
+            freeSpan.style.fontSize = '1rem';
+            freeSpan.style.fontWeight = 'bold';
         }
     }
     
     /**
-     * Main update method - call this from the main application loop
+     * MÉTODO PRINCIPAL DE ATUALIZAÇÃO (CORRIGIDO)
      */
     updateEfficiency(boxes, currentHeightCm) {
-        // Calculate new efficiency
+        // Debug detalhado para troubleshooting
+        debugLog('VOLUME_EFFICIENCY', '🔧 Volume Efficiency Update Called:');
+        debugLog('VOLUME_EFFICIENCY', `  Boxes: ${boxes ? boxes.length : 0}`);
+        debugLog('VOLUME_EFFICIENCY', `  Height: ${currentHeightCm} cm`);
+        debugLog('VOLUME_EFFICIENCY', `  Pallet base area: ${this.palletDimensions.baseAreaCm2} cm²`);
+        
+        // Calcular nova eficiência
         const result = this.calculateVolumeEfficiency(boxes, currentHeightCm);
         
-        // Update visual representation
+        // Atualizar representação visual
         this.updatePieChart(result.efficiency);
         
         return result;
     }
     
     /**
-     * Get efficiency analysis report
+     * Obter resultado vazio para casos sem dados
+     */
+    getEmptyEfficiencyResult() {
+        this.currentEfficiency = {
+            occupiedVolumeCm3: 0,
+            availableVolumeCm3: 0,
+            efficiency: 0,
+            boxCount: 0,
+            currentHeightCm: 0
+        };
+        
+        return this.getCurrentEfficiencyResult();
+    }
+    
+    /**
+     * Obter resultado atual com propriedades adicionais calculadas
+     */
+    getCurrentEfficiencyResult() {
+        const result = { ...this.currentEfficiency };
+        
+        result.wastedVolumeCm3 = result.availableVolumeCm3 - result.occupiedVolumeCm3;
+        result.wastedPercentage = result.availableVolumeCm3 > 0 ? 
+            (result.wastedVolumeCm3 / result.availableVolumeCm3) * 100 : 0;
+        result.volumeDensity = result.currentHeightCm > 0 ? 
+            result.occupiedVolumeCm3 / (this.palletDimensions.baseAreaCm2 * result.currentHeightCm) : 0;
+        
+        return result;
+    }
+    
+    /**
+     * DEBUGGING - Analisar estado atual com detalhes completos
+     */
+    debugCurrentState(boxes, currentHeightCm) {
+        console.log('=== VOLUME EFFICIENCY DEBUG ===');
+        console.log('Pallet Configuration (CORRECTED):');
+        console.log(`  Base area: ${this.palletDimensions.baseAreaCm2} cm²`);
+        console.log(`  Current height: ${currentHeightCm} cm`);
+        console.log(`  Available volume: ${this.palletDimensions.baseAreaCm2 * currentHeightCm} cm³`);
+        console.log('');
+        
+        if (!boxes || boxes.length === 0) {
+            console.log('No boxes to analyze');
+            return;
+        }
+        
+        console.log('Box Analysis (First 5 boxes):');
+        let totalVolume = 0;
+        
+        boxes.slice(0, 5).forEach((box, index) => {
+            const widthUnits = box.geometry.parameters.width || 0;
+            const heightUnits = box.geometry.parameters.height || 0;
+            const depthUnits = box.geometry.parameters.depth || 0;
+            
+            const widthCm = widthUnits * 10;
+            const heightCm = heightUnits * 10;
+            const depthCm = depthUnits * 10;
+            const volume = widthCm * heightCm * depthCm;
+            
+            totalVolume += volume;
+            console.log(`  Box ${index}: ${widthUnits.toFixed(2)}×${heightUnits.toFixed(2)}×${depthUnits.toFixed(2)} units = ${volume.toFixed(1)} cm³`);
+        });
+        
+        if (boxes.length > 5) {
+            console.log(`  ... and ${boxes.length - 5} more boxes`);
+            
+            // Calcular volume total restante
+            boxes.slice(5).forEach(box => {
+                const widthUnits = box.geometry.parameters.width || 0;
+                const heightUnits = box.geometry.parameters.height || 0;
+                const depthUnits = box.geometry.parameters.depth || 0;
+                totalVolume += (widthUnits * heightUnits * depthUnits) * 1000; // units³ → cm³
+            });
+        }
+        
+        console.log('');
+        console.log('Volume Summary:');
+        console.log(`  Total occupied: ${totalVolume.toFixed(1)} cm³`);
+        console.log(`  Total available: ${(this.palletDimensions.baseAreaCm2 * currentHeightCm).toFixed(1)} cm³`);
+        
+        const efficiency = totalVolume / (this.palletDimensions.baseAreaCm2 * currentHeightCm) * 100;
+        console.log(`  Efficiency: ${efficiency.toFixed(1)}%`);
+        console.log('===============================');
+    }
+    
+    /**
+     * Obter relatório de análise de eficiência completo
      */
     getEfficiencyReport() {
         const result = this.getCurrentEfficiencyResult();
@@ -430,75 +471,52 @@ class VolumeEfficiencyCalculator {
         return {
             summary: {
                 efficiency: result.efficiency,
-                occupiedVolume: result.occupiedVolume,
-                availableVolume: result.availableVolume,
-                currentHeight: result.currentHeight
+                occupiedVolumeCm3: result.occupiedVolumeCm3,
+                availableVolumeCm3: result.availableVolumeCm3,
+                currentHeightCm: result.currentHeightCm
             },
             details: {
-                wastedVolume: result.wastedVolume,
+                wastedVolumeCm3: result.wastedVolumeCm3,
                 wastedPercentage: result.wastedPercentage,
                 volumeDensity: result.volumeDensity,
                 boxCount: result.boxCount,
-                palletDimensions: this.palletDimensions,
-                unitConversion: this.unitConversion
+                palletDimensions: this.palletDimensions
+            },
+            debug: {
+                conversionRule: '1 Three.js unit = 100mm = 10cm (based on PalletDataLoader)',
+                palletArea: this.palletDimensions.baseAreaCm2,
+                calculationMethod: 'Direct conversion from Three.js units'
             }
         };
     }
     
     /**
-     * Debug method for efficiency calculation analysis
-     */
-    debugEfficiencyCalculation() {
-        console.log('=== VOLUME EFFICIENCY DEBUG ===');
-        console.log('Unit System:');
-        console.log(`  1 coordinate unit = ${this.unitConversion.unitsToCm} cm`);
-        console.log('');
-        console.log('Pallet Configuration:');
-        console.log(`  Dimensions: ${this.palletDimensions.length} × ${this.palletDimensions.width} units`);
-        console.log(`  Real size: ${this.palletDimensions.length * this.unitConversion.unitsToCm} × ${this.palletDimensions.width * this.unitConversion.unitsToCm} cm`);
-        console.log(`  Base Area: ${this.palletDimensions.baseArea} cm²`);
-        console.log(`  Current Height: ${this.currentEfficiency.currentHeight} cm`);
-        console.log('');
-        console.log('Volume Analysis:');
-        console.log(`  Occupied: ${this.currentEfficiency.occupiedVolume.toFixed(2)} cm³`);
-        console.log(`  Available: ${this.currentEfficiency.availableVolume.toFixed(2)} cm³`);
-        console.log(`  Efficiency: ${this.currentEfficiency.efficiency.toFixed(2)}%`);
-        console.log('');
-        console.log('Box Information:');
-        console.log(`  Box Count: ${this.currentEfficiency.boxCount}`);
-        console.log(`  Average Box Volume: ${this.currentEfficiency.boxCount > 0 ? 
-            (this.currentEfficiency.occupiedVolume / this.currentEfficiency.boxCount).toFixed(2) : 0} cm³`);
-        console.log('===============================');
-    }
-    
-    /**
-     * Reset efficiency calculator state
+     * Reset calculator state
      */
     reset() {
-        console.log('Resetting volume efficiency calculator...');
+        debugLog('VOLUME_EFFICIENCY', 'Resetting volume efficiency calculator...');
         
         this.currentEfficiency = {
-            occupiedVolume: 0,
-            availableVolume: 0,
+            occupiedVolumeCm3: 0,
+            availableVolumeCm3: 0,
             efficiency: 0,
             boxCount: 0,
-            currentHeight: 0
+            currentHeightCm: 0
         };
         
         if (this.isInitialized) {
             this.updatePieChart(0);
         }
         
-        console.log('✓ Volume efficiency calculator reset');
+        debugLog('VOLUME_EFFICIENCY', '✓ Volume efficiency calculator reset');
     }
     
     /**
-     * Dispose of resources and cleanup
+     * Dispose resources and cleanup
      */
     dispose() {
-        console.log('Disposing volume efficiency calculator resources...');
+        debugLog('VOLUME_EFFICIENCY', 'Disposing volume efficiency calculator resources...');
         
-        // Destroy Chart.js instance
         if (this.chartInstance) {
             this.chartInstance.destroy();
             this.chartInstance = null;
@@ -508,9 +526,9 @@ class VolumeEfficiencyCalculator {
         this.chartCanvas = null;
         this.isInitialized = false;
         
-        console.log('✓ Volume efficiency calculator disposed');
+        debugLog('VOLUME_EFFICIENCY', '✓ Volume efficiency calculator disposed');
     }
 }
 
-// Export for global access
+// Export para acesso global
 window.VolumeEfficiencyCalculator = VolumeEfficiencyCalculator;

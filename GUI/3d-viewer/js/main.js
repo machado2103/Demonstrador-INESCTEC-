@@ -55,16 +55,21 @@ class PalletizationApp {
         this.centerOfMassCalculator = new CenterOfMassCalculator();
         this.centerOfMassState = {
             isEnabled: true,            // Whether to calculate center of mass
-            updateFrequency: 300,       // How often to recalculate (ms)
+            updateFrequency: 300,       // How often to recalculate (ms)f
             lastCalculation: null,      // Last calculation result
             calculationHistory: []      // History for trend analysis
         };
 
         // Volume efficiency calculation system
         this.volumeEfficiencyCalculator = new VolumeEfficiencyCalculator();
+
+        // Bottom metrics calculation system  
+        this.bottomMetricsCalculator = new BottomMetricsCalculator();
         
-        console.log('PalletizationApp constructor - all systems initialized');
+        debugLog('INITIALIZATION', '🔧 PalletizationApp constructor - all systems initialized with corrections');
         this.init();
+
+        console.log('DEBUG TEST: debugReverseEngineering exists:', typeof this.debugReverseEngineering);
     }
     
     /**
@@ -332,6 +337,7 @@ class PalletizationApp {
                 this.dataLoader.previousPallet();
                 this.resetAnimationState();
                 this.resetSimulationTimer(); // ENHANCED: Reset timer when changing pallets
+                
             }
         }, 'small');
         prevPalletButton.id = 'prev-pallet-btn';
@@ -473,37 +479,26 @@ class PalletizationApp {
         return button;
     }
     
-    /**
-     * ENHANCED: Calculate the current height of the pallet stack
-     * Returns height in centimeters from pallet top surface to highest box
-     */
     calculateCurrentHeight() {
-        if (!this.simulator || this.simulator.boxes.length === 0) {
-            return 0; // No boxes placed yet
+        if (!window.unitsSystem) {
+            console.error('❌ Units system not available for height calculation');
+            return 0;
         }
+        // Usar o sistema unificado para cálculo de altura
+        const result = window.unitsSystem.calculateDisplayHeight(
+            this.simulator ? this.simulator.boxes : [],
+            this.metricsState.palletTopY,
+            this.metricsState.boxFloorOffset
+        );
+
+        debugLog('HEIGHT_CALC', `🔧 Height calculation: ${result.cm.toFixed(1)}cm (${result.displayText})`);
+
+
+
         
-        // Find the highest point among all boxes
-        let maxY = -Infinity;
-        
-        this.simulator.boxes.forEach(box => {
-            // Calculate the top of this box: position + half height
-            const boxTop = box.position.y + (box.geometry.parameters.height / 2);
-            if (boxTop > maxY) {
-                maxY = boxTop;
-            }
-        });
-        
-        // Calculate height from pallet surface to highest box top
-        // Reference level is pallet top surface + box floor offset
-        const referenceLevel = this.metricsState.palletTopY + this.metricsState.boxFloorOffset;
-        const heightInUnits = maxY - referenceLevel;
-        
-        // Convert to centimeters (1 unit = 1cm in our coordinate system)
-        const heightInCm = Math.max(0, heightInUnits * 10);
-        
-        // Store for reference and return
-        this.metricsState.currentMaxHeight = heightInCm;
-        return heightInCm;
+        // Armazenar para referência
+        this.metricsState.currentMaxHeight = result.cm;
+        return result.cm;
     }
     
     /**
@@ -522,7 +517,6 @@ class PalletizationApp {
                 this.updateTimeDisplay();
             }, 100);
             
-            console.log('Simulation timer started');
         }
     }
     
@@ -547,7 +541,6 @@ class PalletizationApp {
                 timer.displayInterval = null;
             }
             
-            console.log(`Simulation timer paused. Total elapsed: ${this.getTotalElapsedTime()}ms`);
         }
     }
     
@@ -653,6 +646,7 @@ class PalletizationApp {
         } else {
             heightElement.style.color = '#3498db'; // Blue for active/paused
         }
+
     }
     
     /**
@@ -866,7 +860,6 @@ class PalletizationApp {
         for (let i = 0; i < sortedBoxes.length; i++) {
             const sequence = sortedBoxes[i].sequence;
             if (!placedSequences.has(sequence)) {
-                console.log(`Next box to place: sequence ${sequence} (index ${i})`);
                 return i;
             }
         }
@@ -931,7 +924,6 @@ class PalletizationApp {
      */
     onAnimationComplete() {
         this.setAnimationCompleted(); // Use the new centralized completion method
-        console.log('Animation completed via onAnimationComplete');
     }
     
     /**
@@ -962,6 +954,9 @@ class PalletizationApp {
             button.textContent = '▶ Play';
             button.title = 'Start animation';
         }
+
+        //Resets the bottom metrics
+        this.bottomMetricsCalculator.reset();
         
         this.updateButtonStates();
         console.log('Animation state, metrics, and center of mass visualization reset');
@@ -1071,10 +1066,15 @@ class PalletizationApp {
                 // Update volume efficiency in real-time  (For the Volume  Calculation)
                 const currentHeightCm = this.calculateCurrentHeight();
                 this.volumeEfficiencyCalculator.updateEfficiency(this.simulator.boxes, currentHeightCm);
+
+
+                // Update bottom metrics (LSI and Box Density)
+                const centerOfMassResult = this.centerOfMassState.lastCalculation;
+                this.bottomMetricsCalculator.calculateBottomMetrics(this.simulator.boxes, centerOfMassResult);
+                this.updateBottomMetricsDisplay();
             }
         }, 200); // Keep 200ms for responsive UI updates
         
-        console.log('Enhanced automatic UI updates set up with center of mass calculation');
     }
     
     /**
@@ -1100,6 +1100,9 @@ class PalletizationApp {
 
         // Reset volume efficiency
         this.volumeEfficiencyCalculator.reset();
+
+        //Reset bottom metrics
+        this.bottomMetricsCalculator.reset();
         
         // Provide visual feedback to user
         this.showMessage('Restarting pallet animation...');
@@ -1151,6 +1154,7 @@ class PalletizationApp {
         this.resetAnimationState();
         this.dataLoader.loadPallet(this.dataLoader.currentPalletIndex);
         
+        
         // Restore original animation speed after completion
         const remainingBoxes = totalBoxCount;
         const completionTime = remainingBoxes * 10 + 500;
@@ -1201,28 +1205,7 @@ class PalletizationApp {
             isComplete: currentBoxCount === totalBoxes
         };
     }
-    
-    /**
-     * Show welcome message for Crosslog data integration
-     */
-    showWelcomeMessage() {
-        console.log('=== Enhanced Palletization Simulator - Ready for Advanced Control ===');
-        console.log('✓ 3D visualization initialized with improved lighting and camera controls');
-        console.log('✓ Crosslog data parser ready');
-        console.log('✓ Three-zone control interface activated');
-        console.log('✓ Real-time box counting and animation control enabled');
-        console.log('✓ Dynamic height calculation and simulation timer integrated');
-        console.log('');
-        console.log('Advanced Features Available:');
-        console.log('  - Play/pause animation control with timer integration');
-        console.log('  - Step-by-step box placement and removal');
-        console.log('  - Real-time progress tracking and height calculation');
-        console.log('  - Enhanced camera zoom for tall pallets');
-        console.log('  - Improved lighting for better visibility');
-        console.log('  - Sequence-based consistency for manual/automatic modes');
-        console.log('');
-        console.log('System ready for professional palletization analysis!');
-    }
+
     
     /**
      * Load Crosslog formatted data directly
@@ -1257,7 +1240,7 @@ class PalletizationApp {
                 
                 // Update status and provide user feedback
                 this.showMessage(`Loaded ${parsedData.pallets.length} pallets from Crosslog data`);
-                console.log('✓ Crosslog data loading completed successfully!');
+
                 
                 return true;
             } else {
@@ -1277,7 +1260,7 @@ class PalletizationApp {
      * Show a message to the user
      */
     showMessage(message) {
-        console.log('📢 Message:', message);
+        console.log('Message:', message);
         
         // Update simulation time with the message temporarily
         const timeElement = document.getElementById('simulation-time');
@@ -1294,7 +1277,7 @@ class PalletizationApp {
      * Show an error message to the user
      */
     showError(message) {
-        console.error('❌ Error:', message);
+        console.error('Error:', message);
         alert('Error: ' + message);
     }
     
@@ -1320,7 +1303,11 @@ class PalletizationApp {
         }
         
         if (this.volumeEfficiencyCalculator) {
-        this.volumeEfficiencyCalculator.dispose();
+            this.volumeEfficiencyCalculator.dispose();
+        }
+
+        if (this.bottomMetricsCalculator) {
+            this.bottomMetricsCalculator.dispose();
         }
 
         console.log('Application disposed successfully with metrics cleanup');
@@ -1346,7 +1333,6 @@ class PalletizationApp {
         });
         
         console.log('Calculated height:', this.calculateCurrentHeight().toFixed(2), 'cm');
-        console.log('===============================');
     }
 
     /**
@@ -1437,13 +1423,6 @@ class PalletizationApp {
             return;
         }
         
-        // Show pallet dimensions for reference
-        console.log('PALLET DIMENSIONS:');
-        console.log('Length: 12.0 units (1200mm)');
-        console.log('Width: 8.0 units (800mm)');
-        console.log('Center: (0, 0)');
-        console.log('');
-        
         // Enable debug mode temporarily
         this.centerOfMassCalculator.setDebugMode(true);
         
@@ -1476,6 +1455,296 @@ class PalletizationApp {
         console.log('========================');
         
         return result;
+    }
+
+/**
+ * MÉTODO COMPLETO: Análise de engenharia reversa da escala do sistema
+ * Call this from browser console: window.palletApp.debugReverseEngineering()
+ * 
+ * PROPÓSITO EDUCATIVO: Descobrir a verdadeira relação entre units Three.js e dimensões reais
+ * Este método funciona como um detective que recolhe evidências de várias fontes
+ * e depois compara essas evidências para descobrir a verdade sobre a escala do sistema
+ */
+/**
+ * VERSÃO ROBUSTA: Análise de engenharia reversa com tratamento de erros
+ * Esta versão inclui validação defensiva e captura de erros para debugging
+ */
+    debugReverseEngineering() {
+        try {
+            console.log('=== REVERSE ENGINEERING ANALYSIS ===');
+            console.log('Starting forensic analysis of coordinate system scaling...');
+            console.log('🔍 Diagnostic mode: Enhanced error checking enabled');
+            console.log('');
+            
+            // STEP 1: Validação fundamental do estado da aplicação
+            console.log('📋 STEP 1: Application State Validation');
+            
+            // Verificar se os componentes básicos existem
+            if (!this.dataLoader) {
+                console.log('❌ DataLoader not available');
+                return { error: 'DataLoader not initialized', timestamp: new Date().toISOString() };
+            }
+            console.log('✅ DataLoader available');
+            
+            if (!this.simulator) {
+                console.log('❌ Simulator not available');
+                return { error: 'Simulator not initialized', timestamp: new Date().toISOString() };
+            }
+            console.log('✅ Simulator available');
+            
+            if (!this.dataLoader.allPallets || this.dataLoader.allPallets.length === 0) {
+                console.log('❌ No pallet data loaded');
+                return { error: 'No pallet data available', timestamp: new Date().toISOString() };
+            }
+            console.log(`✅ Found ${this.dataLoader.allPallets.length} pallets`);
+            
+            if (!this.simulator.boxes || this.simulator.boxes.length === 0) {
+                console.log('❌ No boxes in scene');
+                return { error: 'No boxes available for analysis', timestamp: new Date().toISOString() };
+            }
+            console.log(`✅ Found ${this.simulator.boxes.length} boxes in scene`);
+            
+            console.log('');
+            
+            // STEP 2: Análise dos dados Crosslog (com validação)
+            console.log('📋 STEP 2: Crosslog Data Analysis');
+            console.log('Examining the theoretical blueprint data...');
+            
+            const currentPallet = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex];
+            console.log('Expected pallet size: 1200mm × 800mm × 1500mm');
+            console.log(`Current pallet index: ${this.dataLoader.currentPalletIndex + 1} of ${this.dataLoader.allPallets.length}`);
+            console.log(`Total boxes in current pallet: ${currentPallet.boxes ? currentPallet.boxes.length : 'unknown'}`);
+            
+            if (currentPallet.metadata && currentPallet.metadata.dimensions) {
+                console.log('Pallet dimensions from data:', currentPallet.metadata.dimensions);
+            } else {
+                console.log('⚠️ No metadata dimensions available');
+            }
+            
+            console.log('');
+            
+            // STEP 3: Análise da cena Three.js (com validação)
+            console.log('🎮 STEP 3: Three.js Scene Analysis');
+            console.log('Exploring the actual 3D world that was created...');
+            
+            if (!this.simulator.scene) {
+                console.log('❌ Three.js scene not available');
+                return { error: 'Three.js scene not available', timestamp: new Date().toISOString() };
+            }
+            
+            // Procurar objetos de palete de forma segura
+            const palletObjects = [];
+            try {
+                this.simulator.scene.traverse((object) => {
+                    if (object && object.name && object.name.includes('pallet')) {
+                        palletObjects.push(object);
+                    }
+                });
+            } catch (error) {
+                console.log('⚠️ Error during scene traversal:', error.message);
+            }
+            
+            if (palletObjects.length > 0) {
+                console.log(`✅ Found ${palletObjects.length} pallet objects in the scene`);
+                palletObjects.forEach((pallet, index) => {
+                    console.log(`Pallet ${index}:`, pallet.geometry?.parameters || 'No geometry parameters');
+                });
+            } else {
+                console.log('⚠️ No pallet objects found by name');
+            }
+            
+            console.log('');
+            
+            // STEP 4: Análise espacial das caixas (com validação robusta)
+            console.log('📦 STEP 4: Box Positioning Analysis');
+            console.log('Measuring the actual placement and dimensions of all boxes...');
+            
+            const boxes = this.simulator.boxes;
+            console.log(`Analyzing ${boxes.length} boxes for spatial relationships...`);
+            
+            // Declarar variáveis para o bounding box
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity; 
+            let minZ = Infinity, maxZ = -Infinity;
+            
+            // Mostrar exemplos detalhados com validação
+            console.log('\nDetailed analysis of first 3 boxes (as representative samples):');
+            boxes.slice(0, 3).forEach((box, index) => {
+                try {
+                    if (box && box.position && box.geometry && box.geometry.parameters) {
+                        const pos = box.position;
+                        const geom = box.geometry.parameters;
+                        console.log(`Box ${index}: position(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), dimensions(${geom.width.toFixed(2)} × ${geom.height.toFixed(2)} × ${geom.depth.toFixed(2)})`);
+                    } else {
+                        console.log(`Box ${index}: Invalid box data structure`);
+                    }
+                } catch (error) {
+                    console.log(`Box ${index}: Error analyzing - ${error.message}`);
+                }
+            });
+            
+            // Calcular bounding box com validação robusta
+            let validBoxCount = 0;
+            boxes.forEach((box, index) => {
+                try {
+                    if (!box || !box.position || !box.geometry || !box.geometry.parameters) {
+                        console.log(`⚠️ Box ${index}: Invalid structure, skipping`);
+                        return;
+                    }
+                    
+                    const pos = box.position;
+                    const geom = box.geometry.parameters;
+                    
+                    // Verificar se os valores são números válidos
+                    if (typeof pos.x !== 'number' || typeof pos.y !== 'number' || typeof pos.z !== 'number' ||
+                        typeof geom.width !== 'number' || typeof geom.height !== 'number' || typeof geom.depth !== 'number') {
+                        console.log(`⚠️ Box ${index}: Invalid numeric values, skipping`);
+                        return;
+                    }
+                    
+                    // Calcular as extremidades de cada caixa no espaço 3D
+                    const leftX = pos.x - geom.width/2;
+                    const rightX = pos.x + geom.width/2;
+                    const bottomY = pos.y - geom.height/2;
+                    const topY = pos.y + geom.height/2;
+                    const backZ = pos.z - geom.depth/2;
+                    const frontZ = pos.z + geom.depth/2;
+                    
+                    // Actualizar os limites do envelope total
+                    if (leftX < minX) minX = leftX;
+                    if (rightX > maxX) maxX = rightX;
+                    if (bottomY < minY) minY = bottomY;
+                    if (topY > maxY) maxY = topY;
+                    if (backZ < minZ) minZ = backZ;
+                    if (frontZ > maxZ) maxZ = frontZ;
+                    
+                    validBoxCount++;
+                    
+                } catch (error) {
+                    console.log(`⚠️ Box ${index}: Error processing - ${error.message}`);
+                }
+            });
+            
+            console.log(`\n📊 Processed ${validBoxCount} valid boxes out of ${boxes.length} total`);
+            
+            if (validBoxCount === 0) {
+                console.log('❌ No valid boxes found for analysis');
+                return { error: 'No valid boxes for spatial analysis', timestamp: new Date().toISOString() };
+            }
+            
+            console.log('\n🔍 Complete Scene Bounding Box Analysis:');
+            console.log(`X range: ${minX.toFixed(3)} to ${maxX.toFixed(3)} (total span: ${(maxX-minX).toFixed(3)} units)`);
+            console.log(`Y range: ${minY.toFixed(3)} to ${maxY.toFixed(3)} (total span: ${(maxY-minY).toFixed(3)} units)`);
+            console.log(`Z range: ${minZ.toFixed(3)} to ${maxZ.toFixed(3)} (total span: ${(maxZ-minZ).toFixed(3)} units)`);
+            
+            // STEP 5: Cálculos de escala (com protecção contra divisão por zero)
+            console.log('\n🧮 STEP 5: Scale Factor Calculations');
+            console.log('Testing different hypotheses about the coordinate system...');
+            
+            const xSpan = maxX - minX;
+            const ySpan = maxY - minY;
+            const zSpan = maxZ - minZ;
+            
+            if (xSpan > 0.001 && ySpan > 0.001) { // Usar tolerância pequena em vez de zero exato
+                console.log('\n📏 HYPOTHESIS 1: X span represents 120cm (standard pallet length)');
+                const scaleFactor1 = 120 / xSpan;
+                console.log(`If 1 unit = ${scaleFactor1.toFixed(2)} cm, then:`);
+                console.log(`  Y span would represent: ${(ySpan * scaleFactor1).toFixed(1)} cm (height)`);
+                console.log(`  Z span would represent: ${(zSpan * scaleFactor1).toFixed(1)} cm (width)`);
+                
+                console.log('\n📏 HYPOTHESIS 2: Y span represents ~150cm (visual height estimate)');
+                const scaleFactor2 = 150 / ySpan;
+                console.log(`If 1 unit = ${scaleFactor2.toFixed(2)} cm, then:`);
+                console.log(`  X span would represent: ${(xSpan * scaleFactor2).toFixed(1)} cm (length)`);
+                console.log(`  Z span would represent: ${(zSpan * scaleFactor2).toFixed(1)} cm (width)`);
+            } else {
+                console.log('⚠️ Cannot perform scale calculations: dimensions too small or zero');
+            }
+            
+            // STEP 6: Validação do sistema atual (com verificação do unitsSystem)
+            console.log('\n⚖️ STEP 6: Current System Validation');
+            console.log('Comparing our discoveries with the current system settings...');
+            
+            let currentXSizeCm = 0;
+            let deviationFromExpected = 0;
+            
+            if (window.unitsSystem && window.unitsSystem.conversions) {
+                const currentConversion = window.unitsSystem.conversions.threeUnitsToCm;
+                console.log(`Current system setting: 1 unit = ${currentConversion} cm`);
+                console.log('Applying current system to our measurements:');
+                console.log(`  X span: ${(xSpan * currentConversion).toFixed(1)} cm`);
+                console.log(`  Y span: ${(ySpan * currentConversion).toFixed(1)} cm`);
+                console.log(`  Z span: ${(zSpan * currentConversion).toFixed(1)} cm`);
+                
+                currentXSizeCm = xSpan * currentConversion;
+                deviationFromExpected = Math.abs(currentXSizeCm - 120);
+                
+                console.log(`\n🎯 ACCURACY ASSESSMENT:`);
+                console.log(`Expected pallet length: 120cm (industry standard)`);
+                console.log(`Current calculation: ${currentXSizeCm.toFixed(1)}cm`);
+                console.log(`Deviation from expected: ${deviationFromExpected.toFixed(1)}cm`);
+                
+                if (deviationFromExpected < 5) {
+                    console.log('✅ VERDICT: Scale appears CORRECT (within 5cm tolerance)');
+                    console.log('The current unit system is working as expected.');
+                } else {
+                    console.log('❌ VERDICT: Scale appears INCORRECT (deviation > 5cm)');
+                    console.log('The current unit system may need calibration.');
+                    if (currentXSizeCm > 0) {
+                        const correctionFactor = 120 / currentXSizeCm;
+                        console.log(`🔧 Suggested correction factor: ${correctionFactor.toFixed(3)}`);
+                        if (window.unitsSystem.BASE_UNIT_MM) {
+                            console.log(`This means changing BASE_UNIT_MM from ${window.unitsSystem.BASE_UNIT_MM} to ${(window.unitsSystem.BASE_UNIT_MM * correctionFactor).toFixed(0)}`);
+                        }
+                    }
+                }
+            } else {
+                console.log('❌ Units system not available for comparison');
+                console.log('window.unitsSystem:', typeof window.unitsSystem);
+            }
+            
+            // CONCLUSÃO
+            console.log('\n================================');
+            console.log('🏁 INVESTIGATION COMPLETE');
+            console.log('📊 SUMMARY OF FINDINGS:');
+            console.log(`   • Analyzed ${validBoxCount} valid boxes out of ${boxes.length} total`);
+            console.log(`   • Measured scene dimensions: ${xSpan.toFixed(1)} × ${ySpan.toFixed(1)} × ${zSpan.toFixed(1)} units`);
+            console.log(`   • Current scale accuracy: ${deviationFromExpected < 5 ? 'GOOD' : 'NEEDS ATTENTION'}`);
+            console.log('================================');
+            
+            return {
+                timestamp: new Date().toISOString(),
+                success: true,
+                validBoxCount: validBoxCount,
+                totalBoxCount: boxes.length,
+                spatialAnalysis: {
+                    xSpan: xSpan,
+                    ySpan: ySpan,
+                    zSpan: zSpan
+                },
+                systemValidation: {
+                    currentConversionFactor: window.unitsSystem?.conversions?.threeUnitsToCm || 'not available',
+                    calculatedLengthCm: currentXSizeCm,
+                    deviationCm: deviationFromExpected,
+                    accuracyAssessment: deviationFromExpected < 5 ? 'correct' : 'incorrect'
+                }
+            };
+            
+        } catch (error) {
+            console.log('');
+            console.log('💥 CRITICAL ERROR CAUGHT:');
+            console.log('Error message:', error.message);
+            console.log('Error stack:', error.stack);
+            console.log('');
+            console.log('This error information will help identify the root cause.');
+            
+            return {
+                timestamp: new Date().toISOString(),
+                success: false,
+                error: error.message,
+                errorStack: error.stack
+            };
+        }
     }
 
     /**
@@ -1516,20 +1785,63 @@ class PalletizationApp {
                 centerMassElement.style.color = '#95a5a6';
         }
     }
+
+
+        /**
+     * Update bottom metrics display in the UI
+     */
+    updateBottomMetricsDisplay() {
+        const formatted = this.bottomMetricsCalculator.getFormattedMetrics();
+        
+        // Update LSI (replaces Collisions)
+        const lsiElement = document.getElementById('collisions');
+        if (lsiElement) {
+            lsiElement.textContent = formatted.lsi.display;
+            lsiElement.style.color = formatted.lsi.color;
+            lsiElement.title = `Load Stabilitfy: ${formatted.lsi.rating}`;
+        }
+        
+        // Update Box Density (replaces Global Efficiency)  
+        const densityElement = document.getElementById('global-efficiency');
+        if (densityElement) {
+            densityElement.textContent = formatted.boxDensity.display;
+            densityElement.style.color = formatted.boxDensity.color;
+            densityElement.title = `Density Efficiency: ${formatted.boxDensity.rating}`;
+        }
+    }
+
+        /**
+     * Show welcome message for Crosslog data integration
+     */
+    showWelcomeMessage() {
+        debugLog('INITIALIZATION', '=== Enhanced Palletization Simulator Ready ===');
+        debugLog('INITIALIZATION', '✓ 3D visualization initialized with improved lighting and camera controls');
+        debugLog('INITIALIZATION', '✓ Crosslog data parser ready');
+        debugLog('INITIALIZATION', '✓ Three-zone control interface activated');
+        debugLog('INITIALIZATION', '✓ Real-time box counting and animation control enabled');
+        debugLog('INITIALIZATION', '✓ Dynamic height calculation and simulation timer integrated');
+        debugLog('INITIALIZATION', '');
+        debugLog('INITIALIZATION', 'Advanced Features Available:');
+        debugLog('INITIALIZATION', '  - Play/pause animation control with timer integration');
+        debugLog('INITIALIZATION', '  - Step-by-step box placement and removal');
+        debugLog('INITIALIZATION', '  - Real-time progress tracking and height calculation');
+        debugLog('INITIALIZATION', '  - Enhanced camera zoom for tall pallets');
+        debugLog('INITIALIZATION', '  - Improved lighting for better visibility');
+        debugLog('INITIALIZATION', '  - Sequence-based consistency for manual/automatic modes');
+        debugLog('INITIALIZATION', '');
+        debugLog('INITIALIZATION', 'System ready for professional palletization analysis!');
+    }
 }
 
-// Auto-initialize the application when the page loads
-// This creates the global application instance with enhanced features
-console.log('Setting up enhanced application auto-initialization...');
 
 // Wait for page to be ready, then initialize
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM loaded, creating enhanced application...');
+        console.log('DOM loaded, creating application...');
         window.palletApp = new PalletizationApp();
     });
 } else {
-    console.log('DOM already loaded, creating enhanced application immediately...');
+    console.log('DOM already loaded, creating application immediately...');
     window.palletApp = new PalletizationApp();
 }
 

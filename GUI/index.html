@@ -72,17 +72,9 @@
 
                 <!-- Eficiência -->
                 <div class="metric-card">
-                    <h3>Area/Volume Efficiency</h3>
-                    <div class="efficiency-chart">
-                        <div class="pie-chart">
-                            <div class="pie-fill"></div>
-                            <div class="pie-text">75%</div>
-                        </div>
-                        <div class="efficiency-info">
-                            <div><span class="dot occupied"></span>Occupied: 75%</div>
-                            <div><span class="dot free"></span>Free: 25%</div>
-                        </div>
-                    </div>
+                    <h3>Volume Efficiency</h3>
+                    <div class="efficiency-chart"> <!-- JavaScript dynamic injection -->
+                </div>
                 </div>
 
                 <!-- Eficiência por camada -->
@@ -117,12 +109,12 @@
                 <span class="status-value" id="center-mass">0.0cm</span>
             </div>
             <div class="status-group">
-                <span class="status-label">Collisions:</span>
+                <span class="status-label">Load Stability Index:</span>
                 <span class="status-value" id="collisions">0</span>
             </div>
             <div class="status-group">
-                <span class="status-label">Global Efficiency:</span>
-                <span class="status-value" id="global-efficiency">0.0%</span>
+                <span class="status-label">Box Density:</span>
+                <span class="status-value" id="global-efficiency">0 boxes/m²</span>
             </div>
         </footer>
 
@@ -137,6 +129,11 @@
     
     <!-- OrbitControls for camera interaction - essential for 3D navigation -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script src="3d-viewer/js/debug-config.js"></script>
+
+    <!-- Sistema unificado - deve vir PRIMEIRO -->
+    <script src="3d-viewer/js/units-system.js"></script>
     
     <!-- Our custom Three.js setup - the foundation of our 3D visualization -->
     <script src="3d-viewer/js/three-setup.js"></script>
@@ -149,6 +146,15 @@
 
     <!-- Center of Mass Calculator -->
     <script src="3d-viewer/js/center-of-mass.js"></script>
+
+    <!-- Chart.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <!-- Volume Efficiency Calculator -->
+    <script src="3d-viewer/js/VolumeEfficiency.js"></script>
+
+    <!-- Load Stability Index + Global Density Socre -->
+    <script src="3d-viewer/js/bottom-metrics.js"></script>
 
 </body>
 </html>

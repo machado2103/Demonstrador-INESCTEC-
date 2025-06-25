@@ -86,9 +86,7 @@ class CenterOfMassCalculator {
             validBoxCount++;
             
             // Debug output for individual boxes
-            if (this.isDebugMode) {
-                console.log(`Box ${i}: pos(${position.x.toFixed(2)}, ${position.z.toFixed(2)}), weight=${weight}, contribution_x=${(weight * position.x).toFixed(2)}, contribution_z=${(weight * position.z).toFixed(2)}`);
-            }
+            debugLog('CENTER_OF_MASS', `Box ${i}: pos(${position.x.toFixed(2)}, ${position.z.toFixed(2)}), weight=${weight}kg, contribution=(${(weight * position.x).toFixed(2)}, ${(weight * position.z).toFixed(2)})`);
         }
         
         // Validate that we have valid data for calculation
@@ -114,6 +112,13 @@ class CenterOfMassCalculator {
             deviation: deviation,
             boxCount: validBoxCount
         };
+
+        const deviationCm = window.unitsSystem ? 
+            window.unitsSystem.threeJSToDisplayCm(deviation) : 
+            deviation * 10; // fallback
+        debugLog('CENTER_OF_MASS', `🎯 CoM deviation: ${deviationCm.toFixed(1)}cm (${deviation.toFixed(3)} units)`);
+        debugLog('CENTER_OF_MASS', `🎯 CoM position: (${centerX.toFixed(3)}, ${centerZ.toFixed(3)}) units, ${validBoxCount} boxes`);
+    
         
         // Store in history for analysis
         this.calculationHistory.push({
@@ -122,9 +127,6 @@ class CenterOfMassCalculator {
             boxCount: validBoxCount
         });
         
-        // Log completion
-        console.log(`✓ Center of mass calculated: (${centerX.toFixed(3)}, ${centerZ.toFixed(3)}) with deviation ${deviation.toFixed(3)} units from center`);
-        console.log(`Total weight: ${totalWeight}kg across ${validBoxCount} boxes`);
         
         return this.getCurrentResult();
     }
@@ -240,17 +242,9 @@ class CenterOfMassCalculator {
      * Shows mm for small deviations, cm for larger ones
      * @returns {string} Formatted deviation for UI display
      */
+    // SUBSTITUIR o método getFormattedDeviation() por:
     getFormattedDeviation() {
-        const deviationMm = this.currentCenterOfMass.deviation * 10; // Convert to mm
-        
-        if (deviationMm < 10) {
-            // Show in millimeters for precise small deviations
-            return `${deviationMm.toFixed(1)}mm`;
-        } else {
-            // Show in centimeters for larger deviations (cleaner display)
-            const deviationCm = this.currentCenterOfMass.deviation;
-            return `${deviationCm.toFixed(1)}cm`;
-        }
+        return window.unitsSystem.formatCenterOfMassDeviation(this.currentCenterOfMass.deviation);
     }
     
     /**
