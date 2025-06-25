@@ -59,6 +59,9 @@ class PalletizationApp {
             lastCalculation: null,      // Last calculation result
             calculationHistory: []      // History for trend analysis
         };
+
+        // Volume efficiency calculation system
+        this.volumeEfficiencyCalculator = new VolumeEfficiencyCalculator();
         
         console.log('PalletizationApp constructor - all systems initialized');
         this.init();
@@ -128,10 +131,16 @@ class PalletizationApp {
         
         // Create the simulator instance targeting the HTML container
         this.simulator = new PalletSimulator('threejs-container');
+
+        // Initialize volume efficiency pie chart
+        setTimeout(() => {
+            this.volumeEfficiencyCalculator.initializePieChart();
+        }, 500); // Small delay to ensure DOM is ready
         
         // NEW: Initialize center of mass beam visualization
         this.simulator.createCenterOfMassBeam();
-        
+
+       
         // Remove the loading message once 3D scene is ready
         const loadingMessage = document.querySelector('.threejs-loading');
         if (loadingMessage) {
@@ -490,7 +499,7 @@ class PalletizationApp {
         const heightInUnits = maxY - referenceLevel;
         
         // Convert to centimeters (1 unit = 1cm in our coordinate system)
-        const heightInCm = Math.max(0, heightInUnits * 100);
+        const heightInCm = Math.max(0, heightInUnits * 10);
         
         // Store for reference and return
         this.metricsState.currentMaxHeight = heightInCm;
@@ -1057,6 +1066,11 @@ class PalletizationApp {
                 this.updateHeightDisplay();         // Real-time height calculation with smart units
                 this.updateBoxesPlacedDisplay();    // Real-time boxes placed count
                 this.updateCenterOfMassDisplay();   // Real-time center of mass calculation
+
+
+                // Update volume efficiency in real-time  (For the Volume  Calculation)
+                const currentHeightCm = this.calculateCurrentHeight();
+                this.volumeEfficiencyCalculator.updateEfficiency(this.simulator.boxes, currentHeightCm);
             }
         }, 200); // Keep 200ms for responsive UI updates
         
@@ -1083,6 +1097,9 @@ class PalletizationApp {
         
         // ENHANCED: Reset simulation timer for fresh start
         this.resetSimulationTimer();
+
+        // Reset volume efficiency
+        this.volumeEfficiencyCalculator.reset();
         
         // Provide visual feedback to user
         this.showMessage('Restarting pallet animation...');
@@ -1302,6 +1319,10 @@ class PalletizationApp {
             this.dataLoader.clearCurrentBoxes();
         }
         
+        if (this.volumeEfficiencyCalculator) {
+        this.volumeEfficiencyCalculator.dispose();
+        }
+
         console.log('Application disposed successfully with metrics cleanup');
     }
     
