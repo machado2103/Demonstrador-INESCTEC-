@@ -236,314 +236,247 @@ class PalletizationApp {
      * Top Row: [PALLET CONTROLS] [Pallet X of Y] [ANIMATION CONTROLS] (titles/info aligned)
      * Bottom Row: [Buttons spread] [Box A of B] [Buttons spread] (controls aligned)
      */
-/**
- * Create enhanced navigation controls with perfectly aligned three-zone layout
- * This creates a professional, space-efficient interface that follows clear visual hierarchy
- * 
- * Layout Structure:
- * Top Row: [PALLET CONTROLS] [Pallet X of Y] [ANIMATION CONTROLS] (titles/info aligned)
- * Bottom Row: [Buttons spread] [Box A of B] [Buttons spread] (controls aligned)
- */
-createNavigationControls() {
-    // DEBUG: Verificar se DOM está pronto
-    console.log('🔍 createNavigationControls called');
-    console.log('🔍 visualization-area exists:', !!document.querySelector('.visualization-area'));
-    console.log('🔍 DOM ready state:', document.readyState);
-    
-    // Create main controls container with optimized spacing
-    const visualizationArea = document.querySelector('.visualization-area');
-    if (!visualizationArea) {
-        console.error('❌ visualization-area NOT FOUND!');
-        // Tentar novamente após 500ms
-        setTimeout(() => {
-            console.log('🔄 Retrying createNavigationControls...');
-            this.createNavigationControls();
-        }, 500);
-        return;
+    createNavigationControls() {
+        // Create main controls container with optimized spacing
+        const visualizationArea = document.querySelector('.visualization-area');
+        if (visualizationArea) {
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'controls-container';
+            controlsContainer.style.cssText = `
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-rows: auto auto;
+                gap: 12px 20px;
+                margin-bottom: 15px;
+                padding: 20px;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                border: 1px solid #e0e0e0;
+                align-items: center;
+            `;
+            
+            visualizationArea.insertBefore(controlsContainer, visualizationArea.children[1]);
+        }
+        
+        const controlsContainer = document.querySelector('.controls-container');
+        if (!controlsContainer) return;
+        
+        // === TOP ROW: ZONE TITLES AND PALLET INFO ===
+        
+        // Left Zone Title (Grid position: row 1, column 1)
+        const leftTitle = document.createElement('div');
+        leftTitle.textContent = 'PALLET CONTROLS';
+        leftTitle.style.cssText = `
+            font-size: 0.75rem;
+            color: #2c3e50;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            grid-column: 1;
+            grid-row: 1;
+        `;
+        
+        // Center Zone - Pallet Counter (Grid position: row 1, column 2)
+        const palletCounter = document.createElement('div');
+        palletCounter.id = 'pallet-counter';
+        palletCounter.style.cssText = `
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9rem;
+            padding: 6px 16px;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+            grid-column: 2;
+            grid-row: 1;
+            justify-self: center;
+        `;
+        palletCounter.textContent = 'Pallet 0 of 0';
+        
+        // Right Zone Title (Grid position: row 1, column 3)
+        const rightTitle = document.createElement('div');
+        rightTitle.textContent = 'ANIMATION CONTROLS';
+        rightTitle.style.cssText = `
+            font-size: 0.75rem;
+            color: #2c3e50;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            grid-column: 3;
+            grid-row: 1;
+        `;
+        
+        // === BOTTOM ROW: CONTROL BUTTONS AND BOX INFO ===
+        
+        // Left Zone - Pallet Control Buttons (Grid position: row 2, column 1)
+        const leftButtons = document.createElement('div');
+        leftButtons.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            grid-column: 1;
+            grid-row: 2;
+            width: 100%;
+        `;
+        
+        // Create pallet control buttons with enhanced functionality
+        const restartButton = this.createControlButton('Restart', () => {
+            this.restartCurrentPallet();
+        }, 'small');
+        restartButton.id = 'restart-pallet-btn';
+        restartButton.disabled = true;
+        restartButton.title = 'Restart current pallet animation';
+        
+        const prevPalletButton = this.createControlButton('Previous Pallet', () => {
+            if (this.dataLoader) {
+                this.dataLoader.previousPallet();
+                this.resetAnimationState();
+                this.resetSimulationTimer(); // ENHANCED: Reset timer when changing pallets
+                
+            }
+        }, 'small');
+        prevPalletButton.id = 'prev-pallet-btn';
+        prevPalletButton.disabled = true;
+        prevPalletButton.title = 'Previous pallet solution';
+        
+        const nextPalletButton = this.createControlButton('Next Pallet', () => {
+            if (this.dataLoader) {
+                this.dataLoader.nextPallet();
+                this.resetAnimationState();
+                this.resetSimulationTimer(); // ENHANCED: Reset timer when changing pallets
+            }
+        }, 'small');
+        nextPalletButton.id = 'next-pallet-btn';
+        nextPalletButton.disabled = true;
+        nextPalletButton.title = 'Next pallet solution';
+        
+        const finishedButton = this.createControlButton('Finish', () => {
+            this.finishCurrentPallet();
+        }, 'small');
+        finishedButton.id = 'finished-pallet-btn';
+        finishedButton.disabled = true;
+        finishedButton.title = 'Complete pallet instantly';
+        
+        leftButtons.appendChild(restartButton);
+        leftButtons.appendChild(prevPalletButton);
+        leftButtons.appendChild(nextPalletButton);
+        leftButtons.appendChild(finishedButton);
+        
+        // Center Zone - Box Counter (Grid position: row 2, column 2)
+        const boxCounter = document.createElement('div');
+        boxCounter.id = 'box-counter';
+        boxCounter.style.cssText = `
+            font-weight: bold;
+            color: #495057;
+            font-size: 1.1rem;
+            padding: 8px 20px;
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border-radius: 8px;
+            border: 2px solid #3498db;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+            grid-column: 2;
+            grid-row: 2;
+            justify-self: center;
+        `;
+        boxCounter.textContent = 'Box 0 of 0';
+        
+        // Right Zone - Animation Control Buttons (Grid position: row 2, column 3)
+        const rightButtons = document.createElement('div');
+        rightButtons.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            grid-column: 3;
+            grid-row: 2;
+            width: 100%;
+        `;
+        
+        // Create animation control buttons with enhanced functionality
+        const stepBackButton = this.createControlButton('Previous Box', () => {
+            this.stepBackwardOneBox();
+        }, 'small');
+        stepBackButton.id = 'step-back-btn';
+        stepBackButton.disabled = true;
+        stepBackButton.title = 'Remove one box';
+        
+        const playPauseButton = this.createControlButton('⏯️', () => {
+            this.togglePlayPause();
+        }, 'medium');
+        playPauseButton.id = 'play-pause-btn';
+        playPauseButton.disabled = true;
+        playPauseButton.title = 'Play or pause animation';
+        
+        const stepForwardButton = this.createControlButton('Next Box', () => {
+            this.stepForwardOneBox();
+        }, 'small');
+        stepForwardButton.id = 'step-forward-btn';
+        stepForwardButton.disabled = true;
+        stepForwardButton.title = 'Add one box';
+        
+        rightButtons.appendChild(stepBackButton);
+        rightButtons.appendChild(playPauseButton);
+        rightButtons.appendChild(stepForwardButton);
+        
+        // === ASSEMBLE THE GRID LAYOUT ===
+        controlsContainer.appendChild(leftTitle);
+        controlsContainer.appendChild(palletCounter);
+        controlsContainer.appendChild(rightTitle);
+        controlsContainer.appendChild(leftButtons);
+        controlsContainer.appendChild(boxCounter);
+        controlsContainer.appendChild(rightButtons);
+        
+        console.log('Professional grid-based navigation controls created with enhanced functionality');
     }
-    
-    console.log('✅ Found visualization area, creating controls...');
-    
-    // Create the controls container
-    const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'controls-container';
-    controlsContainer.style.cssText = `
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        grid-template-rows: auto auto;
-        gap: 12px 20px;
-        margin-bottom: 15px;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border: 1px solid #e0e0e0;
-        align-items: center;
-    `;
-    
-    // Insert the container into the visualization area
-    visualizationArea.insertBefore(controlsContainer, visualizationArea.children[1]);
-    
-    // === TOP ROW: ZONE TITLES AND PALLET INFO ===
-    
-    // Left Zone Title (Grid position: row 1, column 1)
-    const leftTitle = document.createElement('div');
-    leftTitle.textContent = 'PALLET CONTROLS';
-    leftTitle.style.cssText = `
-        font-size: 0.75rem;
-        color: #2c3e50;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        text-align: center;
-        grid-column: 1;
-        grid-row: 1;
-    `;
-    
-    // Center Zone - Pallet Counter (Grid position: row 1, column 2)
-    const palletCounter = document.createElement('div');
-    palletCounter.id = 'pallet-counter';
-    palletCounter.style.cssText = `
-        font-weight: bold;
-        color: #2c3e50;
-        font-size: 0.9rem;
-        padding: 6px 16px;
-        background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-        border-radius: 6px;
-        border: 1px solid #dee2e6;
-        text-align: center;
-        grid-column: 2;
-        grid-row: 1;
-        justify-self: center;
-    `;
-    palletCounter.textContent = 'Pallet 0 of 0';
-    
-    // Right Zone Title (Grid position: row 1, column 3)
-    const rightTitle = document.createElement('div');
-    rightTitle.textContent = 'ANIMATION CONTROLS';
-    rightTitle.style.cssText = `
-        font-size: 0.75rem;
-        color: #2c3e50;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        text-align: center;
-        grid-column: 3;
-        grid-row: 1;
-    `;
-    
-    // === BOTTOM ROW: CONTROL BUTTONS AND BOX INFO ===
-    
-    // Left Zone - Pallet Control Buttons (Grid position: row 2, column 1)
-    const leftButtons = document.createElement('div');
-    leftButtons.style.cssText = `
-        display: flex;
-        justify-content: center;         ← MUDANÇA: centralizar
-        align-items: center;
-        gap: 12px;                      ← MUDANÇA: gap uniforme
-        grid-column: 1;
-        grid-row: 2;
-        width: 100%;
-    `;
-    
-    // Create pallet control buttons with TEXT + ICONS
-    const restartButton = this.createControlButton('', () => {
-        this.restartCurrentPallet();
-    }, 'small', 'restart', true);
-    restartButton.id = 'restart-pallet-btn';
-    restartButton.disabled = true;
-    restartButton.title = 'Restart current pallet animation';
-    
-    const prevPalletButton = this.createControlButton('Prev.', () => {
-        if (this.dataLoader) {
-            this.dataLoader.previousPallet();
-            this.resetAnimationState();
-            this.resetSimulationTimer();
-        }
-    }, 'small', 'arrowLeft');
-    prevPalletButton.id = 'prev-pallet-btn';
-    prevPalletButton.disabled = true;
-    prevPalletButton.title = 'Previous pallet solution';
-
-    const nextPalletButton = this.createControlButton('Next', () => {
-        if (this.dataLoader) {
-            this.dataLoader.nextPallet();
-            this.resetAnimationState();
-            this.resetSimulationTimer();
-        }
-    }, 'small', 'arrowRight');
-    nextPalletButton.id = 'next-pallet-btn';
-    nextPalletButton.disabled = true;
-    nextPalletButton.title = 'Next pallet solution';
-
-    const finishedButton = this.createControlButton('', () => {
-        this.finishCurrentPallet();
-    }, 'small', 'skipForward');
-    finishedButton.id = 'finished-pallet-btn';
-    finishedButton.disabled = true;
-    finishedButton.title = 'Fast Forward';
-    
-    // Add buttons to left container
-    leftButtons.appendChild(restartButton);
-    leftButtons.appendChild(prevPalletButton);
-    leftButtons.appendChild(nextPalletButton);
-    leftButtons.appendChild(finishedButton);
-    
-    // Center Zone - Box Counter (Grid position: row 2, column 2)
-    const boxCounter = document.createElement('div');
-    boxCounter.id = 'box-counter';
-    boxCounter.style.cssText = `
-        font-weight: bold;
-        color: #495057;
-        font-size: 1.1rem;
-        padding: 8px 20px;
-        background: linear-gradient(145deg, #ffffff, #f8f9fa);
-        border-radius: 8px;
-        border: 2px solid #3498db;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
-        grid-column: 2;
-        grid-row: 2;
-        justify-self: center;
-    `;
-    boxCounter.textContent = 'Box 0 of 0';
-    
-    // Right Zone - Animation Control Buttons (Grid position: row 2, column 3)
-    const rightButtons = document.createElement('div');
-    rightButtons.style.cssText = `
-        display: flex;
-        justify-content: center;  ← MUDANÇA: centraliza os botões
-        align-items: center;
-        gap: 12px;               ← MUDANÇA: aumenta o gap entre botões
-        grid-column: 3;
-        grid-row: 2;
-        width: 100%;
-    `;
-    
-    // Create animation control buttons with ICONS ONLY
-    const stepBackButton = this.createControlButton('', () => {
-        this.stepBackwardOneBox();
-    }, 'small', 'stepBack', true); // true = icon-only
-    stepBackButton.id = 'step-back-btn';
-    stepBackButton.disabled = true;
-    stepBackButton.title = 'Remove one box';
-
-    const playPauseButton = this.createControlButton('', () => {
-        this.togglePlayPause();
-    }, 'medium', 'play', true); // true = icon-only
-    playPauseButton.id = 'play-pause-btn';
-    playPauseButton.disabled = true;
-    playPauseButton.title = 'Play or pause animation';
-
-    const stepForwardButton = this.createControlButton('', () => {
-        this.stepForwardOneBox();
-    }, 'small', 'stepForward', true); // true = icon-only
-    stepForwardButton.id = 'step-forward-btn';
-    stepForwardButton.disabled = true;
-    stepForwardButton.title = 'Add one box';
-    
-    // Add buttons to right container
-    rightButtons.appendChild(stepBackButton);
-    rightButtons.appendChild(playPauseButton);
-    rightButtons.appendChild(stepForwardButton);
-    
-    // === ASSEMBLE THE GRID LAYOUT ===
-    controlsContainer.appendChild(leftTitle);
-    controlsContainer.appendChild(palletCounter);
-    controlsContainer.appendChild(rightTitle);
-    controlsContainer.appendChild(leftButtons);
-    controlsContainer.appendChild(boxCounter);
-    controlsContainer.appendChild(rightButtons);
-    
-    console.log('✅ Professional grid-based navigation controls created with enhanced functionality');
-    console.log('✅ Controls container children count:', controlsContainer.children.length);
-}
     
     /**
      * Create a styled button with size variations
      * This creates consistent button styling across the interface
      */
-    createControlButton(text, onClick, size = 'medium', iconName = null, iconOnly = false) {
-    const button = document.createElement('button');
-    
-    // Aplicar classes CSS para integração com ícones
-    button.className = 'control-button';
-    if (iconOnly) {
-        button.classList.add('icon-only');
-    } else if (iconName) {
-        button.classList.add('with-icon');
-    }
-    button.classList.add(size);
-    
-    // Define size-specific styles
-    const sizeStyles = {
-        small: 'padding: 6px 12px; font-size: 0.8rem;',
-        medium: 'padding: 8px 16px; font-size: 0.9rem;',
-        large: 'padding: 10px 20px; font-size: 1rem;'
-    };
-    
-    // Adjust padding for icon-only buttons
-    if (iconOnly) {
-        const iconOnlyStyles = {
-            small: 'padding: 6px; min-width: 32px;',
-            medium: 'padding: 8px; min-width: 36px;',
-            large: 'padding: 10px; min-width: 40px;'
+    createControlButton(text, onClick, size = 'medium') {
+        const button = document.createElement('button');
+        button.textContent = text;
+        
+        // Define size-specific styles - this creates visual hierarchy
+        const sizeStyles = {
+            small: 'padding: 6px 12px; font-size: 0.8rem;',
+            medium: 'padding: 8px 16px; font-size: 0.9rem;',
+            large: 'padding: 10px 20px; font-size: 1rem;'
         };
-        sizeStyles[size] = iconOnlyStyles[size];
-    }
-    
-    button.style.cssText = `
-        ${sizeStyles[size]}
-        background: linear-gradient(145deg, #3498db, #2980b9);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: ${iconOnly ? '0' : '6px'};
-    `;
-    
-    // Create button content with icon and/or text
-    let buttonContent = '';
-    
-    if (iconName && window.iconLibrary) {
-        // Add icon
-        const iconSize = size === 'large' ? 'large' : size === 'small' ? 'small' : 'medium';
-        buttonContent += window.iconLibrary.createButtonIcon(iconName, iconSize);
-    }
-    
-    if (!iconOnly && text) {
-        // Add text (only if not icon-only)
-        buttonContent += `<span>${text}</span>`;
-    }
-    
-    // Fallback to text-only if icon library isn't loaded
-    if (!buttonContent) {
-        buttonContent = text;
-    }
-    
-    button.innerHTML = buttonContent;
-    
-    // Add hover effects
-    button.addEventListener('mouseenter', () => {
-        button.style.transform = 'translateY(-2px)';
-        button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-    });
-    
-    button.addEventListener('mouseleave', () => {
-        button.style.transform = 'translateY(0)';
-        button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    });
-    
-    button.addEventListener('click', onClick);
-    
-    return button;
+        
+        button.style.cssText = `
+            ${sizeStyles[size]}
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        `;
+        
+        // Add hover effects for better user feedback
+        button.addEventListener('mouseenter', () => {
+            button.style.transform = 'translateY(-2px)';
+            button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'translateY(0)';
+            button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        });
+        
+        button.addEventListener('click', onClick);
+        
+        return button;
     }
     
     calculateCurrentHeight() {
@@ -863,9 +796,6 @@ createNavigationControls() {
     /**
      * FIXED: Set animation as completed and update UI accordingly
      */
-/**
- * FIXED: Set animation as completed and update UI accordingly
- */
     setAnimationCompleted() {
         console.log('=== ANIMATION COMPLETED ===');
         
@@ -1900,7 +1830,6 @@ createNavigationControls() {
         debugLog('INITIALIZATION', '  - Sequence-based consistency for manual/automatic modes');
         debugLog('INITIALIZATION', '');
         debugLog('INITIALIZATION', 'System ready for professional palletization analysis!');
-        debugLog('INITIALIZATION', '=== Enhanced Palletization Simulator Ready ===');
     }
 }
 
