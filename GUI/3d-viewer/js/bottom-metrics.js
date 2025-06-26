@@ -65,7 +65,6 @@ class BottomMetricsCalculator {
      * @returns {Object} Métricas calculadas
      */
     calculateBottomMetrics(boxes, centerOfMassResult = null) {
-        console.log('=== Calculating Bottom Metrics ===');
         
         // Validar entrada
         if (!boxes || boxes.length === 0) {
@@ -81,10 +80,7 @@ class BottomMetricsCalculator {
         // Armazenar resultados
         this.currentMetrics.lsi = lsiResult;
         this.currentMetrics.boxDensity = densityResult;
-        
-        console.log(`✓ LSI: ${lsiResult.value.toFixed(1)}% (${lsiResult.stabilityRating})`);
-        console.log(`✓ Box Density: ${densityResult.value.toFixed(1)} boxes/m² (${densityResult.efficiency})`);
-        
+             
         return this.getCurrentMetrics();
     }
     
@@ -97,7 +93,6 @@ class BottomMetricsCalculator {
      * @returns {Object} LSI calculation result
      */
     calculateLoadStabilityIndex(boxes, centerOfMassResult) {
-        console.log('Calculating Load Stability Index...');
         
         // 1. CENTER OF MASS SCORE (60% do LSI)
         let centerOfMassScore = 100; // Default quando não há desvio
@@ -115,7 +110,6 @@ class BottomMetricsCalculator {
                 centerOfMassScore = 0;
             }
             
-            console.log(`Center of Mass: ${deviationCm.toFixed(1)}cm deviation, score: ${centerOfMassScore.toFixed(1)}%`);
         }
         
         // 2. WEIGHT DISTRIBUTION SCORE (40% do LSI)
@@ -183,7 +177,6 @@ class BottomMetricsCalculator {
         const maxSD = 25; // Máximo desvio possível
         const score = Math.max(0, (1 - standardDeviation / maxSD) * 100);
         
-        console.log(`Weight distribution SD: ${standardDeviation.toFixed(1)}%, score: ${score.toFixed(1)}%`);
         return score;
     }
     
@@ -208,7 +201,6 @@ class BottomMetricsCalculator {
      * @returns {Object} Box density calculation result
      */
     calculateBoxDensityScore(boxes) {
-        console.log('Calculating Box Density Score...');
         
         if (!boxes || boxes.length === 0) {
             return {
@@ -249,8 +241,6 @@ class BottomMetricsCalculator {
         // 3. DETERMINAR RATING DE EFICIÊNCIA
         const efficiency = this.getDensityEfficiencyRating(efficiencyScore);
         
-        console.log(`Box Density: ${rawDensity.toFixed(1)} boxes/m², efficiency: ${efficiencyScore.toFixed(1)}%`);
-        
         return {
             value: rawDensity,
             score: efficiencyScore,
@@ -258,18 +248,19 @@ class BottomMetricsCalculator {
             benchmarks: benchmarks
         };
     }
-    
-    /**
-     * Determinar rating de eficiência da densidade
-     * @param {number} score - Score de eficiência (0-100%)
+
+        /**
+     * Determinar rating de eficiência baseado no score de densidade
+     * @param {number} efficiencyScore - Score de eficiência (0-100%)
      * @returns {string} Rating de eficiência
      */
-    getDensityEfficiencyRating(score) {
-        if (score >= 85) return 'Excellent';
-        if (score >= 70) return 'Good';
-        if (score >= 50) return 'Fair';
-        if (score >= 30) return 'Poor';
-        return 'Low';
+    getDensityEfficiencyRating(efficiencyScore) {
+        if (efficiencyScore >= 85) return 'Excellent';
+        if (efficiencyScore >= 70) return 'Good';
+        if (efficiencyScore >= 50) return 'Fair';
+        if (efficiencyScore >= 30) return 'Poor';
+        if (efficiencyScore > 0) return 'Low';
+        return 'Empty';
     }
     
     /**
@@ -403,33 +394,6 @@ class BottomMetricsCalculator {
     /**
      * Debug completo das métricas de rodapé
      */
-    debugBottomMetrics() {
-        console.log('=== BOTTOM METRICS DEBUG ===');
-        
-        const metrics = this.getCurrentMetrics();
-        const formatted = this.getFormattedMetrics();
-        
-        console.log('Load Stability Index (LSI):');
-        console.log(`  Overall: ${formatted.lsi.display} (${formatted.lsi.rating})`);
-        console.log(`  Center of Mass Score: ${metrics.lsi.centerOfMassScore.toFixed(1)}% (weight: 60%)`);
-        console.log(`  Weight Distribution Score: ${metrics.lsi.weightDistributionScore.toFixed(1)}% (weight: 40%)`);
-        console.log(`  Safety Limit: ${metrics.lsi.safetyLimit}cm`);
-        console.log('');
-        
-        console.log('Box Density Score:');
-        console.log(`  Density: ${formatted.boxDensity.display} (${formatted.boxDensity.rating})`);
-        console.log(`  Efficiency Score: ${metrics.boxDensity.score.toFixed(1)}%`);
-        console.log('');
-        
-        console.log('Safety Configuration:');
-        const safetyInfo = this.getSafetyInfo();
-        console.log(`  Current Limit: ${safetyInfo.current}cm`);
-        console.log(`  Available Profiles:`, safetyInfo.profiles);
-        
-        console.log('================================');
-        
-        return { metrics, formatted, safetyInfo };
-    }
     
     /**
      * Reset das métricas

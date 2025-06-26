@@ -46,7 +46,7 @@ class VolumeEfficiencyCalculator {
         this.chartConfig = {
             colors: {
                 occupied: '#63CBF1',    // Azul para espaço ocupado
-                free: '#ecf0f1'         // Cinza claro para espaço livre
+                free: '#909090'         // Cinza claro para espaço livre
             },
             options: {
                 responsive: true,

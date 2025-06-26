@@ -44,7 +44,6 @@ class CenterOfMassCalculator {
      * @returns {Object} Center of mass information including coordinates and deviation
      */
     calculateCenterOfMass(boxes) {
-        console.log('=== Starting Center of Mass Calculation ===');
         
         // Validate input
         if (!boxes || boxes.length === 0) {

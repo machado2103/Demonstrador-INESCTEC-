@@ -482,11 +482,7 @@ class PalletSimulator {
         
         // Show the beam now that we have valid coordinates
         this.showCenterOfMassBeam();
-        
-        // Optional: Log position updates for debugging
-        if (Math.abs(centerOfMass.x) > 0.1 || Math.abs(centerOfMass.z) > 0.1) {
-            console.log(`Center of mass beam positioned at (${centerOfMass.x.toFixed(2)}, ${centerOfMass.z.toFixed(2)})`);
-        }
+    
     }
 
     /**
@@ -562,8 +558,6 @@ class PalletSimulator {
         
         // Make sure the reference point is visible
         this.palletCenterReference.visible = true;
-        
-        console.log(`Fixed reference point height updated to: ${(maxHeight + referenceOffset).toFixed(2)} but remains at center (0, 0)`);
     }
 
     /**
@@ -603,8 +597,6 @@ class PalletSimulator {
         
         // Make sure the cross is visible
         this.centerOfMassCross.visible = true;
-        
-        console.log(`Cross positioned at height: ${(maxHeight + crossOffset).toFixed(2)}`);
 
         // Update the green reference point height (but keep it at center)
         this.updatePalletCenterReferenceHeight(boxes);

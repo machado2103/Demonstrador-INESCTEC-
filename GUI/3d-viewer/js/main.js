@@ -65,6 +65,14 @@ class PalletizationApp {
 
         // Bottom metrics calculation system  
         this.bottomMetricsCalculator = new BottomMetricsCalculator();
+
+        // Weight distribution calculation system
+        this.weightDistributionCalculator = new WeightDistributionCalculator();
+        this.weightDistributionState = {
+            isEnabled: true,            // Se deve calcular distribuição de peso
+            updateFrequency: 200,       // Frequência de atualização (ms)
+            lastCalculation: null       // Último resultado
+        };
         
         debugLog('INITIALIZATION', '🔧 PalletizationApp constructor - all systems initialized with corrections');
         this.init();
@@ -1142,6 +1150,8 @@ createNavigationControls() {
                 const centerOfMassResult = this.centerOfMassState.lastCalculation;
                 this.bottomMetricsCalculator.calculateBottomMetrics(this.simulator.boxes, centerOfMassResult);
                 this.updateBottomMetricsDisplay();
+
+                this.updateWeightDistribution();
             }
         }, 200); // Keep 200ms for responsive UI updates
         
@@ -1378,6 +1388,10 @@ createNavigationControls() {
 
         if (this.bottomMetricsCalculator) {
             this.bottomMetricsCalculator.dispose();
+        }
+
+        if (this.weightDistributionCalculator) {
+            this.weightDistributionCalculator.dispose();
         }
 
         console.log('Application disposed successfully with metrics cleanup');
@@ -1877,6 +1891,36 @@ createNavigationControls() {
             densityElement.textContent = formatted.boxDensity.display;
             densityElement.style.color = formatted.boxDensity.color;
             densityElement.title = `Density Efficiency: ${formatted.boxDensity.rating}`;
+        }
+    }
+
+    updateWeightDistribution() {
+        if (!this.weightDistributionState.isEnabled || 
+            !this.simulator || 
+            !this.simulator.boxes || 
+            this.simulator.boxes.length === 0) {
+            
+            // Reset do heatmap quando não há caixas
+            if (this.weightDistributionCalculator) {
+                this.weightDistributionCalculator.calculateWeightDistribution([]);
+            }
+            return;
+        }
+
+        try {
+            // Calcular distribuição de peso atual
+            const distributionResult = this.weightDistributionCalculator.calculateWeightDistribution(this.simulator.boxes);
+            
+            // Armazenar resultado para outros sistemas usarem se necessário
+            this.weightDistributionState.lastCalculation = distributionResult;
+            
+            // Opcional: Log de informações importantes
+            if (distributionResult && !distributionResult.isBalanced) {
+                console.warn('Weight distribution is unbalanced - consider redistributing load');
+            }
+
+        } catch (error) {
+            console.error('Error calculating weight distribution:', error);
         }
     }
 
