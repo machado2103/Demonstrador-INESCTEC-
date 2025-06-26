@@ -1,16 +1,6 @@
 /**
  * Bottom Metrics Calculator for Palletization Simulator
- * 
- * MÉTRICAS IMPLEMENTADAS:
- * 1. Load Stability Index (LSI) - Substitui "Collisions"
- * 2. Box Density Score - Substitui "Global Efficiency"
- * 
- * LIMITES SEGUROS AJUSTÁVEIS:
- * - Limite conservador: 20cm (para transportes sensíveis)
- * - Limite padrão: 30cm (para aplicações industriais normais)
- * - Limite liberal: 40cm (para cargas estáveis)
- * 
- * Save this as: GUI/3d-viewer/js/bottom-metrics.js
+ * Calculates Load Stability Index (LSI) and Box Density Score
  */
 
 class BottomMetricsCalculator {
@@ -24,60 +14,49 @@ class BottomMetricsCalculator {
             centerZ: 0              // Pallet center Z
         };
         
-        // CONFIGURAÇÃO DE LIMITES SEGUROS AJUSTÁVEIS
+        // Safety limits configuration
         this.safetyLimits = {
-            // Diferentes níveis de segurança baseados em padrões industriais
-            conservative: 20,       // 20cm - Para transportes sensíveis (produtos frágeis)
-            standard: 30,           // 30cm - Para aplicações industriais normais
-            liberal: 40,            // 40cm - Para cargas muito estáveis
-            
-            // Limite ativo (pode ser alterado dinamicamente)
-            current: 30             // PADRÃO: 30cm (mais realista que 40cm)
+            conservative: 20,       // 20cm - For sensitive products
+            standard: 30,           // 30cm - For normal industrial applications
+            liberal: 40,            // 40cm - For very stable loads
+            current: 30             // Active limit (can be changed dynamically)
         };
         
         // Current metrics state
         this.currentMetrics = {
-            // Load Stability Index components
             lsi: {
-                value: 100,                     // LSI percentage (0-100%)
-                centerOfMassScore: 100,         // Center of mass contribution
-                weightDistributionScore: 100,   // Weight distribution contribution
-                stabilityRating: 'Excellent'    // Text rating
+                value: 100,
+                centerOfMassScore: 100,
+                weightDistributionScore: 100,
+                stabilityRating: 'Excellent'
             },
             
-            // Box Density Score components
             boxDensity: {
-                value: 0,                       // Boxes per square meter
-                score: 0,                       // Density score (0-100%)
-                efficiency: 'Low'               // Efficiency rating
+                value: 0,
+                score: 0,
+                efficiency: 'Low'
             }
         };
-        
-        console.log('BottomMetricsCalculator initialized');
-        console.log(`Active safety limit: ${this.safetyLimits.current}cm`);
-        console.log('Available safety profiles:', Object.keys(this.safetyLimits).filter(key => key !== 'current'));
     }
     
     /**
-     * MÉTODO PRINCIPAL: Calcular todas as métricas avançadas
-     * @param {Array} boxes - Array de boxes Three.js
-     * @param {Object} centerOfMassResult - Resultado do cálculo de centro de massa
-     * @returns {Object} Métricas calculadas
+     * Calculate all bottom metrics
+     * @param {Array} boxes - Array of Three.js box objects
+     * @param {Object} centerOfMassResult - Center of mass calculation result
+     * @returns {Object} Calculated metrics
      */
     calculateBottomMetrics(boxes, centerOfMassResult = null) {
-        
-        // Validar entrada
         if (!boxes || boxes.length === 0) {
             return this.getEmptyMetrics();
         }
         
-        // Calcular Load Stability Index
+        // Calculate Load Stability Index
         const lsiResult = this.calculateLoadStabilityIndex(boxes, centerOfMassResult);
         
-        // Calcular Box Density Score
+        // Calculate Box Density Score
         const densityResult = this.calculateBoxDensityScore(boxes);
         
-        // Armazenar resultados
+        // Store results
         this.currentMetrics.lsi = lsiResult;
         this.currentMetrics.boxDensity = densityResult;
              
@@ -85,40 +64,38 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * CALCULAR LOAD STABILITY INDEX (LSI)
+     * Calculate Load Stability Index (LSI)
      * Formula: LSI = (Center_of_Mass_Score × 0.6) + (Weight_Distribution_Score × 0.4)
      * 
-     * @param {Array} boxes - Array de boxes
-     * @param {Object} centerOfMassResult - Resultado do centro de massa
+     * @param {Array} boxes - Array of boxes
+     * @param {Object} centerOfMassResult - Center of mass result
      * @returns {Object} LSI calculation result
      */
     calculateLoadStabilityIndex(boxes, centerOfMassResult) {
-        
-        // 1. CENTER OF MASS SCORE (60% do LSI)
-        let centerOfMassScore = 100; // Default quando não há desvio
+        // 1. Center of mass score (60% of LSI)
+        let centerOfMassScore = 100; // Default when no deviation
         
         if (centerOfMassResult && typeof centerOfMassResult.deviationCm === 'number') {
             const deviationCm = centerOfMassResult.deviationCm;
             const safeLimit = this.safetyLimits.current;
             
-            // Calcular score baseado no desvio em relação ao limite seguro
+            // Calculate score based on deviation relative to safe limit
             if (deviationCm <= safeLimit) {
-                // Linear decay: 100% quando desvio = 0, 0% quando desvio = limite
+                // Linear decay: 100% when deviation = 0, 0% when deviation = limit
                 centerOfMassScore = Math.max(0, (1 - deviationCm / safeLimit) * 100);
             } else {
-                // Penalidade severa para desvios acima do limite
+                // Severe penalty for deviations above limit
                 centerOfMassScore = 0;
             }
-            
         }
         
-        // 2. WEIGHT DISTRIBUTION SCORE (40% do LSI)
+        // 2. Weight distribution score (40% of LSI)
         const weightDistributionScore = this.calculateWeightDistributionScore(boxes);
         
-        // 3. CALCULAR LSI FINAL
+        // 3. Calculate final LSI
         const lsiValue = (centerOfMassScore * 0.6) + (weightDistributionScore * 0.4);
         
-        // 4. DETERMINAR RATING DE ESTABILIDADE
+        // 4. Determine stability rating
         const stabilityRating = this.getLSIRating(lsiValue);
         
         return {
@@ -131,16 +108,16 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * Calcular score de distribuição de peso
-     * Analisa como o peso está distribuído ao longo do palete
+     * Calculate weight distribution score
+     * Analyzes how weight is distributed across the pallet
      * 
-     * @param {Array} boxes - Array de boxes
+     * @param {Array} boxes - Array of boxes
      * @returns {number} Weight distribution score (0-100%)
      */
     calculateWeightDistributionScore(boxes) {
-        if (boxes.length <= 1) return 100; // Um ou nenhum box = distribuição perfeita
+        if (boxes.length <= 1) return 100; // One or no boxes = perfect distribution
         
-        // Dividir palete em 4 quadrantes
+        // Divide pallet into 4 quadrants
         const quadrants = [0, 0, 0, 0]; // [Q1, Q2, Q3, Q4]
         let totalWeight = 0;
         
@@ -149,7 +126,7 @@ class BottomMetricsCalculator {
             const x = box.position.x;
             const z = box.position.z;
             
-            // Determinar quadrante baseado na posição
+            // Determine quadrant based on position
             let quadrant = 0;
             if (x >= 0 && z >= 0) quadrant = 0; // Q1: +x, +z
             else if (x < 0 && z >= 0) quadrant = 1; // Q2: -x, +z
@@ -162,28 +139,28 @@ class BottomMetricsCalculator {
         
         if (totalWeight === 0) return 100;
         
-        // Calcular percentuais por quadrante
+        // Calculate percentages per quadrant
         const percentages = quadrants.map(weight => (weight / totalWeight) * 100);
         
-        // Calcular desvio padrão dos percentuais
-        const mean = 25; // Distribuição perfeita = 25% por quadrante
+        // Calculate standard deviation of percentages
+        const mean = 25; // Perfect distribution = 25% per quadrant
         const variance = percentages.reduce((sum, percentage) => {
             return sum + Math.pow(percentage - mean, 2);
         }, 0) / 4;
         const standardDeviation = Math.sqrt(variance);
         
-        // Converter desvio padrão para score (0-100%)
-        // SD = 0 (perfeito) → 100%, SD = 25 (terrível) → 0%
-        const maxSD = 25; // Máximo desvio possível
+        // Convert standard deviation to score (0-100%)
+        // SD = 0 (perfect) → 100%, SD = 25 (terrible) → 0%
+        const maxSD = 25; // Maximum possible deviation
         const score = Math.max(0, (1 - standardDeviation / maxSD) * 100);
         
         return score;
     }
     
     /**
-     * Determinar rating de estabilidade baseado no LSI
-     * @param {number} lsiValue - Valor do LSI (0-100%)
-     * @returns {string} Rating de estabilidade
+     * Determine stability rating based on LSI
+     * @param {number} lsiValue - LSI value (0-100%)
+     * @returns {string} Stability rating
      */
     getLSIRating(lsiValue) {
         if (lsiValue >= 85) return 'Excellent';
@@ -194,14 +171,13 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * CALCULAR BOX DENSITY SCORE
-     * Mede quantos boxes por metro quadrado + eficiência de utilização
+     * Calculate Box Density Score
+     * Measures boxes per square meter + utilization efficiency
      * 
-     * @param {Array} boxes - Array de boxes
+     * @param {Array} boxes - Array of boxes
      * @returns {Object} Box density calculation result
      */
     calculateBoxDensityScore(boxes) {
-        
         if (!boxes || boxes.length === 0) {
             return {
                 value: 0,
@@ -210,35 +186,35 @@ class BottomMetricsCalculator {
             };
         }
         
-        // 1. CALCULAR DENSIDADE BRUTA (boxes por m²)
-        const palletAreaM2 = this.palletDimensions.baseArea / 100; // Converter para m²
+        // 1. Calculate raw density (boxes per m²)
+        const palletAreaM2 = this.palletDimensions.baseArea / 100; // Convert to m²
         const rawDensity = boxes.length / palletAreaM2;
         
-        // 2. CALCULAR SCORE DE EFICIÊNCIA
-        // Baseado em benchmarks industriais: 30-50 boxes/m² é típico para paletes mistas
+        // 2. Calculate efficiency score
+        // Based on industrial benchmarks: 30-50 boxes/m² is typical for mixed pallets
         const benchmarks = {
-            minimum: 10,    // Densidade mínima aceitável
-            good: 30,       // Boa densidade
-            excellent: 50   // Densidade excelente
+            minimum: 10,    // Minimum acceptable density
+            good: 30,       // Good density
+            excellent: 50   // Excellent density
         };
         
         let efficiencyScore = 0;
         if (rawDensity >= benchmarks.excellent) {
             efficiencyScore = 100;
         } else if (rawDensity >= benchmarks.good) {
-            // Linear entre good e excellent
+            // Linear between good and excellent
             const ratio = (rawDensity - benchmarks.good) / (benchmarks.excellent - benchmarks.good);
             efficiencyScore = 70 + (ratio * 30); // 70-100%
         } else if (rawDensity >= benchmarks.minimum) {
-            // Linear entre minimum e good
+            // Linear between minimum and good
             const ratio = (rawDensity - benchmarks.minimum) / (benchmarks.good - benchmarks.minimum);
             efficiencyScore = 30 + (ratio * 40); // 30-70%
         } else {
-            // Abaixo do mínimo
+            // Below minimum
             efficiencyScore = Math.max(0, (rawDensity / benchmarks.minimum) * 30);
         }
         
-        // 3. DETERMINAR RATING DE EFICIÊNCIA
+        // 3. Determine efficiency rating
         const efficiency = this.getDensityEfficiencyRating(efficiencyScore);
         
         return {
@@ -249,10 +225,10 @@ class BottomMetricsCalculator {
         };
     }
 
-        /**
-     * Determinar rating de eficiência baseado no score de densidade
-     * @param {number} efficiencyScore - Score de eficiência (0-100%)
-     * @returns {string} Rating de eficiência
+    /**
+     * Determine efficiency rating based on density score
+     * @param {number} efficiencyScore - Efficiency score (0-100%)
+     * @returns {string} Efficiency rating
      */
     getDensityEfficiencyRating(efficiencyScore) {
         if (efficiencyScore >= 85) return 'Excellent';
@@ -264,39 +240,32 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * GERENCIAR LIMITES DE SEGURANÇA
-     * Permite alternar entre diferentes perfis de segurança
-     */
-    
-    /**
-     * Definir limite de segurança personalizado
-     * @param {number} limitCm - Limite em centímetros
+     * Set custom safety limit
+     * @param {number} limitCm - Limit in centimeters
      */
     setSafetyLimit(limitCm) {
-        if (limitCm > 0 && limitCm <= 60) { // Máximo 60cm (razoável)
+        if (limitCm > 0 && limitCm <= 60) {
             this.safetyLimits.current = limitCm;
-            console.log(`Safety limit updated to ${limitCm}cm`);
         } else {
             console.warn(`Invalid safety limit: ${limitCm}cm. Must be between 1-60cm.`);
         }
     }
     
     /**
-     * Usar perfil de segurança predefinido
-     * @param {string} profile - 'conservative', 'standard', ou 'liberal'
+     * Use predefined safety profile
+     * @param {string} profile - 'conservative', 'standard', or 'liberal'
      */
     setSafetyProfile(profile) {
         if (this.safetyLimits.hasOwnProperty(profile) && profile !== 'current') {
             this.safetyLimits.current = this.safetyLimits[profile];
-            console.log(`Safety profile set to ${profile}: ${this.safetyLimits.current}cm`);
         } else {
             console.warn(`Invalid safety profile: ${profile}. Available: conservative, standard, liberal`);
         }
     }
     
     /**
-     * Obter informações sobre limites de segurança
-     * @returns {Object} Informações sobre limites
+     * Get safety limits information
+     * @returns {Object} Safety limits information
      */
     getSafetyInfo() {
         return {
@@ -307,19 +276,15 @@ class BottomMetricsCalculator {
                 liberal: this.safetyLimits.liberal
             },
             explanation: {
-                conservative: 'Para produtos frágeis ou transportes sensíveis',
-                standard: 'Para aplicações industriais normais (recomendado)',
-                liberal: 'Para cargas muito estáveis e transporte cuidadoso'
+                conservative: 'For fragile products or sensitive transport',
+                standard: 'For normal industrial applications (recommended)',
+                liberal: 'For very stable loads and careful transport'
             }
         };
     }
     
     /**
-     * MÉTODOS DE ACESSO AOS RESULTADOS
-     */
-    
-    /**
-     * Obter métricas vazias (quando não há dados)
+     * Get empty metrics (when no data available)
      */
     getEmptyMetrics() {
         return {
@@ -339,7 +304,7 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * Obter métricas atuais com informações adicionais
+     * Get current metrics with additional information
      */
     getCurrentMetrics() {
         return {
@@ -350,7 +315,7 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * Obter valores formatados para display na UI
+     * Get formatted values for UI display
      */
     getFormattedMetrics() {
         const current = this.currentMetrics;
@@ -369,37 +334,32 @@ class BottomMetricsCalculator {
         };
     }
     
-
+    /**
+     * Get LSI color based on animation state
+     */
     getLSIColor(lsiValue) {
         if (window.palletApp && window.palletApp.animationState.isCompleted) {
-            return '#27ae60'; // Verde quando animação completa
+            return '#27ae60'; // Green when animation complete
         } else {
-            return '#3498db'; // Azul durante animação
-        }
-}
-    
-    getDensityColor(densityScore) {
-        // CORRIGIDO: Cor baseada no estado da animação, não na pontuação
-        if (window.palletApp && window.palletApp.animationState.isCompleted) {
-            return '#27ae60'; // Verde quando animação completa
-        } else {
-            return '#3498db'; // Azul durante animação
+            return '#3498db'; // Blue during animation
         }
     }
     
     /**
-     * MÉTODOS DE DEBUG E ANÁLISE
+     * Get density color based on animation state
      */
+    getDensityColor(densityScore) {
+        if (window.palletApp && window.palletApp.animationState.isCompleted) {
+            return '#27ae60'; // Green when animation complete
+        } else {
+            return '#3498db'; // Blue during animation
+        }
+    }
     
     /**
-     * Debug completo das métricas de rodapé
-     */
-    
-    /**
-     * Reset das métricas
+     * Reset metrics to initial state
      */
     reset() {
-        console.log('Resetting bottom metrics...');
         this.currentMetrics = {
             lsi: {
                 value: 100,
@@ -414,18 +374,15 @@ class BottomMetricsCalculator {
                 efficiency: 'Empty'
             }
         };
-        console.log('✓ Bottom metrics reset');
     }
     
     /**
-     * Dispose dos recursos
+     * Clean up resources
      */
     dispose() {
-        console.log('Disposing bottom metrics calculator...');
         this.currentMetrics = null;
-        console.log('✓ Bottom metrics calculator disposed');
     }
 }
 
-// Export para acesso global
+// Export for global access
 window.BottomMetricsCalculator = BottomMetricsCalculator;

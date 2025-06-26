@@ -1,18 +1,10 @@
 /**
- * Weight Distribution System - ENGLISH VERSION + COMPACT LAYOUT
- * 
- * FIXES APPLIED:
- * ✓ All text converted to English
- * ✓ Compact layout - reduced container size
- * ✓ Optimized CSS to avoid oversized gray background
- * ✓ Maintained 6×4 grid and 5-color system
- * 
- * Save this as: GUI/3d-viewer/js/weight-distribution.js (REPLACE previous)
+ * Weight Distribution System
  */
 
 class WeightDistributionCalculator {
     constructor() {
-        // High resolution grid (6×4 = 24 cells)
+        // grid (6×4 = 24 cells)
         this.gridConfig = {
             rows: 4,        
             cols: 6,        
@@ -38,7 +30,6 @@ class WeightDistributionCalculator {
         this.totalWeight = 0;
         this.maxCellWeight = 0;
         
-        // FIXED: Complete English language system
         this.colorConfig = {
             colors: {
                 veryLow: '#2E7D32',    // Dark green (0-20%)
@@ -56,8 +47,7 @@ class WeightDistributionCalculator {
                 high: 0.80,       // 60-80%
                 veryHigh: 1.00    // 80-100%
             },
-            
-            // FIXED: Complete English legend information
+
             legendInfo: [
                 { key: 'veryLow', color: '#2E7D32', label: 'Very Low', range: '0-20%' },
                 { key: 'low', color: '#66BB6A', label: 'Low', range: '20-40%' },
@@ -66,7 +56,6 @@ class WeightDistributionCalculator {
                 { key: 'veryHigh', color: '#D32F2F', label: 'Very High', range: '80-100%' }
             ],
             
-            // FIXED: All category names in English
             categoryNames: {
                 empty: 'No Weight',
                 veryLow: 'Very Low',
@@ -84,10 +73,6 @@ class WeightDistributionCalculator {
         // Debug state
         this.isDebugMode = false;
         
-        console.log('WeightDistributionCalculator ENGLISH initialized');
-        console.log(`🔧 Grid: ${this.gridConfig.rows}×${this.gridConfig.cols} = ${this.gridConfig.totalCells} cells`);
-        console.log(`📏 Cell size: ${(this.cellDimensions.width*100).toFixed(0)}×${(this.cellDimensions.height*100).toFixed(0)}mm each`);
-        console.log(`🎨 Color system: 5-color gradient + English labels`);
         
         // Initialize complete system
         this.initializeCompleteSystem();
@@ -106,11 +91,10 @@ class WeightDistributionCalculator {
         // 3. Initialize dynamic legend
         this.initializeDynamicLegend();
         
-        console.log('✅ Complete weight distribution system initialized (English + Compact)');
     }
     
     /**
-     * FIXED: Inject compact CSS to avoid oversized containers
+     * Inject compact CSS
      */
     injectRequiredCSS() {
         // Check if CSS already injected
@@ -127,7 +111,7 @@ class WeightDistributionCalculator {
             width: 100% !important;
             max-width: 200px !important;
             padding: 3px !important;
-            background-color: #ffff !important;
+            background-color: # !important;
             border-radius: 4px !important;
             margin: 0 auto !important;
             aspect-ratio: 1.5 !important;
@@ -185,17 +169,16 @@ class WeightDistributionCalculator {
         `;
         
         document.head.insertAdjacentHTML('beforeend', css);
-        console.log('📝 Weight distribution COMPACT CSS injected');
     }
     
     /**
-     * Initialize heatmap HTML (compact version)
+     * Initialize heatmap HTML
      */
     initializeHeatmapHTML() {
         this.heatmapElement = document.querySelector('.heatmap .heat-grid');
         
         if (!this.heatmapElement) {
-            console.warn('⚠️ Heatmap HTML element not found');
+            console.warn('Heatmap HTML element not found');
             return;
         }
         
@@ -214,25 +197,23 @@ class WeightDistributionCalculator {
         // Apply CSS layout
         this.heatmapElement.style.gridTemplateColumns = `repeat(${this.gridConfig.cols}, 1fr)`;
         this.heatmapElement.style.gridTemplateRows = `repeat(${this.gridConfig.rows}, 1fr)`;
-        
-        console.log(`✅ Compact heatmap initialized: ${this.gridConfig.totalCells} cells`);
     }
     
     /**
-     * Initialize dynamic legend (English version)
+     * Initialize dynamic legend
      */
     initializeDynamicLegend() {
         this.legendElement = document.querySelector('.heatmap .legend');
         
         if (!this.legendElement) {
-            console.warn('⚠️ Legend HTML element not found');
+            console.warn('Legend HTML element not found');
             return;
         }
         
         // Clear existing legend
         this.legendElement.innerHTML = '';
         
-        // Create legend with 5 colors (English labels)
+        // Create legend with 5 colors
         this.colorConfig.legendInfo.forEach(item => {
             const legendItem = document.createElement('span');
             
@@ -247,8 +228,6 @@ class WeightDistributionCalculator {
             legendItem.appendChild(label);
             this.legendElement.appendChild(legendItem);
         });
-        
-        console.log('✅ Dynamic legend initialized with 5 English colors');
     }
     
     /**
@@ -256,7 +235,7 @@ class WeightDistributionCalculator {
      */
     calculateWeightDistribution(boxes) {
         if (this.isDebugMode) {
-            console.log(`🔄 Calculating weight distribution for ${boxes.length} boxes...`);
+            console.log(`Calculating weight distribution for ${boxes.length} boxes...`);
         }
         
         this.resetGrid();
@@ -270,7 +249,7 @@ class WeightDistributionCalculator {
             try {
                 this.processBoxWeight(box, index);
             } catch (error) {
-                console.warn(`❌ Error processing box ${index}:`, error.message);
+                console.warn(`Error processing box ${index}:`, error.message);
             }
         });
         
@@ -509,62 +488,8 @@ class WeightDistributionCalculator {
         return coefficientOfVariation < 0.5;
     }
     
-    /**
-     * Debug methods
-     */
-    setDebugMode(enabled) {
-        this.isDebugMode = enabled;
-        console.log(`🔧 Weight Distribution debug mode ${enabled ? 'enabled' : 'disabled'}`);
-    }
-    
-    logDistributionSummary() {
-        console.log('=== WEIGHT DISTRIBUTION ANALYSIS (ENGLISH + COMPACT) ===');
-        console.log(`📊 Total weight: ${this.totalWeight.toFixed(1)}kg`);
-        console.log(`📈 Max cell weight: ${this.maxCellWeight.toFixed(1)}kg`);
-        console.log(`🎯 Grid resolution: ${this.gridConfig.rows}×${this.gridConfig.cols} = ${this.gridConfig.totalCells} cells`);
-        console.log(`📏 Cell size: ${(this.cellDimensions.width*100).toFixed(0)}×${(this.cellDimensions.height*100).toFixed(0)}mm each`);
-        
-        console.log('\n🗺️ Grid Layout (weights in kg):');
-        for (let row = 0; row < this.gridConfig.rows; row++) {
-            let rowString = `Row ${row + 1}: `;
-            for (let col = 0; col < this.gridConfig.cols; col++) {
-                const cellIndex = row * this.gridConfig.cols + col;
-                const weight = this.weightGrid[cellIndex];
-                rowString += `${weight.toFixed(1).padStart(5)} `;
-            }
-            console.log(rowString);
-        }
-        
-        const summary = this.getDistributionSummary();
-        console.log('\n🎨 5-Color Category Distribution:');
-        console.log(`  🔸 No Weight: ${summary.categories.empty} cells`);
-        console.log(`  🟢 Very Low (0-20%): ${summary.categories.veryLow} cells`);
-        console.log(`  🟢 Low (20-40%): ${summary.categories.low} cells`);
-        console.log(`  🟡 Medium (40-60%): ${summary.categories.medium} cells`);
-        console.log(`  🟠 High (60-80%): ${summary.categories.high} cells`);
-        console.log(`  🔴 Very High (80-100%): ${summary.categories.veryHigh} cells`);
-        console.log(`  ⚖️ Balanced: ${summary.isBalanced ? 'Yes' : 'No'}`);
-        console.log('==========================================================');
-    }
-    
-    debugWithTestData() {
-        console.log('🧪 Running COMPACT weight distribution test...');
-        
-        const testBoxes = [
-            { position: { x: -3, z: -2 }, geometry: { parameters: { width: 2, depth: 2 } }, userData: { weight: 100 } },
-            { position: { x: 3, z: 2 }, geometry: { parameters: { width: 2, depth: 2 } }, userData: { weight: 150 } },
-            { position: { x: 0, z: 0 }, geometry: { parameters: { width: 1, depth: 1 } }, userData: { weight: 50 } }
-        ];
-        
-        this.setDebugMode(true);
-        const result = this.calculateWeightDistribution(testBoxes);
-        this.setDebugMode(false);
-        
-        return result;
-    }
-    
     dispose() {
-        console.log('🗑️ Disposing weight distribution calculator...');
+        console.log(' Disposing weight distribution calculator...');
         this.resetGrid();
         this.heatmapElement = null;
         this.legendElement = null;
@@ -575,7 +500,7 @@ class WeightDistributionCalculator {
             cssElement.remove();
         }
         
-        console.log('✅ Weight distribution calculator disposed');
+        console.log(' Weight distribution calculator disposed');
     }
 }
 

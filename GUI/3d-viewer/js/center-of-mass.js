@@ -44,6 +44,7 @@ class CenterOfMassCalculator {
      * @returns {Object} Center of mass information including coordinates and deviation
      */
     calculateCenterOfMass(boxes) {
+
         
         // Validate input
         if (!boxes || boxes.length === 0) {

@@ -1,18 +1,16 @@
 /**
- * SISTEMA UNIFICADO DE UNIDADES - VERSÃO PRODUÇÃO
+ * Unified Unit System
  * 
- * Sistema corrigido e otimizado para uso em produção
  * 1 Three.js unit = 100mm = 10cm
  * 
- * Save this as: GUI/3d-viewer/js/units-system.js
  */
 
 class UnifiedUnitsSystem {
     constructor() {
-        // REGRA BASE CORRIGIDA
+        // Base Rule
         this.BASE_UNIT_MM = 100; // 1 Three.js unit = 100mm = 10cm
         
-        // CONVERSÕES
+        // CONVERSIONS
         this.conversions = {
             // From Crosslog (mm) to Three.js (units)
             mmToThreeUnits: 1 / this.BASE_UNIT_MM,        // mm → units (÷100)
@@ -31,7 +29,7 @@ class UnifiedUnitsSystem {
             mToCm: 100                                    // m → cm (×100)
         };
         
-        // DADOS DE REFERÊNCIA
+        // Reference Data
         this.referenceData = {
             crosslogPallet: {
                 lengthMm: 1200,
@@ -52,25 +50,25 @@ class UnifiedUnitsSystem {
     }
     
     // =====================================
-    // MÉTODOS DE CONVERSÃO
+    // Conversion Methods
     // =====================================
     
     /**
-     * Converter de Crosslog (mm) para Three.js (units)
+     * Convert from Crosslog (mm) to Three.js (units)
      */
     crosslogToThreeJS(valueInMm) {
         return valueInMm * this.conversions.mmToThreeUnits;
     }
     
     /**
-     * Converter de Three.js (units) para Display (cm)
+     * Convert from Three.js (units) to Display (cm)
      */
     threeJSToDisplayCm(valueInUnits) {
         return valueInUnits * this.conversions.threeUnitsToCm;
     }
     
     /**
-     * Converter de Three.js (units) para Display (m)
+     * Convert from Three.js (units) to Display (m)
      */
     threeJSToDisplayM(valueInUnits) {
         const cm = this.threeJSToDisplayCm(valueInUnits);
@@ -78,14 +76,14 @@ class UnifiedUnitsSystem {
     }
     
     /**
-     * Converter de Crosslog (mm) para Display (cm)
+     * Convert from Crosslog (mm) to Display (cm)
      */
     crosslogToDisplayCm(valueInMm) {
         return valueInMm * this.conversions.mmToCm;
     }
     
     /**
-     * Calcular altura total da palletização
+     * Total Pallet height calculation
      */
     calculateDisplayHeight(boxes, palletTopY = 0.61, boxFloorOffset = 0.72) {
         if (!boxes || boxes.length === 0) {
@@ -96,7 +94,7 @@ class UnifiedUnitsSystem {
             };
         }
         
-        // Encontrar o ponto mais alto
+        // Find highest point
         let maxY = -Infinity;
         
         boxes.forEach((box) => {
@@ -106,11 +104,11 @@ class UnifiedUnitsSystem {
             }
         });
         
-        // Calcular altura do topo do palete ao ponto mais alto
+        // Calculte the height of the hightest point
         const referenceLevel = palletTopY + boxFloorOffset;
         const heightInThreeUnits = Math.max(0, maxY - referenceLevel);
         
-        // Converter para display
+        // Convert to display
         const heightCm = this.threeJSToDisplayCm(heightInThreeUnits);
         const heightM = this.threeJSToDisplayM(heightInThreeUnits);
         
@@ -122,25 +120,25 @@ class UnifiedUnitsSystem {
     }
     
     /**
-     * Calcular volume de uma caixa em cm³
+     * Box Volume calculation  cm³
      */
     calculateBoxVolumeCm3(box) {
-        // Dimensões do box em Three.js units
+        // Box dimensions in Three.js units
         const widthUnits = box.geometry.parameters.width;
         const heightUnits = box.geometry.parameters.height;
         const depthUnits = box.geometry.parameters.depth;
         
-        // Converter para cm
+        // Convert to cm
         const widthCm = this.threeJSToDisplayCm(widthUnits);
         const heightCm = this.threeJSToDisplayCm(heightUnits);
         const depthCm = this.threeJSToDisplayCm(depthUnits);
         
-        // Volume em cm³
+        // Volume in cm³
         return widthCm * heightCm * depthCm;
     }
     
     /**
-     * Formatar desvio do centro de massa
+     * Format center of mass deviation
      */
     formatCenterOfMassDeviation(deviationInThreeUnits) {
         const deviationCm = this.threeJSToDisplayCm(deviationInThreeUnits);
@@ -154,7 +152,7 @@ class UnifiedUnitsSystem {
     }
     
     /**
-     * Obter área do palete em cm²
+     * Pallet area in cm²
      */
     getPalletAreaCm2() {
         const lengthCm = this.referenceData.displayPallet.lengthCm;
@@ -163,7 +161,7 @@ class UnifiedUnitsSystem {
     }
     
     // =====================================
-    // MÉTODOS DE CONFIGURAÇÃO
+    // CONFIG METHODS
     // =====================================
     
     getSystemInfo() {
@@ -184,6 +182,6 @@ class UnifiedUnitsSystem {
     }
 }
 
-// Inicializar sistema global
+// Init System
 window.UnifiedUnitsSystem = UnifiedUnitsSystem;
 window.unitsSystem = new UnifiedUnitsSystem();

@@ -1,13 +1,6 @@
 /**
- * Enhanced Main Application Controller - FIXED Timer and Center of Mass
- * 
- * CORRECTIONS APPLIED:
- * 1. Timer stops when animation completes and turns green
- * 2. Height display turns green when animation completes  
- * 3. Center of mass calculation debugging added
- * 4. Proper animation completion detection
- * 
- * Save this as: GUI/3d-viewer/js/main.js
+ * Main Application Controller
+ * Coordinates 3D visualization, data loading, and user interface for pallet simulation
  */
 
 class PalletizationApp {
@@ -24,40 +17,38 @@ class PalletizationApp {
             isPaused: false,
             currentBoxIndex: 0,
             totalBoxes: 0,
-            isCompleted: false  // NEW: Track if animation is completed
+            isCompleted: false
         };
         
-        // Robust sequence tracking to fix manual/automatic inconsistencies
+        // Sequence tracking for manual/automatic consistency
         this.sequenceState = {
-            lastPlacedSequence: -1,     // Last sequence actually placed
-            nextExpectedSequence: 0,    // Next sequence that should be placed
-            isConsistent: true          // Flag to detect inconsistencies
+            lastPlacedSequence: -1,
+            nextExpectedSequence: 0,
+            isConsistent: true
         };
         
-        // Dynamic metrics tracking system for real-time information
+        // Dynamic metrics tracking system
         this.metricsState = {
-            // Height calculation system
-            palletTopY: 0.61,           // Y coordinate of pallet top surface
-            boxFloorOffset: 0.72,       // Additional Y offset applied to boxes
-            currentMaxHeight: 0,        // Current highest point in cm
+            palletTopY: 0.61,
+            boxFloorOffset: 0.72,
+            currentMaxHeight: 0,
             
-            // Simulation timer system
             simulationTimer: {
-                startTime: null,        // When current simulation session started
-                elapsedTime: 0,         // Total elapsed time in milliseconds
-                isRunning: false,       // Is timer currently running
-                pausedTime: 0,          // Time accumulated before current session
-                displayInterval: null   // Interval for updating display
+                startTime: null,
+                elapsedTime: 0,
+                isRunning: false,
+                pausedTime: 0,
+                displayInterval: null
             }
         };
         
-        //Center of Mass calculation system
+        // Center of Mass calculation system
         this.centerOfMassCalculator = new CenterOfMassCalculator();
         this.centerOfMassState = {
-            isEnabled: true,            // Whether to calculate center of mass
-            updateFrequency: 300,       // How often to recalculate (ms)f
-            lastCalculation: null,      // Last calculation result
-            calculationHistory: []      // History for trend analysis
+            isEnabled: true,
+            updateFrequency: 300,
+            lastCalculation: null,
+            calculationHistory: []
         };
 
         // Volume efficiency calculation system
@@ -69,47 +60,34 @@ class PalletizationApp {
         // Weight distribution calculation system
         this.weightDistributionCalculator = new WeightDistributionCalculator();
         this.weightDistributionState = {
-            isEnabled: true,            // Se deve calcular distribuição de peso
-            updateFrequency: 200,       // Frequência de atualização (ms)
-            lastCalculation: null       // Último resultado
+            isEnabled: true,
+            updateFrequency: 200,
+            lastCalculation: null
         };
         
-        debugLog('INITIALIZATION', '🔧 PalletizationApp constructor - all systems initialized with corrections');
         this.init();
-
-        console.log('DEBUG TEST: debugReverseEngineering exists:', typeof this.debugReverseEngineering);
     }
     
     /**
-     * Initialize the complete application with all enhanced features
-     * This master function coordinates the startup sequence like a conductor leading an orchestra
+     * Initialize the complete application
      */
     async init() {
         try {
-            console.log('Initializing Enhanced Palletization Application...');
-            
-            // Wait for DOM to be fully loaded - we can't build an interface without the HTML foundation
             if (document.readyState === 'loading') {
-                console.log('Waiting for DOM to finish loading...');
                 await new Promise(resolve => {
                     document.addEventListener('DOMContentLoaded', resolve);
                 });
             }
             
-            // Wait for Three.js libraries - the 3D engine must be ready before we start
             await this.waitForThreeJS();
             
-            // Initialize components in logical order - foundation first, then features
-            this.initializeSimulator();     // 3D visualization engine
-            this.initializeDataLoader();    // Data processing system
-            this.setupUI();                 // User interface with enhanced controls
-            this.showWelcomeMessage();      // User guidance and status
+            this.initializeSimulator();
+            this.initializeDataLoader();
+            this.setupUI();
             
-            // Attempt automatic data loading - if successful, user sees immediate results
             await this.loadDefaultCrosslogData();
             
             this.isInitialized = true;
-            console.log('Enhanced Palletization Application fully initialized with dynamic metrics!');
             
         } catch (error) {
             console.error('Failed to initialize application:', error);
@@ -119,19 +97,16 @@ class PalletizationApp {
     
     /**
      * Wait for Three.js libraries to be available
-     * This ensures we don't try to use 3D functionality before it's loaded
      */
     async waitForThreeJS() {
         let attempts = 0;
-        const maxAttempts = 50; // 5 seconds maximum wait
+        const maxAttempts = 50;
         
         while (attempts < maxAttempts) {
             if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls !== 'undefined') {
-                console.log('Three.js libraries are ready');
                 return;
             }
             
-            console.log('Waiting for Three.js libraries... attempt', attempts + 1);
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
         }
@@ -139,521 +114,428 @@ class PalletizationApp {
         throw new Error('Three.js libraries failed to load within the expected time');
     }
     
+    /**
+     * Initialize 3D simulator
+     */
     initializeSimulator() {
-        console.log('Creating 3D simulator...');
-        
-        // Create the simulator instance targeting the HTML container
         this.simulator = new PalletSimulator('threejs-container');
 
         // Initialize volume efficiency pie chart
         setTimeout(() => {
             this.volumeEfficiencyCalculator.initializePieChart();
-        }, 500); // Small delay to ensure DOM is ready
+        }, 500);
         
-        // NEW: Initialize center of mass beam visualization
+        // Initialize center of mass beam visualization
         this.simulator.createCenterOfMassBeam();
-
-       
-        // Remove the loading message once 3D scene is ready
+        
+        // Remove loading message
         const loadingMessage = document.querySelector('.threejs-loading');
         if (loadingMessage) {
             loadingMessage.style.display = 'none';
-            console.log('Removed loading message - 3D scene is now visible');
         }
-        
-        console.log('3D Simulator initialized successfully with center of mass beam');
     }
     
     /**
-     * Initialize the data loading system
-     * This creates our Crosslog parser that converts text files into 3D objects
+     * Initialize data loading system
      */
     initializeDataLoader() {
-        console.log('Creating data loader...');
         this.dataLoader = new PalletDataLoader(this.simulator);
-        console.log('Data Loader initialized successfully');
     }
     
     /**
-     * Set up the complete user interface with enhanced controls
-     * This is where we build our three-zone control system
+     * Set up user interface controls
      */
     setupUI() {
-        console.log('Setting up enhanced user interface controls...');
-        
-        // Create the main navigation controls with three-zone layout
         this.createNavigationControls();
-        
-        // Set up automatic information display updates with enhanced metrics
         this.setupInfoDisplays();
-        
-        console.log('Enhanced user interface controls set up successfully');
     }
     
     /**
-     * Load Crosslog data automatically from the default data file
-     * This provides immediate functionality when the application starts
+     * Load default Crosslog data automatically
      */
     async loadDefaultCrosslogData() {
         try {
-            console.log('=== Attempting to Load Default Crosslog Data ===');
-            console.log('Looking for file: 3d-viewer/data/simulation.txt');
-            
-            // Attempt to fetch the simulation data file
             const response = await fetch('3d-viewer/data/simulation.txt');
             
-            // Check if the file was found and can be read
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            // Read the entire file content as text
             const fileContent = await response.text();
             
-            // Validate that we actually got some content
             if (!fileContent || fileContent.trim().length === 0) {
                 throw new Error('Simulation file is empty or contains no valid data');
             }
             
-            console.log('✓ Simulation file loaded successfully');
-            console.log(`File size: ${fileContent.length} characters`);
-            
-            // Process the Crosslog data using our existing parser
             const success = this.loadCrosslogData(fileContent, 'simulation.txt');
             
             if (success) {
-                console.log('✓ Default Crosslog data loaded and visualization started!');
                 this.showMessage('Simulation data loaded successfully');
             } else {
                 throw new Error('Failed to parse the Crosslog data in simulation.txt');
             }
             
         } catch (error) {
-            // Handle errors gracefully - don't crash the entire application
-            console.log('⚠️ Could not load default data file:', error.message);
-            console.log('Application will continue in manual mode');
             this.showMessage('No default data found - application ready for manual data loading');
         }
     }
     
     /**
-     * Create enhanced navigation controls with perfectly aligned three-zone layout
-     * This creates a professional, space-efficient interface that follows clear visual hierarchy
-     * 
-     * Layout Structure:
-     * Top Row: [PALLET CONTROLS] [Pallet X of Y] [ANIMATION CONTROLS] (titles/info aligned)
-     * Bottom Row: [Buttons spread] [Box A of B] [Buttons spread] (controls aligned)
+     * Create navigation controls with three-zone layout
      */
-/**
- * Create enhanced navigation controls with perfectly aligned three-zone layout
- * This creates a professional, space-efficient interface that follows clear visual hierarchy
- * 
- * Layout Structure:
- * Top Row: [PALLET CONTROLS] [Pallet X of Y] [ANIMATION CONTROLS] (titles/info aligned)
- * Bottom Row: [Buttons spread] [Box A of B] [Buttons spread] (controls aligned)
- */
-createNavigationControls() {
-    // DEBUG: Verificar se DOM está pronto
-    console.log('🔍 createNavigationControls called');
-    console.log('🔍 visualization-area exists:', !!document.querySelector('.visualization-area'));
-    console.log('🔍 DOM ready state:', document.readyState);
-    
-    // Create main controls container with optimized spacing
-    const visualizationArea = document.querySelector('.visualization-area');
-    if (!visualizationArea) {
-        console.error('❌ visualization-area NOT FOUND!');
-        // Tentar novamente após 500ms
-        setTimeout(() => {
-            console.log('🔄 Retrying createNavigationControls...');
-            this.createNavigationControls();
-        }, 500);
-        return;
+    createNavigationControls() {
+        const visualizationArea = document.querySelector('.visualization-area');
+        if (!visualizationArea) {
+            setTimeout(() => {
+                this.createNavigationControls();
+            }, 500);
+            return;
+        }
+        
+        // Create the controls container
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'controls-container';
+        controlsContainer.style.cssText = `
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 12px 20px;
+            margin-bottom: 15px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            align-items: center;
+        `;
+        
+        visualizationArea.insertBefore(controlsContainer, visualizationArea.children[1]);
+        
+        // Top row titles
+        const leftTitle = document.createElement('div');
+        leftTitle.textContent = 'PALLET CONTROLS';
+        leftTitle.style.cssText = `
+            font-size: 0.75rem;
+            color: #2c3e50;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            grid-column: 1;
+            grid-row: 1;
+        `;
+        
+        const palletCounter = document.createElement('div');
+        palletCounter.id = 'pallet-counter';
+        palletCounter.style.cssText = `
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9rem;
+            padding: 6px 16px;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+            grid-column: 2;
+            grid-row: 1;
+            justify-self: center;
+        `;
+        palletCounter.textContent = 'Pallet 0 of 0';
+        
+        const rightTitle = document.createElement('div');
+        rightTitle.textContent = 'ANIMATION CONTROLS';
+        rightTitle.style.cssText = `
+            font-size: 0.75rem;
+            color: #2c3e50;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            grid-column: 3;
+            grid-row: 1;
+        `;
+        
+        // Bottom row controls
+        const leftButtons = document.createElement('div');
+        leftButtons.style.cssText = `
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            grid-column: 1;
+            grid-row: 2;
+            width: 100%;
+        `;
+        
+        // Create pallet control buttons
+        const restartButton = this.createControlButton('', () => {
+            this.restartCurrentPallet();
+        }, 'small', 'restart', true);
+        restartButton.id = 'restart-pallet-btn';
+        restartButton.disabled = true;
+        restartButton.title = 'Restart current pallet animation';
+        
+        const prevPalletButton = this.createControlButton('Prev.', () => {
+            if (this.dataLoader) {
+                this.dataLoader.previousPallet();
+                this.resetAnimationState();
+                this.resetSimulationTimer();
+            }
+        }, 'small', 'arrowLeft');
+        prevPalletButton.id = 'prev-pallet-btn';
+        prevPalletButton.disabled = true;
+        prevPalletButton.title = 'Previous pallet solution';
+
+        const nextPalletButton = this.createControlButton('Next', () => {
+            if (this.dataLoader) {
+                this.dataLoader.nextPallet();
+                this.resetAnimationState();
+                this.resetSimulationTimer();
+            }
+        }, 'small', 'arrowRight');
+        nextPalletButton.id = 'next-pallet-btn';
+        nextPalletButton.disabled = true;
+        nextPalletButton.title = 'Next pallet solution';
+
+        const finishedButton = this.createControlButton('', () => {
+            this.finishCurrentPallet();
+        }, 'small', 'skipForward');
+        finishedButton.id = 'finished-pallet-btn';
+        finishedButton.disabled = true;
+        finishedButton.title = 'Fast Forward';
+        
+        leftButtons.appendChild(restartButton);
+        leftButtons.appendChild(prevPalletButton);
+        leftButtons.appendChild(nextPalletButton);
+        leftButtons.appendChild(finishedButton);
+        
+        // Center box counter
+        const boxCounter = document.createElement('div');
+        boxCounter.id = 'box-counter';
+        boxCounter.style.cssText = `
+            font-weight: bold;
+            color: #495057;
+            font-size: 1.1rem;
+            padding: 8px 20px;
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border-radius: 8px;
+            border: 2px solid #3498db;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+            grid-column: 2;
+            grid-row: 2;
+            justify-self: center;
+        `;
+        boxCounter.textContent = 'Box 0 of 0';
+        
+        // Right animation controls
+        const rightButtons = document.createElement('div');
+        rightButtons.style.cssText = `
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            grid-column: 3;
+            grid-row: 2;
+            width: 100%;
+        `;
+        
+        const stepBackButton = this.createControlButton('', () => {
+            this.stepBackwardOneBox();
+        }, 'small', 'stepBack', true);
+        stepBackButton.id = 'step-back-btn';
+        stepBackButton.disabled = true;
+        stepBackButton.title = 'Remove one box';
+
+        const playPauseButton = this.createControlButton('', () => {
+            this.togglePlayPause();
+        }, 'medium', 'play', true);
+        playPauseButton.id = 'play-pause-btn';
+        playPauseButton.disabled = true;
+        playPauseButton.title = 'Play or pause animation';
+
+        const stepForwardButton = this.createControlButton('', () => {
+            this.stepForwardOneBox();
+        }, 'small', 'stepForward', true);
+        stepForwardButton.id = 'step-forward-btn';
+        stepForwardButton.disabled = true;
+        stepForwardButton.title = 'Add one box';
+        
+        rightButtons.appendChild(stepBackButton);
+        rightButtons.appendChild(playPauseButton);
+        rightButtons.appendChild(stepForwardButton);
+        
+        // Assemble the grid layout
+        controlsContainer.appendChild(leftTitle);
+        controlsContainer.appendChild(palletCounter);
+        controlsContainer.appendChild(rightTitle);
+        controlsContainer.appendChild(leftButtons);
+        controlsContainer.appendChild(boxCounter);
+        controlsContainer.appendChild(rightButtons);
     }
-    
-    console.log('✅ Found visualization area, creating controls...');
-    
-    // Create the controls container
-    const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'controls-container';
-    controlsContainer.style.cssText = `
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        grid-template-rows: auto auto;
-        gap: 12px 20px;
-        margin-bottom: 15px;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border: 1px solid #e0e0e0;
-        align-items: center;
-    `;
-    
-    // Insert the container into the visualization area
-    visualizationArea.insertBefore(controlsContainer, visualizationArea.children[1]);
-    
-    // === TOP ROW: ZONE TITLES AND PALLET INFO ===
-    
-    // Left Zone Title (Grid position: row 1, column 1)
-    const leftTitle = document.createElement('div');
-    leftTitle.textContent = 'PALLET CONTROLS';
-    leftTitle.style.cssText = `
-        font-size: 0.75rem;
-        color: #2c3e50;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        text-align: center;
-        grid-column: 1;
-        grid-row: 1;
-    `;
-    
-    // Center Zone - Pallet Counter (Grid position: row 1, column 2)
-    const palletCounter = document.createElement('div');
-    palletCounter.id = 'pallet-counter';
-    palletCounter.style.cssText = `
-        font-weight: bold;
-        color: #2c3e50;
-        font-size: 0.9rem;
-        padding: 6px 16px;
-        background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-        border-radius: 6px;
-        border: 1px solid #dee2e6;
-        text-align: center;
-        grid-column: 2;
-        grid-row: 1;
-        justify-self: center;
-    `;
-    palletCounter.textContent = 'Pallet 0 of 0';
-    
-    // Right Zone Title (Grid position: row 1, column 3)
-    const rightTitle = document.createElement('div');
-    rightTitle.textContent = 'ANIMATION CONTROLS';
-    rightTitle.style.cssText = `
-        font-size: 0.75rem;
-        color: #2c3e50;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        text-align: center;
-        grid-column: 3;
-        grid-row: 1;
-    `;
-    
-    // === BOTTOM ROW: CONTROL BUTTONS AND BOX INFO ===
-    
-    // Left Zone - Pallet Control Buttons (Grid position: row 2, column 1)
-    const leftButtons = document.createElement('div');
-    leftButtons.style.cssText = `
-        display: flex;
-        justify-content: center;         ← MUDANÇA: centralizar
-        align-items: center;
-        gap: 12px;                      ← MUDANÇA: gap uniforme
-        grid-column: 1;
-        grid-row: 2;
-        width: 100%;
-    `;
-    
-    // Create pallet control buttons with TEXT + ICONS
-    const restartButton = this.createControlButton('', () => {
-        this.restartCurrentPallet();
-    }, 'small', 'restart', true);
-    restartButton.id = 'restart-pallet-btn';
-    restartButton.disabled = true;
-    restartButton.title = 'Restart current pallet animation';
-    
-    const prevPalletButton = this.createControlButton('Prev.', () => {
-        if (this.dataLoader) {
-            this.dataLoader.previousPallet();
-            this.resetAnimationState();
-            this.resetSimulationTimer();
-        }
-    }, 'small', 'arrowLeft');
-    prevPalletButton.id = 'prev-pallet-btn';
-    prevPalletButton.disabled = true;
-    prevPalletButton.title = 'Previous pallet solution';
-
-    const nextPalletButton = this.createControlButton('Next', () => {
-        if (this.dataLoader) {
-            this.dataLoader.nextPallet();
-            this.resetAnimationState();
-            this.resetSimulationTimer();
-        }
-    }, 'small', 'arrowRight');
-    nextPalletButton.id = 'next-pallet-btn';
-    nextPalletButton.disabled = true;
-    nextPalletButton.title = 'Next pallet solution';
-
-    const finishedButton = this.createControlButton('', () => {
-        this.finishCurrentPallet();
-    }, 'small', 'skipForward');
-    finishedButton.id = 'finished-pallet-btn';
-    finishedButton.disabled = true;
-    finishedButton.title = 'Fast Forward';
-    
-    // Add buttons to left container
-    leftButtons.appendChild(restartButton);
-    leftButtons.appendChild(prevPalletButton);
-    leftButtons.appendChild(nextPalletButton);
-    leftButtons.appendChild(finishedButton);
-    
-    // Center Zone - Box Counter (Grid position: row 2, column 2)
-    const boxCounter = document.createElement('div');
-    boxCounter.id = 'box-counter';
-    boxCounter.style.cssText = `
-        font-weight: bold;
-        color: #495057;
-        font-size: 1.1rem;
-        padding: 8px 20px;
-        background: linear-gradient(145deg, #ffffff, #f8f9fa);
-        border-radius: 8px;
-        border: 2px solid #3498db;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
-        grid-column: 2;
-        grid-row: 2;
-        justify-self: center;
-    `;
-    boxCounter.textContent = 'Box 0 of 0';
-    
-    // Right Zone - Animation Control Buttons (Grid position: row 2, column 3)
-    const rightButtons = document.createElement('div');
-    rightButtons.style.cssText = `
-        display: flex;
-        justify-content: center;  ← MUDANÇA: centraliza os botões
-        align-items: center;
-        gap: 12px;               ← MUDANÇA: aumenta o gap entre botões
-        grid-column: 3;
-        grid-row: 2;
-        width: 100%;
-    `;
-    
-    // Create animation control buttons with ICONS ONLY
-    const stepBackButton = this.createControlButton('', () => {
-        this.stepBackwardOneBox();
-    }, 'small', 'stepBack', true); // true = icon-only
-    stepBackButton.id = 'step-back-btn';
-    stepBackButton.disabled = true;
-    stepBackButton.title = 'Remove one box';
-
-    const playPauseButton = this.createControlButton('', () => {
-        this.togglePlayPause();
-    }, 'medium', 'play', true); // true = icon-only
-    playPauseButton.id = 'play-pause-btn';
-    playPauseButton.disabled = true;
-    playPauseButton.title = 'Play or pause animation';
-
-    const stepForwardButton = this.createControlButton('', () => {
-        this.stepForwardOneBox();
-    }, 'small', 'stepForward', true); // true = icon-only
-    stepForwardButton.id = 'step-forward-btn';
-    stepForwardButton.disabled = true;
-    stepForwardButton.title = 'Add one box';
-    
-    // Add buttons to right container
-    rightButtons.appendChild(stepBackButton);
-    rightButtons.appendChild(playPauseButton);
-    rightButtons.appendChild(stepForwardButton);
-    
-    // === ASSEMBLE THE GRID LAYOUT ===
-    controlsContainer.appendChild(leftTitle);
-    controlsContainer.appendChild(palletCounter);
-    controlsContainer.appendChild(rightTitle);
-    controlsContainer.appendChild(leftButtons);
-    controlsContainer.appendChild(boxCounter);
-    controlsContainer.appendChild(rightButtons);
-    
-    console.log('✅ Professional grid-based navigation controls created with enhanced functionality');
-    console.log('✅ Controls container children count:', controlsContainer.children.length);
-}
     
     /**
-     * Create a styled button with size variations
-     * This creates consistent button styling across the interface
+     * Create styled control button
      */
     createControlButton(text, onClick, size = 'medium', iconName = null, iconOnly = false) {
-    const button = document.createElement('button');
-    
-    // Aplicar classes CSS para integração com ícones
-    button.className = 'control-button';
-    if (iconOnly) {
-        button.classList.add('icon-only');
-    } else if (iconName) {
-        button.classList.add('with-icon');
-    }
-    button.classList.add(size);
-    
-    // Define size-specific styles
-    const sizeStyles = {
-        small: 'padding: 6px 12px; font-size: 0.8rem;',
-        medium: 'padding: 8px 16px; font-size: 0.9rem;',
-        large: 'padding: 10px 20px; font-size: 1rem;'
-    };
-    
-    // Adjust padding for icon-only buttons
-    if (iconOnly) {
-        const iconOnlyStyles = {
-            small: 'padding: 6px; min-width: 32px;',
-            medium: 'padding: 8px; min-width: 36px;',
-            large: 'padding: 10px; min-width: 40px;'
+        const button = document.createElement('button');
+        
+        button.className = 'control-button';
+        if (iconOnly) {
+            button.classList.add('icon-only');
+        } else if (iconName) {
+            button.classList.add('with-icon');
+        }
+        button.classList.add(size);
+        
+        // Define size-specific styles
+        const sizeStyles = {
+            small: 'padding: 6px 12px; font-size: 0.8rem;',
+            medium: 'padding: 8px 16px; font-size: 0.9rem;',
+            large: 'padding: 10px 20px; font-size: 1rem;'
         };
-        sizeStyles[size] = iconOnlyStyles[size];
+        
+        if (iconOnly) {
+            const iconOnlyStyles = {
+                small: 'padding: 6px; min-width: 32px;',
+                medium: 'padding: 8px; min-width: 36px;',
+                large: 'padding: 10px; min-width: 40px;'
+            };
+            sizeStyles[size] = iconOnlyStyles[size];
+        }
+        
+        button.style.cssText = `
+            ${sizeStyles[size]}
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: ${iconOnly ? '0' : '6px'};
+        `;
+        
+        // Create button content
+        let buttonContent = '';
+        
+        if (iconName && window.iconLibrary) {
+            const iconSize = size === 'large' ? 'large' : size === 'small' ? 'small' : 'medium';
+            buttonContent += window.iconLibrary.createButtonIcon(iconName, iconSize);
+        }
+        
+        if (!iconOnly && text) {
+            buttonContent += `<span>${text}</span>`;
+        }
+        
+        if (!buttonContent) {
+            buttonContent = text;
+        }
+        
+        button.innerHTML = buttonContent;
+        
+        // Add hover effects
+        button.addEventListener('mouseenter', () => {
+            button.style.transform = 'translateY(-2px)';
+            button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'translateY(0)';
+            button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        });
+        
+        button.addEventListener('click', onClick);
+        
+        return button;
     }
     
-    button.style.cssText = `
-        ${sizeStyles[size]}
-        background: linear-gradient(145deg, #3498db, #2980b9);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: ${iconOnly ? '0' : '6px'};
-    `;
-    
-    // Create button content with icon and/or text
-    let buttonContent = '';
-    
-    if (iconName && window.iconLibrary) {
-        // Add icon
-        const iconSize = size === 'large' ? 'large' : size === 'small' ? 'small' : 'medium';
-        buttonContent += window.iconLibrary.createButtonIcon(iconName, iconSize);
-    }
-    
-    if (!iconOnly && text) {
-        // Add text (only if not icon-only)
-        buttonContent += `<span>${text}</span>`;
-    }
-    
-    // Fallback to text-only if icon library isn't loaded
-    if (!buttonContent) {
-        buttonContent = text;
-    }
-    
-    button.innerHTML = buttonContent;
-    
-    // Add hover effects
-    button.addEventListener('mouseenter', () => {
-        button.style.transform = 'translateY(-2px)';
-        button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-    });
-    
-    button.addEventListener('mouseleave', () => {
-        button.style.transform = 'translateY(0)';
-        button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    });
-    
-    button.addEventListener('click', onClick);
-    
-    return button;
-    }
-    
+    /**
+     * Calculate current height in centimeters
+     */
     calculateCurrentHeight() {
         if (!window.unitsSystem) {
-            console.error('❌ Units system not available for height calculation');
+            console.error('Units system not available for height calculation');
             return 0;
         }
-        // Usar o sistema unificado para cálculo de altura
+        
         const result = window.unitsSystem.calculateDisplayHeight(
             this.simulator ? this.simulator.boxes : [],
             this.metricsState.palletTopY,
             this.metricsState.boxFloorOffset
         );
-
-        debugLog('HEIGHT_CALC', `🔧 Height calculation: ${result.cm.toFixed(1)}cm (${result.displayText})`);
-
-
-
         
-        // Armazenar para referência
         this.metricsState.currentMaxHeight = result.cm;
         return result.cm;
     }
     
     /**
-     * ENHANCED: Start the simulation timer
-     * Called when animation begins or resumes
+     * Start the simulation timer
      */
     startSimulationTimer() {
         const timer = this.metricsState.simulationTimer;
         
-        if (!timer.isRunning && !this.animationState.isCompleted) { // FIXED: Don't start if completed
+        if (!timer.isRunning && !this.animationState.isCompleted) {
             timer.startTime = Date.now();
             timer.isRunning = true;
             
-            // Start the display update interval (update every 100ms for smooth display)
             timer.displayInterval = setInterval(() => {
                 this.updateTimeDisplay();
             }, 100);
-            
         }
     }
     
     /**
-     * ENHANCED: Stop or pause the simulation timer
-     * Called when animation is paused or stopped
+     * Stop or pause the simulation timer
      */
     stopSimulationTimer() {
         const timer = this.metricsState.simulationTimer;
         
         if (timer.isRunning) {
-            // Calculate elapsed time for this session
             const sessionTime = Date.now() - timer.startTime;
             timer.pausedTime += sessionTime;
             
             timer.isRunning = false;
             timer.startTime = null;
             
-            // Clear the display update interval
             if (timer.displayInterval) {
                 clearInterval(timer.displayInterval);
                 timer.displayInterval = null;
             }
-            
         }
     }
     
     /**
-     * ENHANCED: Reset the simulation timer to zero
-     * Called when restarting pallet or changing to different pallet
+     * Reset the simulation timer to zero
      */
     resetSimulationTimer() {
         const timer = this.metricsState.simulationTimer;
         
-        // Stop any running timer
         this.stopSimulationTimer();
         
-        // Reset all timer values
         timer.elapsedTime = 0;
         timer.pausedTime = 0;
         timer.startTime = null;
         timer.isRunning = false;
         
-        // Reset completion state
         this.animationState.isCompleted = false;
         
-        // Update display immediately
         this.updateTimeDisplay();
-        
-        console.log('Simulation timer reset');
     }
     
     /**
-     * ENHANCED: Get the total elapsed simulation time in milliseconds
-     * Includes both completed sessions and current session if running
+     * Get total elapsed simulation time in milliseconds
      */
     getTotalElapsedTime() {
         const timer = this.metricsState.simulationTimer;
         
         let totalTime = timer.pausedTime;
         
-        // Add current session time if timer is running
         if (timer.isRunning && timer.startTime) {
             totalTime += (Date.now() - timer.startTime);
         }
@@ -662,8 +544,7 @@ createNavigationControls() {
     }
     
     /**
-     * FIXED: Update the time display in the UI with green color when completed
-     * Shows elapsed time in a user-friendly format
+     * Update the time display in the UI
      */
     updateTimeDisplay() {
         const timeElement = document.getElementById('simulation-time');
@@ -672,7 +553,6 @@ createNavigationControls() {
         const totalMs = this.getTotalElapsedTime();
         const seconds = totalMs / 1000;
         
-        // Format time nicely - different formats for different durations
         let displayText;
         if (seconds < 60) {
             displayText = `${seconds.toFixed(1)}s`;
@@ -684,17 +564,15 @@ createNavigationControls() {
         
         timeElement.textContent = displayText;
         
-        // FIXED: Change color to green when animation is completed
         if (this.animationState.isCompleted) {
-            timeElement.style.color = '#27ae60'; // Green for completed
+            timeElement.style.color = '#27ae60';
         } else {
-            timeElement.style.color = '#3498db'; // Blue for active/paused
+            timeElement.style.color = '#3498db';
         }
     }
     
     /**
-     * FIXED: Update the height display in the UI with green color when completed
-     * Shows current pallet height in centimeters
+     * Update the height display in the UI
      */
     updateHeightDisplay() {
         const heightElement = document.getElementById('current-height');
@@ -702,38 +580,31 @@ createNavigationControls() {
         
         const currentHeightCm = this.calculateCurrentHeight();
         
-        // Smart unit conversion logic
         let displayText;
         if (currentHeightCm >= 100) {
-            // Convert to meters when height is 100cm or more
             const heightInMeters = currentHeightCm / 100;
             displayText = `${heightInMeters.toFixed(2)}m`;
         } else {
-            // Keep in centimeters for values under 100cm
             displayText = `${currentHeightCm.toFixed(1)}cm`;
         }
         
         heightElement.textContent = displayText;
         
-        // FIXED: Change color to green when animation is completed
         if (this.animationState.isCompleted) {
-            heightElement.style.color = '#27ae60'; // Green for completed
+            heightElement.style.color = '#27ae60';
         } else {
-            heightElement.style.color = '#3498db'; // Blue for active/paused
+            heightElement.style.color = '#3498db';
         }
-
     }
     
     /**
-     * ENHANCED: Toggle between play and pause states with timer integration
-     * This is the central control for animation state management
+     * Toggle between play and pause states
      */
     togglePlayPause() {
         const button = document.getElementById('play-pause-btn');
         if (!button || !this.dataLoader) return;
         
         if (this.animationState.isPlaying) {
-            // Pause the animation by clearing all pending timeouts
             this.dataLoader.animationTimeouts.forEach(timeoutId => {
                 clearTimeout(timeoutId);
             });
@@ -744,12 +615,8 @@ createNavigationControls() {
             button.textContent = '▶ Play';
             button.title = 'Resume animation';
             
-            // ENHANCED: Stop the simulation timer
             this.stopSimulationTimer();
-            
-            console.log('Animation paused at box', this.simulator.boxes.length);
         } else {
-            // Resume or start animation
             if (this.animationState.isPaused) {
                 this.resumeAnimation();
             } else {
@@ -761,26 +628,20 @@ createNavigationControls() {
             button.textContent = '⏸ Pause';
             button.title = 'Pause animation';
             
-            // ENHANCED: Start the simulation timer
             this.startSimulationTimer();
-            
-            console.log('Animation started/resumed');
         }
         
         this.updateButtonStates();
     }
     
     /**
-     * ENHANCED: Step backward by removing one box with height updates
-     * This provides precise control over the visualization
+     * Step backward by removing one box
      */
     stepBackwardOneBox() {
         if (!this.simulator || this.simulator.boxes.length === 0) {
-            console.log('No boxes to remove');
             return;
         }
         
-        // Find the box with the highest sequence (last placed logically)
         let lastBox = null;
         let maxSequence = -1;
         let maxSequenceIndex = -1;
@@ -794,114 +655,80 @@ createNavigationControls() {
         });
         
         if (lastBox) {
-            // Remove the box from the scene
             this.simulator.scene.remove(lastBox);
             this.simulator.boxes.splice(maxSequenceIndex, 1);
             
-            // Dispose of resources to prevent memory leaks
             if (lastBox.geometry) lastBox.geometry.dispose();
             if (lastBox.material) lastBox.material.dispose();
             
-            // ENHANCED: Update sequence tracking
             this.sequenceState.lastPlacedSequence = this.findCurrentMaxSequence();
-            this.sequenceState.nextExpectedSequence = maxSequence; // The removed sequence becomes next expected
-            
-            console.log(`Removed box with sequence ${maxSequence}. Remaining: ${this.simulator.boxes.length}`);
+            this.sequenceState.nextExpectedSequence = maxSequence;
         }
         
-        // Reset completion state when removing boxes
         this.animationState.isCompleted = false;
-        
-        // ENHANCED: Update height display after removing box
         this.updateHeightDisplay();
-        
-        // Update our animation state tracking
         this.animationState.currentBoxIndex = this.simulator.boxes.length;
         this.updateBoxCounter();
         this.updateButtonStates();
     }
     
     /**
-     * ENHANCED: Step forward by adding one box with sequence tracking and height updates
-     * Now uses sequence-based tracking instead of simple box count for consistency
+     * Step forward by adding one box
      */
     stepForwardOneBox() {
         if (!this.dataLoader || this.dataLoader.allPallets.length === 0) {
-            console.log('No pallet data available');
             return;
         }
         
         const currentPallet = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex];
         const sortedBoxes = [...currentPallet.boxes].sort((a, b) => a.sequence - b.sequence);
         
-        // ENHANCED: Instead of using boxes.length as direct index
-        // Find the next box based on sequence logic
         const nextBoxIndex = this.findNextBoxToPlace(sortedBoxes);
         
         if (nextBoxIndex === -1) {
-            console.log('All boxes already placed or sequence completed');
             return;
         }
         
         const nextBox = sortedBoxes[nextBoxIndex];
         
-        // Add the box to the scene
         this.dataLoader.createAndAddBox(nextBox);
         
-        // ENHANCED: Update sequence tracking
         this.sequenceState.lastPlacedSequence = nextBox.sequence;
         this.sequenceState.nextExpectedSequence = this.findNextExpectedSequence(sortedBoxes, nextBox.sequence);
         
-        // Check if this completes the animation
         if (this.simulator.boxes.length === sortedBoxes.length) {
             this.setAnimationCompleted();
         }
         
-        // ENHANCED: Update height display after adding box
         this.updateHeightDisplay();
-        
-        // Update our state tracking
         this.animationState.currentBoxIndex = this.simulator.boxes.length;
         this.updateBoxCounter();
         this.updateButtonStates();
-        
-        console.log(`Added box with sequence ${nextBox.sequence}. Total boxes: ${this.simulator.boxes.length}`);
     }
 
     /**
-     * FIXED: Set animation as completed and update UI accordingly
+     * Set animation as completed and update UI
      */
-/**
- * FIXED: Set animation as completed and update UI accordingly
- */
     setAnimationCompleted() {
-        console.log('=== ANIMATION COMPLETED ===');
-        
         this.animationState.isCompleted = true;
         this.animationState.isPlaying = false;
         this.animationState.isPaused = false;
         
-        // Stop the timer permanently
         this.stopSimulationTimer();
         
-        // Update button text
         const button = document.getElementById('play-pause-btn');
         if (button) {
             button.textContent = '▶ Play';
             button.title = 'Restart animation';
         }
         
-        // Update displays with green color
         this.updateTimeDisplay();
         this.updateHeightDisplay();
         this.updateButtonStates();
-        
-        console.log('Animation marked as completed - timer stopped, UI updated to green');
     }
     
     /**
-     * ENHANCED: Update the boxes placed display with actual count
-     * Shows the real number of boxes currently placed in the scene
+     * Update boxes placed display
      */
     updateBoxesPlacedDisplay() {
         const boxesElement = document.getElementById('boxes-count');
@@ -910,31 +737,26 @@ createNavigationControls() {
         const currentBoxCount = this.simulator ? this.simulator.boxes.length : 0;
         boxesElement.textContent = currentBoxCount.toString();
         
-        // Optional: Add visual feedback based on progress
         if (this.dataLoader && this.dataLoader.allPallets.length > 0) {
             const totalBoxes = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex].boxes.length;
             const progressPercentage = (currentBoxCount / totalBoxes) * 100;
             
-            // Change color based on completion percentage
             if (progressPercentage === 100) {
-                boxesElement.style.color = '#27ae60'; // Green for complete
+                boxesElement.style.color = '#27ae60';
             } else {
-                boxesElement.style.color = '#3498db'; // Blue for the rest
+                boxesElement.style.color = '#3498db';
             }
         }
     }
     
     /**
-     * ENHANCED: Find the next box that should be placed based on current scene state
-     * This ensures consistency regardless of how we got to the current state
+     * Find the next box that should be placed
      */
     findNextBoxToPlace(sortedBoxes) {
-        // Get all sequences currently placed in the scene
         const placedSequences = new Set(
             this.simulator.boxes.map(box => box.userData.sequence)
         );
         
-        // Find the first sequence that hasn't been placed yet
         for (let i = 0; i < sortedBoxes.length; i++) {
             const sequence = sortedBoxes[i].sequence;
             if (!placedSequences.has(sequence)) {
@@ -942,23 +764,22 @@ createNavigationControls() {
             }
         }
         
-        // All boxes have been placed
         return -1;
     }
     
     /**
-     * ENHANCED: Calculate what the next expected sequence should be
+     * Calculate next expected sequence
      */
     findNextExpectedSequence(sortedBoxes, currentSequence) {
         const currentIndex = sortedBoxes.findIndex(box => box.sequence === currentSequence);
         if (currentIndex === -1 || currentIndex === sortedBoxes.length - 1) {
-            return -1; // Sequence not found or it's the last one
+            return -1;
         }
         return sortedBoxes[currentIndex + 1].sequence;
     }
     
     /**
-     * ENHANCED: Find the current maximum sequence in the scene
+     * Find current maximum sequence in scene
      */
     findCurrentMaxSequence() {
         if (this.simulator.boxes.length === 0) return -1;
@@ -968,7 +789,6 @@ createNavigationControls() {
     
     /**
      * Resume animation from current position
-     * This continues the animation from where it was paused
      */
     resumeAnimation() {
         if (!this.dataLoader || this.dataLoader.allPallets.length === 0) return;
@@ -977,7 +797,6 @@ createNavigationControls() {
         const currentBoxCount = this.simulator.boxes.length;
         const sortedBoxes = [...currentPallet.boxes].sort((a, b) => a.sequence - b.sequence);
         
-        // Continue animation from where it was paused
         for (let i = currentBoxCount; i < sortedBoxes.length; i++) {
             const delay = (i - currentBoxCount) * this.dataLoader.animationSpeed;
             
@@ -986,9 +805,8 @@ createNavigationControls() {
                 this.animationState.currentBoxIndex = i + 1;
                 this.updateBoxCounter();
                 
-                // Check if this was the last box
                 if (i === sortedBoxes.length - 1) {
-                    this.setAnimationCompleted(); // FIXED: Use new completion method
+                    this.setAnimationCompleted();
                 }
             }, delay);
             
@@ -997,35 +815,23 @@ createNavigationControls() {
     }
     
     /**
-     * FIXED: Handle animation completion using the new method
-     * This is called when the animation reaches the end
-     */
-    onAnimationComplete() {
-        this.setAnimationCompleted(); // Use the new centralized completion method
-    }
-    
-    /**
-     * ENHANCED: Reset animation state with metrics integration
-     * This is called when changing pallets or restarting
+     * Reset animation state
      */
     resetAnimationState() {
         this.animationState.isPlaying = false;
         this.animationState.isPaused = false;
         this.animationState.currentBoxIndex = 0;
-        this.animationState.isCompleted = false; // Reset completion state
+        this.animationState.isCompleted = false;
         
-        // Reset sequence tracking
         this.sequenceState.lastPlacedSequence = -1;
         this.sequenceState.nextExpectedSequence = 0;
         this.sequenceState.isConsistent = true;
         
-        // Reset metrics
         this.metricsState.currentMaxHeight = 0;
         this.updateHeightDisplay();
         
-        // Reset center of mass calculation
         this.centerOfMassState.lastCalculation = null;
-        this.updateCenterOfMassDisplay(); // This will hide the beam
+        this.updateCenterOfMassDisplay();
         
         const button = document.getElementById('play-pause-btn');
         if (button) {
@@ -1033,19 +839,15 @@ createNavigationControls() {
             button.title = 'Start animation';
         }
 
-        //Resets the bottom metrics
         this.bottomMetricsCalculator.reset();
         
         this.updateButtonStates();
-        console.log('Animation state, metrics, and center of mass visualization reset');
     }
     
     /**
      * Update all button states based on current conditions
-     * This ensures the interface always reflects the current state accurately
      */
     updateButtonStates() {
-        // Get references to all our control buttons
         const prevBtn = document.getElementById('prev-pallet-btn');
         const nextBtn = document.getElementById('next-pallet-btn');
         const restartBtn = document.getElementById('restart-pallet-btn');
@@ -1054,7 +856,6 @@ createNavigationControls() {
         const stepForwardBtn = document.getElementById('step-forward-btn');
         const playPauseBtn = document.getElementById('play-pause-btn');
         
-        // Only proceed if we have buttons and data
         if (!this.dataLoader || !prevBtn || !nextBtn || !restartBtn || !finishedBtn || 
             !stepBackBtn || !stepForwardBtn || !playPauseBtn) {
             return;
@@ -1067,21 +868,17 @@ createNavigationControls() {
         const totalBoxes = hasData ? this.dataLoader.allPallets[currentIndex].boxes.length : 0;
         
         if (hasData) {
-            // Pallet navigation buttons
             prevBtn.disabled = currentIndex <= 0;
             nextBtn.disabled = currentIndex >= totalPallets - 1;
             
-            // Pallet control buttons
             restartBtn.disabled = false;
             finishedBtn.disabled = false;
             
-            // Animation control buttons
             playPauseBtn.disabled = false;
             stepBackBtn.disabled = currentBoxes <= 0;
             stepForwardBtn.disabled = currentBoxes >= totalBoxes;
             
         } else {
-            // No data loaded - disable all buttons
             prevBtn.disabled = true;
             nextBtn.disabled = true;
             restartBtn.disabled = true;
@@ -1093,8 +890,7 @@ createNavigationControls() {
     }
     
     /**
-     * Update the box counter display
-     * This provides real-time feedback about current progress
+     * Update box counter display
      */
     updateBoxCounter() {
         const boxCounter = document.getElementById('box-counter');
@@ -1105,7 +901,6 @@ createNavigationControls() {
             
             boxCounter.textContent = `Box ${currentBoxes} of ${totalBoxes}`;
             
-            // Update animation state
             this.animationState.currentBoxIndex = currentBoxes;
             this.animationState.totalBoxes = totalBoxes;
         }
@@ -1113,7 +908,6 @@ createNavigationControls() {
     
     /**
      * Update pallet counter display
-     * This keeps users informed about their current position in the pallet sequence
      */
     updatePalletCounter() {
         const counter = document.getElementById('pallet-counter');
@@ -1125,85 +919,60 @@ createNavigationControls() {
     }
     
     /**
-     * ENHANCED: Modified setupInfoDisplays to include the new box counter
-     * This ensures all dynamic information updates properly
+     * Setup automatic information display updates
      */
     setupInfoDisplays() {
         setInterval(() => {
             if (this.dataLoader && this.dataLoader.allPallets.length > 0) {
-                this.updateButtonStates();          // Keep buttons in sync with state
-                this.updatePalletCounter();         // Update pallet information
-                this.updateBoxCounter();            // Update box count information
-                
-                // ENHANCED: Update dynamic metrics
-                this.updateHeightDisplay();         // Real-time height calculation with smart units
-                this.updateBoxesPlacedDisplay();    // Real-time boxes placed count
-                this.updateCenterOfMassDisplay();   // Real-time center of mass calculation
+                this.updateButtonStates();
+                this.updatePalletCounter();
+                this.updateBoxCounter();
+                this.updateHeightDisplay();
+                this.updateBoxesPlacedDisplay();
+                this.updateCenterOfMassDisplay();
 
-
-                // Update volume efficiency in real-time  (For the Volume  Calculation)
+                // Update volume efficiency in real-time
                 const currentHeightCm = this.calculateCurrentHeight();
                 this.volumeEfficiencyCalculator.updateEfficiency(this.simulator.boxes, currentHeightCm);
 
-
-                // Update bottom metrics (LSI and Box Density)
+                // Update bottom metrics
                 const centerOfMassResult = this.centerOfMassState.lastCalculation;
                 this.bottomMetricsCalculator.calculateBottomMetrics(this.simulator.boxes, centerOfMassResult);
                 this.updateBottomMetricsDisplay();
 
                 this.updateWeightDistribution();
             }
-        }, 200); // Keep 200ms for responsive UI updates
-        
+        }, 200);
     }
     
     /**
-     * ENHANCED: Restart the current pallet animation from the beginning with timer reset
-     * This provides a clean slate while maintaining the same pallet selection
+     * Restart current pallet animation from beginning
      */
     restartCurrentPallet() {
         if (!this.dataLoader || this.dataLoader.allPallets.length === 0) {
-            console.log('No data available to restart');
             return;
         }
         
-        console.log('=== Restarting Current Pallet Animation ===');
-        
-        // Clear any pending animation timeouts to prevent conflicts
         this.dataLoader.clearCurrentBoxes();
-        
-        // Reset our animation state
         this.resetAnimationState();
-        
-        // ENHANCED: Reset simulation timer for fresh start
         this.resetSimulationTimer();
 
-        // Reset volume efficiency
         this.volumeEfficiencyCalculator.reset();
-
-        //Reset bottom metrics
         this.bottomMetricsCalculator.reset();
         
-        // Provide visual feedback to user
         this.showMessage('Restarting pallet animation...');
         
-        // Reload the current pallet with fresh animation
         const currentIndex = this.dataLoader.currentPalletIndex;
         this.dataLoader.loadPallet(currentIndex);
         
-        // ENHANCED: Start timer when animation begins
         this.startSimulationTimer();
-        
-        console.log('✓ Pallet restart completed successfully with timer reset');
     }
     
     /**
-     * Finish the current pallet animation quickly
-     * This demonstrates elegant animation acceleration techniques
+     * Finish current pallet animation quickly
      */
     finishCurrentPallet() {
         if (!this.dataLoader || this.dataLoader.allPallets.length === 0) {
-            console.log('No data available to finish');
             return;
         }
         
@@ -1211,46 +980,32 @@ createNavigationControls() {
         const currentBoxCount = this.simulator.boxes.length;
         const totalBoxCount = currentPallet.boxes.length;
         
-        // Check if animation is already complete
         if (currentBoxCount >= totalBoxCount) {
-            console.log('Pallet animation already complete');
             this.showMessage('Pallet already complete');
             return;
         }
         
-        console.log('=== Fast-Completing Current Pallet ===');
-        
-        // Provide visual feedback
         this.showMessage('Completing pallet instantly...');
         
-        // Store original animation speed
         const originalSpeed = this.dataLoader.animationSpeed;
-        
-        // Set ultra-fast animation speed
         this.dataLoader.animationSpeed = 10;
         
-        // Clear current boxes and restart with fast animation
         this.dataLoader.clearCurrentBoxes();
         this.resetAnimationState();
         this.dataLoader.loadPallet(this.dataLoader.currentPalletIndex);
         
-        
-        // Restore original animation speed after completion
         const remainingBoxes = totalBoxCount;
         const completionTime = remainingBoxes * 10 + 500;
         
         setTimeout(() => {
             this.dataLoader.animationSpeed = originalSpeed;
             this.showMessage(`Pallet completed with ${totalBoxCount} boxes`);
-            this.setAnimationCompleted(); // FIXED: Use new completion method
+            this.setAnimationCompleted();
         }, completionTime);
-        
-        console.log('✓ Fast completion initiated');
     }
 
     /**
-     * BONUS: Method to get height information in both units
-     * Useful for debugging or advanced displays
+     * Get height information in both units
      */
     getHeightInfo() {
         const heightCm = this.calculateCurrentHeight();
@@ -1265,8 +1020,7 @@ createNavigationControls() {
     }
 
     /**
-     * BONUS: Method to get comprehensive box statistics
-     * Provides detailed information about box placement progress
+     * Get comprehensive box statistics
      */
     getBoxStatistics() {
         if (!this.simulator || !this.dataLoader || this.dataLoader.allPallets.length === 0) {
@@ -1286,63 +1040,37 @@ createNavigationControls() {
         };
     }
 
-    
     /**
-     * Load Crosslog formatted data directly
-     * This method is specifically designed for Crosslog data format
+     * Load Crosslog formatted data
      */
     loadCrosslogData(crosslogContent, fileName = 'Crosslog Data') {
         try {
-            console.log('=== Loading Crosslog Data ===');
-            console.log('Source:', fileName);
-            console.log('Content length:', crosslogContent.length, 'characters');
-            
-            // Parse the Crosslog data using our existing parser
             const parsedData = this.dataLoader.parseDataFile(crosslogContent);
             this.currentDataFile = parsedData;
             
-            // Validate that we have valid Crosslog data
             if (parsedData.pallets.length > 0) {
-                console.log('✓ Successfully parsed Crosslog data');
-                console.log('  - Order ID:', parsedData.orderInfo.orderId);
-                console.log('  - Total pallets:', parsedData.pallets.length);
-                console.log('  - Total boxes:', this.dataLoader.getTotalBoxCount());
-                
-                // Load the first pallet automatically
-                console.log('Loading first pallet...');
                 this.dataLoader.loadPallet(0);
-                
-                // ENHANCED: Start simulation timer
                 this.startSimulationTimer();
-                
-                // Enable all navigation controls now that we have data
                 this.updateButtonStates();
-                
-                // Update status and provide user feedback
                 this.showMessage(`Loaded ${parsedData.pallets.length} pallets from Crosslog data`);
-
                 
                 return true;
             } else {
-                console.error('✗ No valid pallets found in Crosslog data');
                 this.showError('No valid pallet data found in the Crosslog file');
                 return false;
             }
             
         } catch (error) {
-            console.error('✗ Error loading Crosslog data:', error);
+            console.error('Error loading Crosslog data:', error);
             this.showError('Failed to parse the Crosslog data. Please check the file format.');
             return false;
         }
     }
     
     /**
-     * Show a message to the user
+     * Show message to user
      */
     showMessage(message) {
-        console.log('Message:', message);
-        
-        // Update simulation time with the message temporarily
         const timeElement = document.getElementById('simulation-time');
         if (timeElement) {
             const originalText = timeElement.textContent;
@@ -1354,7 +1082,7 @@ createNavigationControls() {
     }
     
     /**
-     * Show an error message to the user
+     * Show error message to user
      */
     showError(message) {
         console.error('Error:', message);
@@ -1362,13 +1090,9 @@ createNavigationControls() {
     }
     
     /**
-     * ENHANCED: Clean up resources when the application is closed
-     * Now properly disposes of timer intervals
+     * Clean up resources when application is closed
      */
     dispose() {
-        console.log('Disposing application resources...');
-        
-        // ENHANCED: Clean up timer resources
         this.stopSimulationTimer();
         if (this.metricsState.simulationTimer.displayInterval) {
             clearInterval(this.metricsState.simulationTimer.displayInterval);
@@ -1393,46 +1117,18 @@ createNavigationControls() {
         if (this.weightDistributionCalculator) {
             this.weightDistributionCalculator.dispose();
         }
-
-        console.log('Application disposed successfully with metrics cleanup');
-    }
-    
-    /**
-     * ENHANCED: Debug method to verify height calculations
-     * Use this to troubleshoot coordinate system issues
-     */
-    debugHeightCalculation() {
-        if (this.simulator.boxes.length === 0) {
-            console.log('No boxes to analyze');
-            return;
-        }
-        
-        console.log('=== HEIGHT CALCULATION DEBUG ===');
-        console.log('Pallet reference level:', this.metricsState.palletTopY + this.metricsState.boxFloorOffset);
-        
-        this.simulator.boxes.forEach((box, index) => {
-            const boxTop = box.position.y + (box.geometry.parameters.height / 2);
-            const boxBottom = box.position.y - (box.geometry.parameters.height / 2);
-            console.log(`Box ${index}: Y=${box.position.y.toFixed(2)}, Height=${box.geometry.parameters.height.toFixed(2)}, Top=${boxTop.toFixed(2)}, Bottom=${boxBottom.toFixed(2)}`);
-        });
-        
-        console.log('Calculated height:', this.calculateCurrentHeight().toFixed(2), 'cm');
     }
 
     /**
-     * ENHANCED: Calculate center of mass and update UI display
-     * This method bridges the physics calculator with the user interface
+     * Calculate center of mass and update UI display
      */
     updateCenterOfMassDisplay() {
-        // Only calculate if we have boxes and the system is enabled
         if (!this.simulator || !this.simulator.boxes || 
             this.simulator.boxes.length === 0 || 
             !this.centerOfMassState.isEnabled) {
             
-            // Show zero deviation when no boxes are present
             this.setCenterOfMassUI('0.0cm');
             
-            // Hide the beam when no boxes are present
             if (this.simulator && this.simulator.hideCenterOfMassBeam) {
                 this.simulator.hideCenterOfMassBeam();
             }
@@ -1441,33 +1137,26 @@ createNavigationControls() {
         }
         
         try {
-            // Perform the physics calculation
             const result = this.centerOfMassCalculator.calculateCenterOfMass(this.simulator.boxes);
             
-            // Store the result for other systems to use
             this.centerOfMassState.lastCalculation = result;
             
-            // Update the UI with formatted deviation
             const formattedDeviation = this.centerOfMassCalculator.getFormattedDeviation();
             this.setCenterOfMassUI(formattedDeviation);
             
-            // Add visual feedback based on stability
             this.updateCenterOfMassVisualFeedback(result);
             
-            // Update the visual beam position based on calculated center of mass
             if (this.simulator && this.simulator.updateCenterOfMassBeamPosition) {
                 this.simulator.updateCenterOfMassBeamPosition({
                     x: result.x,
                     z: result.z
                 });
                 
-                // Update cross height to match current load height
                 if (this.simulator.updateCenterOfMassCrossHeight) {
                     this.simulator.updateCenterOfMassCrossHeight(this.simulator.boxes);
                 }
             }
             
-            // Log significant changes (optional)
             if (result.deviationCm > 20) {
                 console.warn(`High center of mass deviation detected: ${formattedDeviation}`);
             }
@@ -1476,7 +1165,6 @@ createNavigationControls() {
             console.error('Error calculating center of mass:', error);
             this.setCenterOfMassUI('Error');
             
-            // Hide beam on error
             if (this.simulator && this.simulator.hideCenterOfMassBeam) {
                 this.simulator.hideCenterOfMassBeam();
             }
@@ -1484,8 +1172,7 @@ createNavigationControls() {
     }
 
     /**
-     * Get detailed center of mass analysis for advanced users
-     * @returns {Object} Complete center of mass analysis or null if not available
+     * Get detailed center of mass analysis
      */
     getCenterOfMassAnalysis() {
         if (!this.centerOfMassState.lastCalculation) {
@@ -1496,197 +1183,72 @@ createNavigationControls() {
     }
 
     /**
-     * Debug method to analyze center of mass calculation
-     * Call this from browser console: window.palletApp.debugCenterOfMass()
+     * Debug center of mass calculation
      */
     debugCenterOfMass() {
-        console.log('=== CENTER OF MASS DEBUG ===');
-        
         if (!this.simulator || this.simulator.boxes.length === 0) {
-            console.log('No boxes available for analysis');
             return;
         }
         
-        // Enable debug mode temporarily
         this.centerOfMassCalculator.setDebugMode(true);
         
-        // Perform calculation with detailed logging
         const result = this.centerOfMassCalculator.calculateCenterOfMass(this.simulator.boxes);
         
-        // Show comprehensive analysis
         this.centerOfMassCalculator.visualizeInConsole();
         
-        // Show individual box contributions
-        console.log('Individual box analysis:');
         this.simulator.boxes.forEach((box, index) => {
             const weight = box.userData.weight || 0;
             const pos = box.position;
             console.log(`Box ${index}: pos(${pos.x.toFixed(2)}, ${pos.z.toFixed(2)}), weight=${weight}kg`);
         });
         
-        // Show deviation analysis
-        console.log('');
-        console.log('DEVIATION ANALYSIS:');
-        console.log(`Center of Mass: (${result.x.toFixed(3)}, ${result.z.toFixed(3)})`);
-        console.log(`Deviation: ${result.deviationCm.toFixed(1)}cm`);
-        console.log(`Pallet Half-Length: ${6.0}cm (600mm)`);
-        console.log(`Pallet Half-Width: ${4.0}cm (400mm)`);
-        console.log(`Maximum Safe Deviation: ~${4.0}cm (half width)`);
-        
-        // Disable debug mode
         this.centerOfMassCalculator.setDebugMode(false);
-        
-        console.log('========================');
         
         return result;
     }
 
-/**
- * MÉTODO COMPLETO: Análise de engenharia reversa da escala do sistema
- * Call this from browser console: window.palletApp.debugReverseEngineering()
- * 
- * PROPÓSITO EDUCATIVO: Descobrir a verdadeira relação entre units Three.js e dimensões reais
- * Este método funciona como um detective que recolhe evidências de várias fontes
- * e depois compara essas evidências para descobrir a verdade sobre a escala do sistema
- */
-/**
- * VERSÃO ROBUSTA: Análise de engenharia reversa com tratamento de erros
- * Esta versão inclui validação defensiva e captura de erros para debugging
- */
+    /**
+     * Reverse engineering analysis of coordinate system scaling
+     */
     debugReverseEngineering() {
         try {
-            console.log('=== REVERSE ENGINEERING ANALYSIS ===');
-            console.log('Starting forensic analysis of coordinate system scaling...');
-            console.log('🔍 Diagnostic mode: Enhanced error checking enabled');
-            console.log('');
-            
-            // STEP 1: Validação fundamental do estado da aplicação
-            console.log('📋 STEP 1: Application State Validation');
-            
-            // Verificar se os componentes básicos existem
             if (!this.dataLoader) {
-                console.log('❌ DataLoader not available');
                 return { error: 'DataLoader not initialized', timestamp: new Date().toISOString() };
             }
-            console.log('✅ DataLoader available');
             
             if (!this.simulator) {
-                console.log('❌ Simulator not available');
                 return { error: 'Simulator not initialized', timestamp: new Date().toISOString() };
             }
-            console.log('✅ Simulator available');
             
             if (!this.dataLoader.allPallets || this.dataLoader.allPallets.length === 0) {
-                console.log('❌ No pallet data loaded');
                 return { error: 'No pallet data available', timestamp: new Date().toISOString() };
             }
-            console.log(`✅ Found ${this.dataLoader.allPallets.length} pallets`);
             
             if (!this.simulator.boxes || this.simulator.boxes.length === 0) {
-                console.log('❌ No boxes in scene');
                 return { error: 'No boxes available for analysis', timestamp: new Date().toISOString() };
             }
-            console.log(`✅ Found ${this.simulator.boxes.length} boxes in scene`);
-            
-            console.log('');
-            
-            // STEP 2: Análise dos dados Crosslog (com validação)
-            console.log('📋 STEP 2: Crosslog Data Analysis');
-            console.log('Examining the theoretical blueprint data...');
-            
-            const currentPallet = this.dataLoader.allPallets[this.dataLoader.currentPalletIndex];
-            console.log('Expected pallet size: 1200mm × 800mm × 1500mm');
-            console.log(`Current pallet index: ${this.dataLoader.currentPalletIndex + 1} of ${this.dataLoader.allPallets.length}`);
-            console.log(`Total boxes in current pallet: ${currentPallet.boxes ? currentPallet.boxes.length : 'unknown'}`);
-            
-            if (currentPallet.metadata && currentPallet.metadata.dimensions) {
-                console.log('Pallet dimensions from data:', currentPallet.metadata.dimensions);
-            } else {
-                console.log('⚠️ No metadata dimensions available');
-            }
-            
-            console.log('');
-            
-            // STEP 3: Análise da cena Three.js (com validação)
-            console.log('🎮 STEP 3: Three.js Scene Analysis');
-            console.log('Exploring the actual 3D world that was created...');
-            
-            if (!this.simulator.scene) {
-                console.log('❌ Three.js scene not available');
-                return { error: 'Three.js scene not available', timestamp: new Date().toISOString() };
-            }
-            
-            // Procurar objetos de palete de forma segura
-            const palletObjects = [];
-            try {
-                this.simulator.scene.traverse((object) => {
-                    if (object && object.name && object.name.includes('pallet')) {
-                        palletObjects.push(object);
-                    }
-                });
-            } catch (error) {
-                console.log('⚠️ Error during scene traversal:', error.message);
-            }
-            
-            if (palletObjects.length > 0) {
-                console.log(`✅ Found ${palletObjects.length} pallet objects in the scene`);
-                palletObjects.forEach((pallet, index) => {
-                    console.log(`Pallet ${index}:`, pallet.geometry?.parameters || 'No geometry parameters');
-                });
-            } else {
-                console.log('⚠️ No pallet objects found by name');
-            }
-            
-            console.log('');
-            
-            // STEP 4: Análise espacial das caixas (com validação robusta)
-            console.log('📦 STEP 4: Box Positioning Analysis');
-            console.log('Measuring the actual placement and dimensions of all boxes...');
             
             const boxes = this.simulator.boxes;
-            console.log(`Analyzing ${boxes.length} boxes for spatial relationships...`);
             
-            // Declarar variáveis para o bounding box
             let minX = Infinity, maxX = -Infinity;
             let minY = Infinity, maxY = -Infinity; 
             let minZ = Infinity, maxZ = -Infinity;
             
-            // Mostrar exemplos detalhados com validação
-            console.log('\nDetailed analysis of first 3 boxes (as representative samples):');
-            boxes.slice(0, 3).forEach((box, index) => {
-                try {
-                    if (box && box.position && box.geometry && box.geometry.parameters) {
-                        const pos = box.position;
-                        const geom = box.geometry.parameters;
-                        console.log(`Box ${index}: position(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), dimensions(${geom.width.toFixed(2)} × ${geom.height.toFixed(2)} × ${geom.depth.toFixed(2)})`);
-                    } else {
-                        console.log(`Box ${index}: Invalid box data structure`);
-                    }
-                } catch (error) {
-                    console.log(`Box ${index}: Error analyzing - ${error.message}`);
-                }
-            });
-            
-            // Calcular bounding box com validação robusta
             let validBoxCount = 0;
-            boxes.forEach((box, index) => {
+            boxes.forEach((box) => {
                 try {
                     if (!box || !box.position || !box.geometry || !box.geometry.parameters) {
-                        console.log(`⚠️ Box ${index}: Invalid structure, skipping`);
                         return;
                     }
                     
                     const pos = box.position;
                     const geom = box.geometry.parameters;
                     
-                    // Verificar se os valores são números válidos
                     if (typeof pos.x !== 'number' || typeof pos.y !== 'number' || typeof pos.z !== 'number' ||
                         typeof geom.width !== 'number' || typeof geom.height !== 'number' || typeof geom.depth !== 'number') {
-                        console.log(`⚠️ Box ${index}: Invalid numeric values, skipping`);
                         return;
                     }
                     
-                    // Calcular as extremidades de cada caixa no espaço 3D
                     const leftX = pos.x - geom.width/2;
                     const rightX = pos.x + geom.width/2;
                     const bottomY = pos.y - geom.height/2;
@@ -1694,7 +1256,6 @@ createNavigationControls() {
                     const backZ = pos.z - geom.depth/2;
                     const frontZ = pos.z + geom.depth/2;
                     
-                    // Actualizar os limites do envelope total
                     if (leftX < minX) minX = leftX;
                     if (rightX > maxX) maxX = rightX;
                     if (bottomY < minY) minY = bottomY;
@@ -1705,96 +1266,26 @@ createNavigationControls() {
                     validBoxCount++;
                     
                 } catch (error) {
-                    console.log(`⚠️ Box ${index}: Error processing - ${error.message}`);
+                    // Skip invalid boxes
                 }
             });
             
-            console.log(`\n📊 Processed ${validBoxCount} valid boxes out of ${boxes.length} total`);
-            
             if (validBoxCount === 0) {
-                console.log('❌ No valid boxes found for analysis');
                 return { error: 'No valid boxes for spatial analysis', timestamp: new Date().toISOString() };
             }
-            
-            console.log('\n🔍 Complete Scene Bounding Box Analysis:');
-            console.log(`X range: ${minX.toFixed(3)} to ${maxX.toFixed(3)} (total span: ${(maxX-minX).toFixed(3)} units)`);
-            console.log(`Y range: ${minY.toFixed(3)} to ${maxY.toFixed(3)} (total span: ${(maxY-minY).toFixed(3)} units)`);
-            console.log(`Z range: ${minZ.toFixed(3)} to ${maxZ.toFixed(3)} (total span: ${(maxZ-minZ).toFixed(3)} units)`);
-            
-            // STEP 5: Cálculos de escala (com protecção contra divisão por zero)
-            console.log('\n🧮 STEP 5: Scale Factor Calculations');
-            console.log('Testing different hypotheses about the coordinate system...');
             
             const xSpan = maxX - minX;
             const ySpan = maxY - minY;
             const zSpan = maxZ - minZ;
-            
-            if (xSpan > 0.001 && ySpan > 0.001) { // Usar tolerância pequena em vez de zero exato
-                console.log('\n📏 HYPOTHESIS 1: X span represents 120cm (standard pallet length)');
-                const scaleFactor1 = 120 / xSpan;
-                console.log(`If 1 unit = ${scaleFactor1.toFixed(2)} cm, then:`);
-                console.log(`  Y span would represent: ${(ySpan * scaleFactor1).toFixed(1)} cm (height)`);
-                console.log(`  Z span would represent: ${(zSpan * scaleFactor1).toFixed(1)} cm (width)`);
-                
-                console.log('\n📏 HYPOTHESIS 2: Y span represents ~150cm (visual height estimate)');
-                const scaleFactor2 = 150 / ySpan;
-                console.log(`If 1 unit = ${scaleFactor2.toFixed(2)} cm, then:`);
-                console.log(`  X span would represent: ${(xSpan * scaleFactor2).toFixed(1)} cm (length)`);
-                console.log(`  Z span would represent: ${(zSpan * scaleFactor2).toFixed(1)} cm (width)`);
-            } else {
-                console.log('⚠️ Cannot perform scale calculations: dimensions too small or zero');
-            }
-            
-            // STEP 6: Validação do sistema atual (com verificação do unitsSystem)
-            console.log('\n⚖️ STEP 6: Current System Validation');
-            console.log('Comparing our discoveries with the current system settings...');
             
             let currentXSizeCm = 0;
             let deviationFromExpected = 0;
             
             if (window.unitsSystem && window.unitsSystem.conversions) {
                 const currentConversion = window.unitsSystem.conversions.threeUnitsToCm;
-                console.log(`Current system setting: 1 unit = ${currentConversion} cm`);
-                console.log('Applying current system to our measurements:');
-                console.log(`  X span: ${(xSpan * currentConversion).toFixed(1)} cm`);
-                console.log(`  Y span: ${(ySpan * currentConversion).toFixed(1)} cm`);
-                console.log(`  Z span: ${(zSpan * currentConversion).toFixed(1)} cm`);
-                
                 currentXSizeCm = xSpan * currentConversion;
                 deviationFromExpected = Math.abs(currentXSizeCm - 120);
-                
-                console.log(`\n🎯 ACCURACY ASSESSMENT:`);
-                console.log(`Expected pallet length: 120cm (industry standard)`);
-                console.log(`Current calculation: ${currentXSizeCm.toFixed(1)}cm`);
-                console.log(`Deviation from expected: ${deviationFromExpected.toFixed(1)}cm`);
-                
-                if (deviationFromExpected < 5) {
-                    console.log('✅ VERDICT: Scale appears CORRECT (within 5cm tolerance)');
-                    console.log('The current unit system is working as expected.');
-                } else {
-                    console.log('❌ VERDICT: Scale appears INCORRECT (deviation > 5cm)');
-                    console.log('The current unit system may need calibration.');
-                    if (currentXSizeCm > 0) {
-                        const correctionFactor = 120 / currentXSizeCm;
-                        console.log(`🔧 Suggested correction factor: ${correctionFactor.toFixed(3)}`);
-                        if (window.unitsSystem.BASE_UNIT_MM) {
-                            console.log(`This means changing BASE_UNIT_MM from ${window.unitsSystem.BASE_UNIT_MM} to ${(window.unitsSystem.BASE_UNIT_MM * correctionFactor).toFixed(0)}`);
-                        }
-                    }
-                }
-            } else {
-                console.log('❌ Units system not available for comparison');
-                console.log('window.unitsSystem:', typeof window.unitsSystem);
             }
-            
-            // CONCLUSÃO
-            console.log('\n================================');
-            console.log('🏁 INVESTIGATION COMPLETE');
-            console.log('📊 SUMMARY OF FINDINGS:');
-            console.log(`   • Analyzed ${validBoxCount} valid boxes out of ${boxes.length} total`);
-            console.log(`   • Measured scene dimensions: ${xSpan.toFixed(1)} × ${ySpan.toFixed(1)} × ${zSpan.toFixed(1)} units`);
-            console.log(`   • Current scale accuracy: ${deviationFromExpected < 5 ? 'GOOD' : 'NEEDS ATTENTION'}`);
-            console.log('================================');
             
             return {
                 timestamp: new Date().toISOString(),
@@ -1815,13 +1306,6 @@ createNavigationControls() {
             };
             
         } catch (error) {
-            console.log('');
-            console.log('💥 CRITICAL ERROR CAUGHT:');
-            console.log('Error message:', error.message);
-            console.log('Error stack:', error.stack);
-            console.log('');
-            console.log('This error information will help identify the root cause.');
-            
             return {
                 timestamp: new Date().toISOString(),
                 success: false,
@@ -1832,7 +1316,7 @@ createNavigationControls() {
     }
 
     /**
-     * Update the center of mass deviation display in the UI
+     * Update center of mass deviation display in UI
      */
     setCenterOfMassUI(deviationText) {
         const centerMassElement = document.getElementById('center-mass');
@@ -1870,9 +1354,8 @@ createNavigationControls() {
         }
     }
 
-
-        /**
-     * Update bottom metrics display in the UI
+    /**
+     * Update bottom metrics display in UI
      */
     updateBottomMetricsDisplay() {
         const formatted = this.bottomMetricsCalculator.getFormattedMetrics();
@@ -1882,7 +1365,7 @@ createNavigationControls() {
         if (lsiElement) {
             lsiElement.textContent = formatted.lsi.display;
             lsiElement.style.color = formatted.lsi.color;
-            lsiElement.title = `Load Stabilitfy: ${formatted.lsi.rating}`;
+            lsiElement.title = `Load Stability: ${formatted.lsi.rating}`;
         }
         
         // Update Box Density (replaces Global Efficiency)  
@@ -1894,13 +1377,15 @@ createNavigationControls() {
         }
     }
 
+    /**
+     * Update weight distribution calculation
+     */
     updateWeightDistribution() {
         if (!this.weightDistributionState.isEnabled || 
             !this.simulator || 
             !this.simulator.boxes || 
             this.simulator.boxes.length === 0) {
             
-            // Reset do heatmap quando não há caixas
             if (this.weightDistributionCalculator) {
                 this.weightDistributionCalculator.calculateWeightDistribution([]);
             }
@@ -1908,13 +1393,10 @@ createNavigationControls() {
         }
 
         try {
-            // Calcular distribuição de peso atual
             const distributionResult = this.weightDistributionCalculator.calculateWeightDistribution(this.simulator.boxes);
             
-            // Armazenar resultado para outros sistemas usarem se necessário
             this.weightDistributionState.lastCalculation = distributionResult;
             
-            // Opcional: Log de informações importantes
             if (distributionResult && !distributionResult.isBalanced) {
                 console.warn('Weight distribution is unbalanced - consider redistributing load');
             }
@@ -1923,46 +1405,19 @@ createNavigationControls() {
             console.error('Error calculating weight distribution:', error);
         }
     }
-
-        /**
-     * Show welcome message for Crosslog data integration
-     */
-    showWelcomeMessage() {
-        debugLog('INITIALIZATION', '=== Enhanced Palletization Simulator Ready ===');
-        debugLog('INITIALIZATION', '✓ 3D visualization initialized with improved lighting and camera controls');
-        debugLog('INITIALIZATION', '✓ Crosslog data parser ready');
-        debugLog('INITIALIZATION', '✓ Three-zone control interface activated');
-        debugLog('INITIALIZATION', '✓ Real-time box counting and animation control enabled');
-        debugLog('INITIALIZATION', '✓ Dynamic height calculation and simulation timer integrated');
-        debugLog('INITIALIZATION', '');
-        debugLog('INITIALIZATION', 'Advanced Features Available:');
-        debugLog('INITIALIZATION', '  - Play/pause animation control with timer integration');
-        debugLog('INITIALIZATION', '  - Step-by-step box placement and removal');
-        debugLog('INITIALIZATION', '  - Real-time progress tracking and height calculation');
-        debugLog('INITIALIZATION', '  - Enhanced camera zoom for tall pallets');
-        debugLog('INITIALIZATION', '  - Improved lighting for better visibility');
-        debugLog('INITIALIZATION', '  - Sequence-based consistency for manual/automatic modes');
-        debugLog('INITIALIZATION', '');
-        debugLog('INITIALIZATION', 'System ready for professional palletization analysis!');
-        debugLog('INITIALIZATION', '=== Enhanced Palletization Simulator Ready ===');
-    }
 }
 
-
-// Wait for page to be ready, then initialize
+// Initialize application when page is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM loaded, creating application...');
         window.palletApp = new PalletizationApp();
     });
 } else {
-    console.log('DOM already loaded, creating application immediately...');
     window.palletApp = new PalletizationApp();
 }
 
-// Clean up when the page is closed
+// Clean up when page is closed
 window.addEventListener('beforeunload', () => {
-    console.log('Page is closing, cleaning up...');
     if (window.palletApp) {
         window.palletApp.dispose();
     }
