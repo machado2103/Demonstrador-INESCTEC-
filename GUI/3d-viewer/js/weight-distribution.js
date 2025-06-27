@@ -69,6 +69,13 @@ class WeightDistributionCalculator {
         // HTML element references
         this.heatmapElement = null;
         this.legendElement = null;
+
+        this.centerOfMassPoint = {
+        element: null,
+        isVisible: false,
+        currentPosition: { x: 0, z: 0 },
+        lastUpdate: 0
+        };
         
         // Debug state
         this.isDebugMode = false;
@@ -88,6 +95,10 @@ class WeightDistributionCalculator {
         
         // Initialize dynamic legend
         this.initializeDynamicLegend();
+
+        setTimeout(() => {
+        this.initializeCenterOfMassPoint();
+        }, 100);
         
     }
     
@@ -211,7 +222,7 @@ class WeightDistributionCalculator {
         // Clear existing legend
         this.legendElement.innerHTML = '';
         
-        // Create legend with 5 colors
+        // Create legend with 5 weight colors
         this.colorConfig.legendInfo.forEach(item => {
             const legendItem = document.createElement('span');
             
@@ -226,7 +237,255 @@ class WeightDistributionCalculator {
             legendItem.appendChild(label);
             this.legendElement.appendChild(legendItem);
         });
+        
+        // Mass center
+        const centerOfMassLegendItem = document.createElement('span');
+        centerOfMassLegendItem.style.cssText = `
+            display: flex !important;
+            align-items: center !important;
+            gap: 3px !important;
+            margin: 0 !important;
+            font-size: 0.6rem !important;
+            white-space: nowrap !important;
+            margin-left: 8px !important;
+            padding-left: 8px !important;
+            border-left: 1px solid #dee2e6 !important;
+        `;
+        
+        // Criar o ponto do centro de massa (similar ao que aparece no heatmap)
+        const centerOfMassDot = document.createElement('div');
+        centerOfMassDot.className = 'legend-dot';
+        centerOfMassDot.style.cssText = `
+            width: 8px !important;
+            height: 8px !important;
+            border-radius: 50% !important;
+            flex-shrink: 0 !important;
+            background: radial-gradient(circle, #1a365d 0%, #2c5282 50%, #3182ce 100%) !important;
+            border: 1px solid #ffffff !important;
+            box-shadow: 0 0 3px rgba(26, 54, 93, 0.6) !important;
+        `;
+        
+        // Label do centro de massa
+        const centerOfMassLabel = document.createElement('span');
+        centerOfMassLabel.textContent = 'Mass Center';
+        centerOfMassLabel.style.cssText = `
+            font-size: 0.6rem !important;
+            color: #2c3e50 !important;
+            font-weight: 500 !important;
+        `;
+        
+        centerOfMassLegendItem.appendChild(centerOfMassDot);
+        centerOfMassLegendItem.appendChild(centerOfMassLabel);
+        this.legendElement.appendChild(centerOfMassLegendItem);
     }
+
+
+    /**
+     * Inicializar o ponto de centro de massa no heatmap
+     */
+    initializeCenterOfMassPoint() {
+        if (!this.heatmapElement) {
+            console.warn('Heatmap element not found - cannot create center of mass point');
+            return;
+        }
+        
+        // Encontrar o container do heatmap
+        const heatmapContainer = this.heatmapElement.parentElement;
+        if (!heatmapContainer) {
+            console.warn('Heatmap container not found');
+            return;
+        }
+        
+        // Criar o elemento do ponto
+        this.centerOfMassPoint.element = document.createElement('div');
+        this.centerOfMassPoint.element.id = 'center-of-mass-heatmap-point';
+        this.centerOfMassPoint.element.className = 'center-of-mass-point';
+        
+        // Aplicar estilos do ponto
+        this.centerOfMassPoint.element.style.cssText = `
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, #1a365d 0%, #2c5282 50%, #3182ce 100%);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            pointer-events: none;
+            box-shadow: 
+                0 0 6px rgba(26, 54, 93, 0.8),
+                0 0 12px rgba(26, 54, 93, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        `;
+        
+        // Adicionar tooltip
+        this.centerOfMassPoint.element.title = 'Center of Mass Position';
+        
+        // Posicionar relativamente ao container do heatmap
+        heatmapContainer.style.position = 'relative';
+        heatmapContainer.appendChild(this.centerOfMassPoint.element);
+        
+        console.log('✅ Center of mass heatmap point initialized');
+    }
+
+/**
+ * Converter coordenadas do centro de massa para posição no heatmap
+ * @param {number} centerX - Coordenada X do centro de massa (Three.js units)
+ * @param {number} centerZ - Coordenada Z do centro de massa (Three.js units)  
+ * @returns {Object} Posição em percentagem no heatmap
+ */
+convertCenterOfMassToHeatmapPosition(centerX, centerZ) {
+    // Dimensões da palete em coordenadas Three.js
+    const palletHalfLength = this.palletDimensions.length / 2;  // 6.0 units
+    const palletHalfWidth = this.palletDimensions.width / 2;    // 4.0 units
+    
+    // Converter coordenadas do centro de massa (-6 a +6, -4 a +4) para percentagem (0% a 100%)
+    
+    // X: -6.0 → 0%, 0 → 50%, +6.0 → 100%
+    const xPercent = ((centerX + palletHalfLength) / this.palletDimensions.length) * 100;
+    
+    // Z: -4.0 → 0%, 0 → 50%, +4.0 → 100%  
+    const zPercent = ((centerZ + palletHalfWidth) / this.palletDimensions.width) * 100;
+    
+    // Limitar entre 0% e 100%
+    const clampedX = Math.max(0, Math.min(100, xPercent));
+    const clampedZ = Math.max(0, Math.min(100, zPercent));
+    
+    return {
+        x: clampedX,
+        z: clampedZ,
+        isWithinBounds: (xPercent >= 0 && xPercent <= 100 && zPercent >= 0 && zPercent <= 100)
+    };
+}
+
+/**
+ * Atualizar posição do ponto de centro de massa no heatmap
+ * @param {Object} centerOfMassData - Dados do centro de massa do CenterOfMassCalculator
+ */
+updateCenterOfMassPoint(centerOfMassData) {
+    if (!this.centerOfMassPoint.element) {
+        // Tentar inicializar se ainda não foi criado
+        this.initializeCenterOfMassPoint();
+        if (!this.centerOfMassPoint.element) {
+            return;
+        }
+    }
+    
+    if (!centerOfMassData || typeof centerOfMassData.x !== 'number' || typeof centerOfMassData.z !== 'number') {
+        this.hideCenterOfMassPoint();
+        return;
+    }
+    
+    // Converter coordenadas para posição no heatmap
+    const position = this.convertCenterOfMassToHeatmapPosition(centerOfMassData.x, centerOfMassData.z);
+    
+    // Atualizar posição CSS
+    this.centerOfMassPoint.element.style.left = `${position.x}%`;
+    this.centerOfMassPoint.element.style.top = `${position.z}%`;
+    
+    // Atualizar tooltip com informação detalhada
+    const deviation = centerOfMassData.deviationCm || 0;
+    this.centerOfMassPoint.element.title = 
+        `Center of Mass\n` +
+        `Position: (${centerOfMassData.x.toFixed(2)}, ${centerOfMassData.z.toFixed(2)})\n` +
+        `Deviation: ${deviation.toFixed(1)}cm\n` +
+        `Grid: ${position.x.toFixed(1)}%, ${position.z.toFixed(1)}%`;
+    
+    // Mostrar o ponto
+    this.showCenterOfMassPoint();
+    
+    // Armazenar posição atual
+    this.centerOfMassPoint.currentPosition = { x: centerOfMassData.x, z: centerOfMassData.z };
+    this.centerOfMassPoint.lastUpdate = Date.now();
+    
+    // Efeito visual baseado na estabilidade
+    this.updatePointVisualFeedback(centerOfMassData);
+}
+
+/**
+ * Mostrar o ponto de centro de massa
+ */
+showCenterOfMassPoint() {
+    if (this.centerOfMassPoint.element) {
+        this.centerOfMassPoint.element.style.opacity = '1';
+        this.centerOfMassPoint.element.style.visibility = 'visible';
+        this.centerOfMassPoint.isVisible = true;
+    }
+}
+
+/**
+ * Esconder o ponto de centro de massa
+ */
+hideCenterOfMassPoint() {
+    if (this.centerOfMassPoint.element) {
+        this.centerOfMassPoint.element.style.opacity = '0';
+        this.centerOfMassPoint.element.style.visibility = 'hidden';
+        this.centerOfMassPoint.isVisible = false;
+    }
+}
+
+/**
+ * Atualizar feedback visual baseado na estabilidade do centro de massa
+ * @param {Object} centerOfMassData - Dados do centro de massa
+ */
+updatePointVisualFeedback(centerOfMassData) {
+    if (!this.centerOfMassPoint.element) return;
+    
+    const deviation = centerOfMassData.deviationCm || 0;
+    
+    // Cores baseadas na estabilidade (quanto maior o desvio, mais vermelho)
+    let color, glowColor, pulseSpeed;
+    
+    if (deviation <= 5) {
+        // Excelente (≤ 5cm) - Azul escuro
+        color = '#1a365d';
+        glowColor = 'rgba(26, 54, 93, 0.8)';
+        pulseSpeed = '3s';
+    } else if (deviation <= 15) {
+        // Bom (≤ 15cm) - Azul 
+        color = '#2c5282';
+        glowColor = 'rgba(44, 82, 130, 0.8)';
+        pulseSpeed = '2s';
+    } else if (deviation <= 25) {
+        // Aceitável (≤ 25cm) - Azul claro
+        color = '#3182ce';
+        glowColor = 'rgba(49, 130, 206, 0.8)';
+        pulseSpeed = '1.5s';
+    } else {
+        // Problemático (> 25cm) - Laranja/Vermelho
+        color = '#dd6b20';
+        glowColor = 'rgba(221, 107, 32, 0.8)';
+        pulseSpeed = '1s';
+    }
+    
+    // Aplicar nova cor e animação
+    this.centerOfMassPoint.element.style.background = 
+        `radial-gradient(circle, ${color} 0%, ${color}aa 50%, ${color}88 100%)`;
+    
+    this.centerOfMassPoint.element.style.boxShadow = 
+        `0 0 6px ${glowColor}, 0 0 12px ${glowColor}66, inset 0 1px 0 rgba(255, 255, 255, 0.4)`;
+    
+    // Animação de pulso para desvios altos
+    if (deviation > 15) {
+        this.centerOfMassPoint.element.style.animation = `centerMassPulse ${pulseSpeed} ease-in-out infinite`;
+    } else {
+        this.centerOfMassPoint.element.style.animation = 'none';
+    }
+}
+
+/**
+ * Limpar o ponto de centro de massa (usar no dispose)
+ */
+disposeCenterOfMassPoint() {
+    if (this.centerOfMassPoint.element) {
+        this.centerOfMassPoint.element.remove();
+        this.centerOfMassPoint.element = null;
+    }
+    this.centerOfMassPoint.isVisible = false;
+}
     
     /**
      * MAIN METHOD: Calculate weight distribution
@@ -485,12 +744,20 @@ class WeightDistributionCalculator {
         const coefficientOfVariation = standardDeviation / mean;
         return coefficientOfVariation < 0.5;
     }
+
+    
+
+
+
+
     
     dispose() {
         console.log(' Disposing weight distribution calculator...');
         this.resetGrid();
         this.heatmapElement = null;
         this.legendElement = null;
+
+        this.disposeCenterOfMassPoint();
         
         // Remove injected CSS
         const cssElement = document.getElementById('weight-distribution-css');

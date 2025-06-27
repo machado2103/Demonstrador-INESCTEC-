@@ -1700,6 +1700,8 @@ animationButtons.style.cssText = `
             
             if (this.weightDistributionCalculator) {
                 this.weightDistributionCalculator.calculateWeightDistribution([]);
+                // NOVO: Esconder ponto quando não há caixas
+                this.weightDistributionCalculator.hideCenterOfMassPoint();
             }
             return;
         }
@@ -1709,6 +1711,11 @@ animationButtons.style.cssText = `
             
             this.weightDistributionState.lastCalculation = distributionResult;
             
+            // NOVO: Atualizar ponto de centro de massa no heatmap
+            if (this.centerOfMassState.lastCalculation) {
+                this.weightDistributionCalculator.updateCenterOfMassPoint(this.centerOfMassState.lastCalculation);
+            }
+            
             if (distributionResult && !distributionResult.isBalanced) {
                 console.warn('Weight distribution is unbalanced - consider redistributing load');
             }
@@ -1717,6 +1724,37 @@ animationButtons.style.cssText = `
             console.error('Error calculating weight distribution:', error);
         }
     }
+
+    debugCenterOfMassHeatmapPoint() {
+    if (!this.weightDistributionCalculator) {
+        console.error('Weight distribution calculator not available');
+        return;
+    }
+    
+    if (!this.centerOfMassState.lastCalculation) {
+        console.error('No center of mass data available');
+        return;
+    }
+    
+    console.log('=== CENTER OF MASS HEATMAP DEBUG ===');
+    console.log('Center of Mass Data:', this.centerOfMassState.lastCalculation);
+    
+    const position = this.weightDistributionCalculator.convertCenterOfMassToHeatmapPosition(
+        this.centerOfMassState.lastCalculation.x,
+        this.centerOfMassState.lastCalculation.z
+    );
+    
+    console.log('Heatmap Position:', position);
+    console.log('Point Element:', this.weightDistributionCalculator.centerOfMassPoint.element);
+    console.log('Is Visible:', this.weightDistributionCalculator.centerOfMassPoint.isVisible);
+    console.log('====================================');
+    
+    return {
+        centerOfMass: this.centerOfMassState.lastCalculation,
+        heatmapPosition: position,
+        pointElement: this.weightDistributionCalculator.centerOfMassPoint.element
+    };
+}
 }
 
 // Initialize application when page is ready
