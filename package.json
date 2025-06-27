@@ -1,25 +1,138 @@
 {
-  "name": "demonstrador",
+  "name": "demonstrador-paletizacao",
   "version": "1.0.0",
-  "description": "Demonstrador do Algoritmo de Paletização",
+  "description": "Demonstrador Avançado do Algoritmo de Paletização - Interface 3D com Backend Python",
   "main": "main.js",
+  "homepage": "https://github.com/INESCTEC/demonstrador-paletizacao",
   "scripts": {
     "start": "electron --no-sandbox --disable-dev-shm-usage .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "electron --no-sandbox --disable-dev-shm-usage . --enable-logging",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "echo \"Linting would go here\"",
+    "python-check": "python --version && pip list",
+    "install-python-deps": "pip install -r requirements.txt",
+    "start-backend": "uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "full-start": "concurrently \"npm run start-backend\" \"npm run start\""
   },
   "keywords": [
-    "electron",
     "palletization",
-    "GUI",
+    "algorithm",
+    "3d-visualization",
+    "logistics",
+    "optimization",
+    "electron",
+    "fastapi",
+    "three.js",
     "INESCTEC",
-    "CEGI"
+    "CEGI",
+    "python",
+    "javascript",
+    "desktop-app"
   ],
-  "author": "Pedro Machado - INESCTEC",
+  "author": {
+    "name": "Pedro Machado",
+    "email": "pedro.machado@inesctec.pt",
+    "organization": "INESCTEC"
+  },
+  "contributors": [
+    {
+      "name": "CEGI Team",
+      "organization": "INESCTEC"
+    }
+  ],
   "license": "ISC",
-  "devDependencies": {
-    "electron": "^36.2.1"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/INESCTEC/demonstrador-paletizacao.git"
+  },
+  "bugs": {
+    "url": "https://github.com/INESCTEC/demonstrador-paletizacao/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0",
+    "python": ">=3.8.0"
   },
   "dependencies": {
-    "cowsay": "^1.6.0"
+    "three": "0.128.0",
+    "chart.js": "3.9.1"
+  },
+  "devDependencies": {
+    "electron": "^36.2.1",
+    "electron-builder": "^24.0.0",
+    "concurrently": "^8.0.0"
+  },
+  "python": {
+    "requirements": {
+      "annotated-types": "0.7.0",
+      "anyio": "4.9.0", 
+      "click": "8.2.0",
+      "fastapi": "0.115.12",
+      "h11": "0.16.0",
+      "idna": "3.10",
+      "pydantic": "2.11.4",
+      "pydantic_core": "2.33.2",
+      "sniffio": "1.3.1",
+      "starlette": "0.46.2",
+      "typing-inspection": "0.4.0",
+      "typing_extensions": "4.13.2",
+      "uvicorn": "0.34.2"
+    },
+    "requirementsFile": "requirements.txt"
+  },
+  "config": {
+    "backend": {
+      "host": "localhost",
+      "port": 8000,
+      "protocol": "http"
+    },
+    "frontend": {
+      "apiBaseUrl": "http://localhost:8000"
+    }
+  },
+  "build": {
+    "appId": "pt.inesctec.demonstrador-paletizacao",
+    "productName": "Demonstrador de Paletização",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "GUI/**/*",
+      "main.js",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "requirements.txt",
+        "to": "requirements.txt"
+      }
+    ]
+  },
+  "architecture": {
+    "frontend": {
+      "framework": "Electron + Vanilla JavaScript",
+      "3d-engine": "Three.js 0.128.0",
+      "visualization": "Chart.js 3.9.1",
+      "ui-pattern": "Modular Component Architecture"
+    },
+    "backend": {
+      "framework": "FastAPI 0.115.12",
+      "server": "Uvicorn 0.34.2",
+      "validation": "Pydantic 2.11.4",
+      "purpose": "Palletization Algorithm API"
+    },
+    "communication": {
+      "protocol": "HTTP REST API",
+      "data-format": "JSON",
+      "real-time": false
+    }
+  },
+  "systemRequirements": {
+    "os": ["Windows 10+", "macOS 10.14+", "Linux Ubuntu 18+"],
+    "memory": "4GB RAM minimum, 8GB recommended",
+    "graphics": "WebGL compatible graphics card",
+    "network": "Required for API communication between frontend and backend"
   }
 }

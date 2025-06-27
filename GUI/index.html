@@ -6,27 +6,27 @@
     <title>GUI - Algoritmo de Paletização</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="GUI.css">
+    <link rel="stylesheet" href="3d-viewer/styles/3d-viewer.css">
 </head>
 <body>
     <div class="gui-container">
-        <!-- Logo no canto superior direito -->
+        <!-- Company logo in top right corner -->
         <div class="logo-container">
-            <img id="company-logo" src="../images/logo.jpg" alt="Logo da Empresa">
+            <img id="company-logo" src="../images/logo.jpg" alt="Company Logo">
         </div>
 
-        <!-- Conteúdo principal -->
+        <!-- Main content area -->
         <main class="main-content">
-            <!-- Área de visualização (esquerda) -->
+            <!-- Visualization area (left side) -->
             <section class="visualization-area">
                 <h2>3D Visualization</h2>
                 
-                <!-- Container for Three.js - this is where our 3D scene will be rendered -->
+                <!-- Container for Three.js -->
                 <div id="threejs-container" class="threejs-container">
-                    <!-- Loading message will be replaced by 3D canvas -->
                     <div class="threejs-loading">Initializing 3D Scene...</div>
                 </div>
                 
-                <!-- Informações básicas -->
+                <!-- Basic information panel -->
                 <div class="info-panel">
                     <div class="info-group">
                         <span class="info-label">Boxes Placed:</span>
@@ -43,67 +43,51 @@
                 </div>
             </section>
 
-            <!-- Área de métricas (direita) -->
+            <!-- Metrics area (right side) -->
             <section class="metrics-area">
                 <h2>Performance Metrics</h2>
                 
-                <!-- Distribuição de peso -->
+                <!-- Weight distribution heatmap -->
                 <div class="metric-card">
                     <h3>Weight Distribution</h3>
                     <div class="heatmap">
                         <div class="heat-grid">
-                            <div class="heat-cell low"></div>
-                            <div class="heat-cell medium"></div>
-                            <div class="heat-cell high"></div>
-                            <div class="heat-cell medium"></div>
-                            <div class="heat-cell low"></div>
-                            <div class="heat-cell medium"></div>
-                            <div class="heat-cell high"></div>
-                            <div class="heat-cell low"></div>
-                            <div class="heat-cell medium"></div>
+                            <!-- Populated by JavaScript -->
                         </div>
                         <div class="legend">
-                            <span><div class="legend-dot low"></div>Low</span>
-                            <span><div class="legend-dot medium"></div>Medium</span>
-                            <span><div class="legend-dot high"></div>High</span>
+                            <!-- Populated by JavaScript -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Eficiência -->
+                <!-- Volume efficiency chart -->
                 <div class="metric-card">
                     <h3>Volume Efficiency</h3>
-                    <div class="efficiency-chart"> <!-- JavaScript dynamic injection -->
-                </div>
+                    <div class="efficiency-chart">
+                        <!-- Populated by JavaScript -->
+                    </div>
                 </div>
 
-                <!-- Eficiência por camada -->
+                <!-- Layer efficiency visualization -->
                 <div class="metric-card">
-                    <h3>Layer Efficiency</h3>
-                    <div class="bar-chart">
-                        <div class="bar-group">
-                            <div class="bar" style="height: 90%;"></div>
-                            <span>L1</span>
-                        </div>
-                        <div class="bar-group">
-                            <div class="bar" style="height: 75%;"></div>
-                            <span>L2</span>
-                        </div>
-                        <div class="bar-group">
-                            <div class="bar" style="height: 60%;"></div>
-                            <span>L3</span>
-                        </div>
-                        <div class="bar-group">
-                            <div class="bar" style="height: 40%;"></div>
-                            <span>L4</span>
-                        </div>
-                    </div>
+                    <h3></h3>
                 </div>
             </section>
         </main>
 
-        <!-- Barra inferior -->
+        <!-- Bottom status bar -->
         <footer class="status-bar">
+            <!-- Back button -->
+            <div class="nav-button-left">
+                <button id="nav-back-btn" class="nav-button" onclick="goToBoxSelection()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5"></path>
+                        <path d="m12 19-7-7 7-7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Metrics section -->
             <div class="status-group">
                 <span class="status-label">Center of Mass Deviation:</span>
                 <span class="status-value" id="center-mass">0.0cm</span>
@@ -116,45 +100,47 @@
                 <span class="status-label">Box Density:</span>
                 <span class="status-value" id="global-efficiency">0 boxes/m²</span>
             </div>
+
+            <!-- Advance page button -->
+            <div class="nav-button-right">
+                <button id="nav-forward-btn" class="nav-button" onclick="goToEndingPage()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14"></path>
+                        <path d="m12 5 7 7-7 7"></path>
+                    </svg>
+                </button>
+            </div>
         </footer>
 
-        <!-- Rodapé -->
+        <!-- Application footer -->
         <div class="footer">
             <p>Developed by INESCTEC &copy; 2025</p>
         </div>
     </div>
 
-    <!-- Three.js Library - loaded from CDN for reliability -->
+    <!-- External libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <!-- OrbitControls for camera interaction - essential for 3D navigation -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
+    <!-- Base systems -->
     <script src="3d-viewer/js/debug-config.js"></script>
-
-    <!-- Sistema unificado - deve vir PRIMEIRO -->
     <script src="3d-viewer/js/units-system.js"></script>
-    
-    <!-- Our custom Three.js setup - the foundation of our 3D visualization -->
+
+    <!-- Project libraries -->
+    <script src="3d-viewer/libs/chart.min.js"></script>
+    <script src="3d-viewer/libs/icon-library.js"></script>
+
+    <!-- Application components -->
     <script src="3d-viewer/js/three-setup.js"></script>
-    
-    <!-- Data loading system - handles parsing of palletization files -->
     <script src="3d-viewer/js/pallet-loader.js"></script>
-    
-    <!-- Main application controller - orchestrates all components -->
-    <script src="3d-viewer/js/main.js"></script>
-
-    <!-- Center of Mass Calculator -->
     <script src="3d-viewer/js/center-of-mass.js"></script>
-
-    <!-- Chart.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-
-    <!-- Volume Efficiency Calculator -->
     <script src="3d-viewer/js/VolumeEfficiency.js"></script>
-
-    <!-- Load Stability Index + Global Density Socre -->
     <script src="3d-viewer/js/bottom-metrics.js"></script>
+    <script src="3d-viewer/js/weight-distribution.js"></script>
+    <script src="3d-viewer/js/file-manager.js"></script>
+
+    <!-- Main application - LOAD LAST -->
+    <script src="3d-viewer/js/main.js"></script>
 
 </body>
 </html>

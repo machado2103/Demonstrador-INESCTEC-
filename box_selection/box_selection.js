@@ -81,6 +81,19 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.classList.remove('show');
         }, 2500);
     }
+
+
+    const prevButton = document.getElementById('prev-step-btn');
+    if (prevButton) {
+        prevButton.addEventListener('click', function() {
+            // Navigate back to description page
+            console.log('Returning to description page');
+            window.location.href = '../description_page/index.html';
+        });
+    }
     
     console.log('Box selection page initialized successfully!');
+
+
 });
+

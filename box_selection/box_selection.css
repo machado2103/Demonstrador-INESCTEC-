@@ -320,3 +320,48 @@
         gap: 1rem;
     }
 }
+
+/* Botão de navegação anterior (novo) - posicionado no lado esquerdo */
+.prev-button-container {
+    position: absolute;
+    left: 10%; /* Simétrico ao right: 10% do botão existente */
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.prev-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 65px; /* Exatamente o mesmo tamanho do botão existente */
+    height: 65px;
+    border-radius: 50%;
+    background-color: var(--primary-color); /* Mesma cor primária */
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease; /* Mesma transição suave */
+    box-shadow: 0 3px 10px rgba(8, 148, 194, 0.3); /* Sombra idêntica */
+}
+
+.prev-button:hover {
+    background-color: var(--dark-color);
+    transform: translateY(-2px); /* Mesmo efeito de elevação */
+    box-shadow: 0 5px 15px rgba(8, 148, 194, 0.4);
+}
+
+.prev-button:active {
+    transform: translateY(1px); /* Mesmo efeito de pressão */
+    box-shadow: 0 2px 5px rgba(8, 148, 194, 0.4);
+}
+
+/* Responsive design - adaptação simétrica para dispositivos móveis */
+@media (max-width: 900px) {
+    .prev-button-container {
+        position: static; /* Mesma estratégia do botão existente */
+        transform: none;
+        margin-bottom: 1rem; /* Espaçamento antes do botão de avançar */
+        display: flex;
+        justify-content: center; /* Centraliza em ecrãs pequenos */
+    }
+}

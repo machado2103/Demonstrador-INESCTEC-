@@ -1,0 +1,308 @@
+/**
+ * 3D Viewer Specific Styles
+ * Icons, Controls, and Interactive Elements
+ */
+
+/* ========================================= */
+/* ICON LIBRARY STYLES                      */
+/* ========================================= */
+
+/* Base styles for all Feather icons */
+.feather-icon {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0; /* Prevent icons from shrinking in flex containers */
+    transition: all 0.2s ease;
+}
+
+/* Icon size variants */
+.feather-icon.icon-small {
+    width: 14px;
+    height: 14px;
+}
+
+.feather-icon.icon-medium {
+    width: 16px;
+    height: 16px;
+}
+
+.feather-icon.icon-large {
+    width: 18px;
+    height: 18px;
+}
+
+.feather-icon.icon-xl {
+    width: 20px;
+    height: 20px;
+}
+
+/* Button integration styles */
+.control-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px; /* Space between icon and text */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Icon-only buttons (no text) */
+.control-button.icon-only {
+    padding: 8px;
+    min-width: 36px;
+    gap: 0;
+}
+
+.control-button.icon-only.small {
+    padding: 6px;
+    min-width: 32px;
+}
+
+.control-button.icon-only.large {
+    padding: 10px;
+    min-width: 40px;
+}
+
+/* Text + Icon buttons */
+.control-button.with-icon {
+    padding-left: 12px;
+    padding-right: 16px;
+}
+
+.control-button.with-icon.small {
+    padding-left: 10px;
+    padding-right: 14px;
+}
+
+/* Icon positioning in buttons */
+.control-button .feather-icon {
+    color: inherit; /* Icons inherit text color */
+    stroke-width: 2;
+}
+
+/* Hover effects for icons */
+.control-button:hover .feather-icon {
+    transform: scale(1.1);
+}
+
+.control-button:active .feather-icon {
+    transform: scale(0.95);
+}
+
+/* Special animations for specific icons */
+.feather-icon.feather-restart {
+    transform-origin: center;
+}
+
+.control-button:hover .feather-icon.feather-restart {
+    transform: rotate(180deg) scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+.feather-icon.feather-play {
+    margin-left: 2px; /* Optical alignment for play button */
+}
+
+/* Status indicator icons */
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-icon .feather-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.8;
+}
+
+/* Disabled state for icons */
+.control-button:disabled .feather-icon {
+    opacity: 0.5;
+    transform: none;
+}
+
+.control-button:disabled:hover .feather-icon {
+    transform: none;
+}
+
+/* Loading state animation */
+@keyframes icon-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.feather-icon.spinning {
+    animation: icon-spin 1s linear infinite;
+}
+
+/* Icon color themes */
+.feather-icon.theme-primary {
+    color: var(--primary-color, #3498db);
+}
+
+.feather-icon.theme-success {
+    color: #27ae60;
+}
+
+.feather-icon.theme-warning {
+    color: #f39c12;
+}
+
+.feather-icon.theme-danger {
+    color: #e74c3c;
+}
+
+.feather-icon.theme-muted {
+    color: #95a5a6;
+}
+
+/* Special button combinations */
+.play-pause-button {
+    min-width: 50px;
+    transition: all 0.3s ease;
+}
+
+.play-pause-button .feather-icon {
+    transition: opacity 0.2s ease;
+}
+
+/* Navigation button specific styles */
+.nav-button-prev,
+.nav-button-next {
+    position: relative;
+}
+
+.nav-button-prev .feather-icon,
+.nav-button-next .feather-icon {
+    transition: transform 0.3s ease;
+}
+
+.nav-button-prev:hover .feather-icon {
+    transform: translateX(-2px) scale(1.1);
+}
+
+.nav-button-next:hover .feather-icon {
+    transform: translateX(2px) scale(1.1);
+}
+
+/* Pallet control specific icons */
+.pallet-controls .feather-icon {
+    stroke-width: 2;
+}
+
+.animation-controls .feather-icon {
+    stroke-width: 2.5; /* Slightly bolder for animation controls */
+}
+
+/* Box counter icon integration */
+.box-counter-icon {
+    margin-right: 8px;
+    color: var(--primary-color, #3498db);
+}
+
+/* Responsive icon adjustments */
+@media (max-width: 1200px) {
+    .feather-icon.icon-large {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .feather-icon.icon-xl {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .control-button.with-icon {
+        gap: 4px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .feather-icon {
+        stroke-width: 2.5;
+    }
+    
+    .control-button .feather-icon {
+        stroke-width: 3;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .feather-icon,
+    .control-button .feather-icon,
+    .feather-icon.feather-restart {
+        transition: none;
+        animation: none;
+    }
+    
+    .control-button:hover .feather-icon {
+        transform: none;
+    }
+}
+
+/* ========================================= */
+/* 3D VIEWER SPECIFIC ENHANCEMENTS          */
+/* ========================================= */
+
+/* Enhanced control grid styling */
+.controls-container .control-button {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+/* Three.js container specific icon overlays */
+.threejs-container .control-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.control-overlay .feather-icon {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-overlay .feather-icon:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.1);
+}
+
+
+/* ========================================= */
+/* WEIGHT DISTRIBUTION AESTHETICS            */
+/* ========================================= */
+
+
+/* Melhorar aparência do Weight Distribution Heatmap */
+.heatmap .heat-grid .heat-cell {
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    min-height: 20px; /* Garantir altura mínima visível */
+}
+
+.heatmap .heat-grid .heat-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 1;
+    position: relative;
+}
+
+/* Tornar a legenda mais informativa */
+.heatmap .legend {
+    margin-top: 8px;
+    font-size: 0.8rem;
+}
+
+.heatmap .legend span {
+    margin-right: 12px;
+}

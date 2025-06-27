@@ -69,8 +69,8 @@ class PalletSimulator {
         const aspect = containerRect.width / containerRect.height;
         
         this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-        this.camera.position.set(8, 6, 8);
-        this.camera.lookAt(0, 0, 0);
+        this.camera.position.set(0, 20, 18);
+        this.camera.lookAt(0, 5, 20);
     }
     
     /**

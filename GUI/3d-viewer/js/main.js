@@ -8,6 +8,7 @@ class PalletizationApp {
         // Core application components
         this.simulator = null;
         this.dataLoader = null;
+        this.fileManager = null; // NOVO: Adicionar FileManager
         this.isInitialized = false;
         this.currentDataFile = null;
         
@@ -83,6 +84,7 @@ class PalletizationApp {
             
             this.initializeSimulator();
             this.initializeDataLoader();
+            this.initializeFileManager(); // NOVO: Inicializar FileManager
             this.setupUI();
             
             await this.loadDefaultCrosslogData();
@@ -141,14 +143,54 @@ class PalletizationApp {
     initializeDataLoader() {
         this.dataLoader = new PalletDataLoader(this.simulator);
     }
+
+    /**
+     * Initialize file management system
+     * NOVO: Função para inicializar o FileManager
+     */
+    initializeFileManager() {
+        this.fileManager = new FileManager({
+            simulator: this.simulator,
+            dataLoader: this.dataLoader,
+            stopAnimation: () => this.stopAnimation(),
+            clearSimulation: () => this.clearSimulation(),
+            loadDataFromString: (content) => this.loadDataFromString(content),
+            resetControls: () => this.resetControls()
+        });
+        
+        console.log('FileManager initialized successfully');
+    }
     
     /**
      * Set up user interface controls
      */
     setupUI() {
-        this.createNavigationControls();
-        this.setupInfoDisplays();
+        // Aguardar que tanto a visualization quanto a metrics area estejam prontas
+        this.waitForUIElements().then(() => {
+            this.createNavigationControls();
+            this.setupInfoDisplays();
+        });
     }
+
+        /**
+     * Wait for UI elements to be ready
+     */
+    async waitForUIElements() {
+        return new Promise((resolve) => {
+            const checkElements = () => {
+                const visualArea = document.querySelector('.visualization-area');
+                const metricsArea = document.querySelector('.metrics-area');
+                
+                if (visualArea && metricsArea) {
+                    resolve();
+                } else {
+                    setTimeout(checkElements, 100);
+                }
+            };
+            checkElements();
+        });
+    }
+
     
     /**
      * Load default Crosslog data automatically
@@ -184,75 +226,181 @@ class PalletizationApp {
      * Create navigation controls with three-zone layout
      */
     createNavigationControls() {
-        const visualizationArea = document.querySelector('.visualization-area');
-        if (!visualizationArea) {
+    // Em vez de procurar na visualization-area, vamos procurar na metrics-area
+        const metricsArea = document.querySelector('.metrics-area');
+        if (!metricsArea) {
             setTimeout(() => {
                 this.createNavigationControls();
             }, 500);
             return;
         }
         
-        // Create the controls container
-        const controlsContainer = document.createElement('div');
-        controlsContainer.className = 'controls-container';
-        controlsContainer.style.cssText = `
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: auto auto;
-            gap: 12px 20px;
-            margin-bottom: 15px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border: 1px solid #e0e0e0;
-            align-items: center;
-        `;
+        // Encontrar o container do Layer Efficiency para substituir
+        const layerEfficiencyCard = document.querySelector('.metric-card:last-child');
+        if (!layerEfficiencyCard) {
+            console.warn('Layer efficiency card not found');
+            return;
+        }
         
-        visualizationArea.insertBefore(controlsContainer, visualizationArea.children[1]);
+        // Em vez de criar um container separado, vamos aplicar os estilos diretamente ao card
+        const controlsContainer = layerEfficiencyCard; // Usar o card existente
+        controlsContainer.style.cssText += `
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Duas colunas iguais em largura */
+            grid-template-rows: auto; /* Uma linha que se adapta ao conteúdo */
+            gap: 25px; /* Espaço generoso entre as duas colunas */
+            padding: 20px;
+            align-items: start; /* Alinhar ao topo para permitir alturas diferentes */
+        `;
+
+        const leftArea = document.createElement('div');
+        leftArea.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Distribuir espaço uniformemente */
+            gap: 20px; /* Aumentado de 15px para 20px */
+            grid-column: 1;
+            align-items: center;
+            height: 100%; /* Ocupar toda a altura disponível */
+            padding: 10px 0; /* Distância mínima das edges superior e inferior */
+        `;
+
+        const rightArea = document.createElement('div');
+        rightArea.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Distribuir os dois grupos uniformemente */
+            gap: 20px; /* Aumentado para maior separação entre grupos */
+            grid-column: 2;
+            height: 100%; /* Ocupar toda a altura */
+            padding: 20px 0; /* Distância das edges */
+        `;
+
+// Grupo superior: Controlos de Palete
+const palletControlsGroup = document.createElement('div');
+palletControlsGroup.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+`;
+
+// Título do grupo de controlos de palete
+const palletTitle = document.createElement('div');
+palletTitle.textContent = 'PALLET CONTROLS';
+palletTitle.style.cssText = `
+    font-size: 0.9rem;
+    color: #2c3e50;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    text-align: center;
+    margin-bottom: 5px 0;
+`;
+
+// Container para botões de palete
+const palletButtons = document.createElement('div');
+palletButtons.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px; /* Espaço entre botões */
+    flex-wrap: wrap; /* Permitir quebra de linha se necessário */
+`;
+
+// Grupo inferior: Controlos de Animação
+const animationControlsGroup = document.createElement('div');
+animationControlsGroup.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+`;
+
+// Título do grupo de controlos de animação
+const animationTitle = document.createElement('div');
+animationTitle.textContent = 'ANIMATION CONTROLS';
+animationTitle.style.cssText = `
+    font-size: 0.8rem;
+    color: #2c3e50;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    text-align: center;
+    margin-bottom: 5px 0;
+`;
+
+// Container para botões de animação
+const animationButtons = document.createElement('div');
+animationButtons.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+        
+        // Limpar o conteúdo do card e adicionar o título
+        layerEfficiencyCard.innerHTML = '';
+
+        // Criar e adicionar o título
+        const title = document.createElement('h3');
+        title.textContent = 'Pallet Controls';
+        title.style.cssText = `
+            grid-column: 1 / -1; /* Ocupar todas as 3 colunas (da primeira à última) */
+            grid-row: 1; /* Primeira linha */
+            text-align: center;
+            margin: 0;
+            margin-bottom: 10px;
+            color: var(--dark-color);
+            font-size: 1rem;
+            font-weight: bold;
+        `;
+        layerEfficiencyCard.appendChild(title);
         
         // Top row titles
         const leftTitle = document.createElement('div');
         leftTitle.textContent = 'PALLET CONTROLS';
         leftTitle.style.cssText = `
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #2c3e50;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             text-align: center;
-            grid-column: 1;
-            grid-row: 1;
+            grid-column: 1; /* Primeira coluna */
+            grid-row: 2; /* Segunda linha */
         `;
         
+                // Contador de paletes - centro
         const palletCounter = document.createElement('div');
         palletCounter.id = 'pallet-counter';
         palletCounter.style.cssText = `
             font-weight: bold;
             color: #2c3e50;
-            font-size: 0.9rem;
-            padding: 6px 16px;
+            font-size: 1.1rem; /* Aumentado para maior destaque */
+            padding: 15px 25px; /* Padding mais generoso */
             background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-            border-radius: 6px;
-            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
             text-align: center;
-            grid-column: 2;
-            grid-row: 1;
-            justify-self: center;
+            width: 100%; /* Ocupar toda a largura disponível */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra subtil */
         `;
         palletCounter.textContent = 'Pallet 0 of 0';
-        
+
+        // Título direito - ANIMATION CONTROLS
         const rightTitle = document.createElement('div');
         rightTitle.textContent = 'ANIMATION CONTROLS';
         rightTitle.style.cssText = `
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #2c3e50;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             text-align: center;
-            grid-column: 3;
-            grid-row: 1;
+            grid-column: 3; /* Terceira coluna */
+            grid-row: 2; /* Segunda linha */
         `;
         
         // Bottom row controls
@@ -261,16 +409,16 @@ class PalletizationApp {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 12px;
-            grid-column: 1;
-            grid-row: 2;
+            gap: 8px;
+            grid-column: 1; /* Primeira coluna */
+            grid-row: 3; /* Terceira linha */
             width: 100%;
         `;
         
         // Create pallet control buttons
         const restartButton = this.createControlButton('', () => {
             this.restartCurrentPallet();
-        }, 'small', 'restart', true);
+        }, 'square', 'restart', true); // iconOnly = true
         restartButton.id = 'restart-pallet-btn';
         restartButton.disabled = true;
         restartButton.title = 'Restart current pallet animation';
@@ -281,7 +429,7 @@ class PalletizationApp {
                 this.resetAnimationState();
                 this.resetSimulationTimer();
             }
-        }, 'small', 'arrowLeft');
+        }, 'square', 'arrowLeft');
         prevPalletButton.id = 'prev-pallet-btn';
         prevPalletButton.disabled = true;
         prevPalletButton.title = 'Previous pallet solution';
@@ -292,14 +440,14 @@ class PalletizationApp {
                 this.resetAnimationState();
                 this.resetSimulationTimer();
             }
-        }, 'small', 'arrowRight');
+        }, 'square', 'arrowRight');
         nextPalletButton.id = 'next-pallet-btn';
         nextPalletButton.disabled = true;
         nextPalletButton.title = 'Next pallet solution';
 
         const finishedButton = this.createControlButton('', () => {
             this.finishCurrentPallet();
-        }, 'small', 'skipForward');
+        }, 'square', 'skipForward');
         finishedButton.id = 'finished-pallet-btn';
         finishedButton.disabled = true;
         finishedButton.title = 'Fast Forward';
@@ -315,18 +463,48 @@ class PalletizationApp {
         boxCounter.style.cssText = `
             font-weight: bold;
             color: #495057;
-            font-size: 1.1rem;
-            padding: 8px 20px;
+            font-size: 1.2rem; /* Ligeiramente maior que o contador de paletes */
+            padding: 15px 25px;
             background: linear-gradient(145deg, #ffffff, #f8f9fa);
             border-radius: 8px;
             border: 2px solid #3498db;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
-            grid-column: 2;
-            grid-row: 2;
-            justify-self: center;
+            box-shadow: 0 3px 6px rgba(52, 152, 219, 0.2);
+            width: 100%;
         `;
         boxCounter.textContent = 'Box 0 of 0';
+
+        const loadFileButton = document.createElement('button');
+        loadFileButton.style.cssText = `
+            background: linear-gradient(145deg, #63CBF1, #2F8DCB);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        `;
+        loadFileButton.textContent = '📁 Load New File';
+        loadFileButton.title = 'Load a new simulation file';
+
+        loadFileButton.addEventListener('mouseenter', () => {
+        loadFileButton.style.transform = 'translateY(-2px)';
+        loadFileButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        });
+        loadFileButton.addEventListener('mouseleave', () => {
+            loadFileButton.style.transform = 'translateY(0)';
+            loadFileButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        });
+
+        // Adicionar elementos à área esquerda
+        leftArea.appendChild(palletCounter);
+        leftArea.appendChild(boxCounter);
+        leftArea.appendChild(loadFileButton);
+
         
         // Right animation controls
         const rightButtons = document.createElement('div');
@@ -334,29 +512,29 @@ class PalletizationApp {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 12px;
-            grid-column: 3;
-            grid-row: 2;
+            gap: 8px;
+            grid-column: 3; /* Terceira coluna */
+            grid-row: 3; /* Terceira linha */
             width: 100%;
         `;
         
         const stepBackButton = this.createControlButton('', () => {
             this.stepBackwardOneBox();
-        }, 'small', 'stepBack', true);
+        }, 'square', 'stepBack', true);
         stepBackButton.id = 'step-back-btn';
         stepBackButton.disabled = true;
         stepBackButton.title = 'Remove one box';
 
         const playPauseButton = this.createControlButton('', () => {
             this.togglePlayPause();
-        }, 'medium', 'play', true);
+        }, 'square', 'play', true);
         playPauseButton.id = 'play-pause-btn';
         playPauseButton.disabled = true;
         playPauseButton.title = 'Play or pause animation';
 
         const stepForwardButton = this.createControlButton('', () => {
             this.stepForwardOneBox();
-        }, 'small', 'stepForward', true);
+        }, 'square', 'stepForward', true);
         stepForwardButton.id = 'step-forward-btn';
         stepForwardButton.disabled = true;
         stepForwardButton.title = 'Add one box';
@@ -366,12 +544,45 @@ class PalletizationApp {
         rightButtons.appendChild(stepForwardButton);
         
         // Assemble the grid layout
-        controlsContainer.appendChild(leftTitle);
-        controlsContainer.appendChild(palletCounter);
-        controlsContainer.appendChild(rightTitle);
-        controlsContainer.appendChild(leftButtons);
-        controlsContainer.appendChild(boxCounter);
-        controlsContainer.appendChild(rightButtons);
+        palletButtons.appendChild(restartButton);
+        palletButtons.appendChild(prevPalletButton);
+        palletButtons.appendChild(nextPalletButton);
+        palletButtons.appendChild(finishedButton);
+
+        animationButtons.appendChild(stepBackButton);
+        animationButtons.appendChild(playPauseButton);
+        animationButtons.appendChild(stepForwardButton);
+
+        // Montar os grupos de controlos
+        palletControlsGroup.appendChild(palletTitle);
+        palletControlsGroup.appendChild(palletButtons);
+
+        animationControlsGroup.appendChild(animationTitle);
+        animationControlsGroup.appendChild(animationButtons);
+
+        // Montar a área direita
+        rightArea.appendChild(palletControlsGroup);
+        rightArea.appendChild(animationControlsGroup);
+
+        // Adicionar elementos à área esquerda
+        leftArea.appendChild(palletCounter);
+        leftArea.appendChild(boxCounter);
+        leftArea.appendChild(loadFileButton);
+
+        // Adicionar as duas áreas principais ao container
+        layerEfficiencyCard.innerHTML = ''; // Limpar conteúdo existente
+        layerEfficiencyCard.appendChild(leftArea);
+        layerEfficiencyCard.appendChild(rightArea);
+
+
+        // Notify FileManager that the button is now available
+        if (this.fileManager && this.fileManager.retryButtonSetup) {
+            setTimeout(() => {
+                this.fileManager.retryButtonSetup();
+            }, 100);
+        }
+
+
     }
     
     /**
@@ -392,14 +603,16 @@ class PalletizationApp {
         const sizeStyles = {
             small: 'padding: 6px 12px; font-size: 0.8rem;',
             medium: 'padding: 8px 16px; font-size: 0.9rem;',
-            large: 'padding: 10px 20px; font-size: 1rem;'
+            large: 'padding: 10px 20px; font-size: 1rem;',
+            square: 'padding: 10px; min-width: 40px; min-height: 40px; font-size: 0.85rem;'
         };
         
         if (iconOnly) {
             const iconOnlyStyles = {
                 small: 'padding: 6px; min-width: 32px;',
                 medium: 'padding: 8px; min-width: 36px;',
-                large: 'padding: 10px; min-width: 40px;'
+                large: 'padding: 10px; min-width: 40px;',
+                square: 'padding: 12px; min-width: 48px; min-height: 48px;'
             };
             sizeStyles[size] = iconOnlyStyles[size];
         }
@@ -453,6 +666,119 @@ class PalletizationApp {
         button.addEventListener('click', onClick);
         
         return button;
+    }
+
+    // NOVAS FUNÇÕES PARA INTEGRAÇÃO COM FILEMANAGER
+    /**
+     * Stop current animation
+     * NOVO: Para integração com FileManager
+     */
+    stopAnimation() {
+        if (this.dataLoader && this.dataLoader.animationTimeouts) {
+            this.dataLoader.animationTimeouts.forEach(timeoutId => {
+                clearTimeout(timeoutId);
+            });
+            this.dataLoader.animationTimeouts = [];
+        }
+        
+        this.animationState.isPlaying = false;
+        this.animationState.isPaused = false;
+        
+        this.stopSimulationTimer();
+        
+        const button = document.getElementById('play-pause-btn');
+        if (button) {
+            button.textContent = '▶ Play';
+            button.title = 'Start animation';
+        }
+    }
+
+    /**
+     * Clear current simulation
+     * NOVO: Para integração com FileManager
+     */
+    clearSimulation() {
+        if (this.dataLoader) {
+            this.dataLoader.clearCurrentBoxes();
+        }
+        
+        if (this.simulator && this.simulator.centerOfMassGroup) {
+            this.simulator.hideCenterOfMassBeam();
+        }
+        
+        this.resetAnimationState();
+        this.resetSimulationTimer();
+        
+        // Reset metrics calculators
+        if (this.volumeEfficiencyCalculator) {
+            this.volumeEfficiencyCalculator.reset();
+        }
+        if (this.bottomMetricsCalculator) {
+            this.bottomMetricsCalculator.reset();
+        }
+    }
+
+    /**
+     * Load data from string content
+     * NOVO: Para integração com FileManager
+     * @param {string} content - File content
+     */
+    async loadDataFromString(content) {
+        try {
+            // Stop any current animation
+            this.stopAnimation();
+            
+            // Clear current simulation
+            this.clearSimulation();
+            
+            // Parse new data using existing method
+            const success = this.loadCrosslogData(content, 'New File');
+            
+            if (success) {
+                // Update UI
+                this.updateButtonStates();
+                this.updatePalletCounter();
+                this.updateBoxCounter();
+                
+                console.log('Data loaded successfully from string');
+            } else {
+                throw new Error('Failed to parse Crosslog data');
+            }
+            
+        } catch (error) {
+            console.error('Error loading data from string:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Reset controls to initial state
+     * NOVO: Para integração com FileManager
+     */
+    resetControls() {
+        // Reset to first pallet
+        if (this.dataLoader && this.dataLoader.allPallets && this.dataLoader.allPallets.length > 0) {
+            this.dataLoader.currentPalletIndex = 0;
+        }
+        
+        // Reset animation state
+        this.resetAnimationState();
+        this.resetSimulationTimer();
+        
+        // Update UI
+        this.updateButtonStates();
+        this.updatePalletCounter();
+        this.updateBoxCounter();
+        
+        // Reset camera to initial position if needed
+        if (this.simulator && this.simulator.camera) {
+            this.simulator.camera.position.set(0, 20, 18);
+            this.simulator.camera.lookAt(0, 5, 20);
+            
+            if (this.simulator.controls) {
+                this.simulator.controls.reset();
+            }
+        }
     }
     
     /**
@@ -1294,8 +1620,8 @@ class PalletizationApp {
                 totalBoxCount: boxes.length,
                 spatialAnalysis: {
                     xSpan: xSpan,
-                    ySpan: ySpan,
-                    zSpan: zSpan
+                    ySpan: zSpan,
+                    zSpan: xSpan
                 },
                 systemValidation: {
                     currentConversionFactor: window.unitsSystem?.conversions?.threeUnitsToCm || 'not available',
@@ -1332,25 +1658,11 @@ class PalletizationApp {
         const centerMassElement = document.getElementById('center-mass');
         if (!centerMassElement) return;
         
-        switch (result.stabilityRating) {
-            case 'Excellent':
-                centerMassElement.style.color = '#27ae60';
-                centerMassElement.title = 'Excellent stability';
-                break;
-            case 'Good':
-                centerMassElement.style.color = '#3498db';
-                centerMassElement.title = 'Good stability';
-                break;
-            case 'Fair':
-                centerMassElement.style.color = '#f39c12';
-                centerMassElement.title = 'Fair stability';
-                break;
-            case 'Poor':
-                centerMassElement.style.color = '#e74c3c';
-                centerMassElement.title = 'Poor stability';
-                break;
-            default:
-                centerMassElement.style.color = '#95a5a6';
+        
+        if (this.animationState.isCompleted) {
+            centerMassElement.style.color = '#27ae60';
+        } else {
+            centerMassElement.style.color = '#3498db';
         }
     }
 
@@ -1422,3 +1734,84 @@ window.addEventListener('beforeunload', () => {
         window.palletApp.dispose();
     }
 });
+
+// NOVO: Objeto global para acesso ao FileManager e backward compatibility
+window.palletAppUtils = {
+    /**
+     * Get current application instance
+     */
+    getApp: () => window.palletApp,
+    
+    /**
+     * Get current simulator
+     */
+    getSimulator: () => window.palletApp?.simulator || null,
+    
+    /**
+     * Get current data loader
+     */
+    getDataLoader: () => window.palletApp?.dataLoader || null,
+    
+    /**
+     * Get current file manager
+     */
+    getFileManager: () => window.palletApp?.fileManager || null,
+    
+    /**
+     * Load a specific pallet by index
+     * @param {number} index - Pallet index
+     */
+    loadPallet: (index) => {
+        if (window.palletApp && window.palletApp.dataLoader && window.palletApp.dataLoader.allPallets) {
+            if (index >= 0 && index < window.palletApp.dataLoader.allPallets.length) {
+                window.palletApp.dataLoader.currentPalletIndex = index;
+                window.palletApp.dataLoader.loadPallet(index);
+                window.palletApp.updatePalletCounter();
+                window.palletApp.updateBoxCounter();
+                window.palletApp.resetAnimationState();
+                window.palletApp.resetSimulationTimer();
+                return true;
+            }
+        }
+        return false;
+    },
+    
+    /**
+     * Get current application statistics
+     */
+    getStats: () => {
+        if (window.palletApp && window.palletApp.dataLoader) {
+            return window.palletApp.dataLoader.getStatistics();
+        }
+        return null;
+    },
+    
+    /**
+     * Toggle center of mass beam visibility
+     */
+    toggleCenterOfMassBeam: () => {
+        if (window.palletApp && window.palletApp.simulator) {
+            if (window.palletApp.simulator.isCenterOfMassBeamVisible()) {
+                window.palletApp.simulator.hideCenterOfMassBeam();
+            } else {
+                window.palletApp.updateCenterOfMassDisplay();
+            }
+        }
+    }
+
+    
+};
+
+    /**
+     * Navigate to box selection page
+     */
+    function goToBoxSelection() {
+        window.location.href = '../box_selection/index.html';
+    }
+
+    /**
+     * Navigate to ending page
+     */
+    function goToEndingPage() {
+        window.location.href = '../ending_page/index.html';
+    }

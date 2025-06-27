@@ -1,13 +1,22 @@
-annotated-types==0.7.0
-anyio==4.9.0
-click==8.2.0
-fastapi==0.115.12
-h11==0.16.0
-idna==3.10
-pydantic==2.11.4
-pydantic_core==2.33.2
-sniffio==1.3.1
-starlette==0.46.2
-typing-inspection==0.4.0
-typing_extensions==4.13.2
-uvicorn==0.34.2
+# Core Web Framework
+fastapi==0.115.12          # Modern Python web framework for building APIs
+uvicorn==0.34.2           # ASGI server for serving FastAPI applications
+
+# Data Validation and Serialization  
+pydantic==2.11.4          # Data validation using Python type annotations
+pydantic_core==2.33.2     # Core validation library for Pydantic
+annotated-types==0.7.0    # Support for annotated types in Pydantic
+
+# HTTP and Networking
+h11==0.16.0              # HTTP/1.1 protocol implementation
+anyio==4.9.0             # Async I/O library
+sniffio==1.3.1           # Detect async library in use
+idna==3.10               # Internationalized Domain Names
+
+# Framework Dependencies
+starlette==0.46.2        # Lightweight ASGI framework (FastAPI dependency)
+click==8.2.0             # Command line interface creation toolkit
+
+# Type System Support
+typing-inspection==0.4.0   # Runtime inspection of types
+typing_extensions==4.13.2  # Backported and experimental type hints

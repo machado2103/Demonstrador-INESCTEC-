@@ -45,12 +45,13 @@
     flex: 6;
     background: white;
     border-radius: 12px;
-    padding: 15px; /* Reduced from 20px */
+    padding: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border-left: 4px solid var(--primary-color);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start; /* Mudado de space-between para flex-start */
+    gap: 10px; /* Adicionar gap consistente */
 }
 
 .visualization-area h2 {
@@ -61,20 +62,19 @@
     flex-shrink: 0;
 }
 
-/* Three.js container - adjusted for better visual balance */
 .threejs-container {
     background: linear-gradient(to bottom, #e3f2fd, #bbdefb);
     border-radius: 8px;
     flex: 1;
-    min-height: 300px;
-    max-height: 550px;
+    min-height: 400px; /* Aumentado de 300px */
+    max-height: 650px; /* Aumentado de 550px */
     position: relative;
     margin-bottom: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 2px solid #e1f5fe;
-    overflow: hidden; /* Important for Three.js canvas */
+    overflow: hidden;
 }
 
 /* Canvas styling for Three.js */
@@ -154,6 +154,8 @@
     margin-bottom: 15px;
     text-align: center;
 }
+
+
 
 /* Weight distribution heatmap */
 .heat-grid {
@@ -283,13 +285,15 @@
     color: #666;
 }
 
-/* Application status bar */
 .status-bar {
-    background: linear-gradient(135deg, #2c3e50, #34495e);
+    background: linear-gradient(135deg, #2c3e50, #34495e); /* Mantém o teu gradiente bonito */
     color: white;
     padding: 15px;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-around; /* Mantém a distribuição original das métricas */
+    position: relative; /* NOVO: Permite posicionamento absoluto dos botões filhos */
+    align-items: center; /* NOVO: Assegura que tudo fica alinhado verticalmente */
+    min-height: 60px; /* NOVO: Garante espaço suficiente para os botões */
 }
 
 .status-group {
@@ -310,6 +314,75 @@
     color: var(--secondary-color);
 }
 
+/* Posicionamento do botão esquerdo */
+/* Este container funciona como uma âncora invisível que segura o botão na posição correta */
+.nav-button-left {
+    position: absolute; /* Remove do fluxo normal, não afeta as métricas centrais */
+    left: 15px; /* Distância respeitosa da borda esquerda */
+    top: 50%; /* Posiciona no centro vertical do container */
+    transform: translateY(-50%); /* Ajuste fino para centragem perfeita */
+    z-index: 10; /* Assegura que fica por cima de outros elementos */
+}
+
+/* Posicionamento do botão direito */
+.nav-button-right {
+    position: absolute;
+    right: 15px; /* Simétrico ao botão esquerdo */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+}
+
+/* Estilo dos botões de navegação */
+/* Aqui criamos botões que se harmonizam com o teu gradiente existente */
+.nav-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px; /* Tamanho compacto que não domina a interface */
+    height: 45px;
+    border-radius: 50%; /* Forma circular elegante */
+    border: none;
+    background-color: var(--primary-color); /* Usa a cor principal do teu tema */
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease; /* Transições suaves para todas as propriedades */
+    box-shadow: 0 3px 10px rgba(8, 148, 194, 0.3); /* Sombra subtil que dá profundidade */
+}
+
+/* Efeitos interativos que dão vida aos botões */
+.nav-button:hover {
+    background-color: var(--dark-color); /* Escurece ligeiramente no hover */
+    transform: translateY(-2px); /* Efeito de elevação sutil */
+    box-shadow: 0 5px 15px rgba(8, 148, 194, 0.4); /* Sombra mais pronunciada */
+}
+
+.nav-button:active {
+    transform: translateY(1px); /* Simula o botão a ser pressionado */
+    box-shadow: 0 2px 5px rgba(8, 148, 194, 0.4); /* Sombra reduzida */
+}
+
+/* Adaptação responsiva para diferentes tamanhos de ecrã */
+@media (max-width: 768px) {
+    .nav-button-left {
+        left: 10px; /* Menos espaço lateral em ecrãs pequenos */
+    }
+    
+    .nav-button-right {
+        right: 10px;
+    }
+    
+    .nav-button {
+        width: 40px; /* Botões ligeiramente mais pequenos */
+        height: 40px;
+    }
+    
+    .nav-button svg {
+        width: 18px; /* Ícones proporcionalmente ajustados */
+        height: 18px;
+    }
+}
+
 /* Application footer */
 .footer {
     background: linear-gradient(135deg, #2c3e50, #34495e);
@@ -322,10 +395,10 @@
     font-size: 0.9rem;
 }
 
-/* ========================================= */
-/* NEXT BUTTON - TEMPORARY FOR TESTING     */
-/* TODO: REMOVE THIS CODE LATER            */
-/* ========================================= */
+.metrics-area .metric-card:last-child {
+    margin: 0;
+    min-height: auto;
+}
 
 /* Next button - Bottom right corner (for testing) */
 .next-button {
@@ -380,7 +453,3 @@
     white-space: nowrap;
     pointer-events: none;
 }
-
-/* ========================================= */
-/* END OF TEMPORARY CODE                    */
-/* ========================================= */
