@@ -193,13 +193,13 @@ class PalletSimulator {
         
         // Create beam material with enhanced visibility
         const beamMaterial = new THREE.MeshBasicMaterial({
-            color: 0xff0000,
+            color: 0x2c5282,
             transparent: true,
-            opacity: 0.30,
+            opacity: 0.1,
             blending: THREE.NormalBlending,
             depthWrite: false,
             side: THREE.DoubleSide,
-            emissive: 0xff0000,
+            emissive: 0x1a365d,
             emissiveIntensity: 0.3
         });
         
@@ -216,7 +216,7 @@ class PalletSimulator {
         this.centerOfMassGroup.add(this.centerOfMassBeam);
         
         this.createBeamGlowSprite();
-        this.createCenterOfMassCross();
+        this.createCenterOfMassIcon();
         this.createFixedPalletCenterReference();
         
         this.scene.add(this.centerOfMassGroup);
@@ -264,48 +264,141 @@ class PalletSimulator {
         this.centerOfMassGroup.add(this.centerOfMassGlow);
     }
 
-    /**
-     * Create cross marker at center of mass position
-     */
-    createCenterOfMassCross() {
-        const crossSize = 0.8;
-        const crossThickness = 0.05;
-        const crossHeight = 0.02;
+createCenterOfMassIcon() {
+    const symbolRadius = 0.4;        // Tamanho do símbolo no mundo 3D
+    const symbolHeight = 0.02;       // Espessura muito fina
+    
+    // === CRIAR TEXTURA NO CANVAS ===
+    const canvas = document.createElement('canvas');
+    const size = 128;                // Resolução da textura
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    
+    // Definir centro e raio do círculo
+    const centerX = size / 2;        // Centro X = 64 pixels
+    const centerY = size / 2;        // Centro Y = 64 pixels  
+    const circleRadius = size * 0.25 // Raio = 40% do canvas = ~51 pixels
+    
+    // === PASSO 1: FUNDO TRANSPARENTE ===
+    // Limpar tudo (deixar transparente)
+    ctx.clearRect(0, 0, size, size);
+    
+    // === PASSO 2: CÍRCULO PRETO ===
+    ctx.fillStyle = '#f8f8f8';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // === NOVO PASSO 2.5: QUADRANTE SUPERIOR-DIREITO PRETO ===
+    ctx.fillStyle = '#4a4a4a';
+    ctx.beginPath();
+    // Começar no centro do círculo
+    ctx.moveTo(centerX, centerY);
+    // Desenhar linha até ao INÍCIO do arco (-π/2 = 12 horas = topo)
+    ctx.lineTo(centerX, centerY - circleRadius);
+    // Desenhar o arco de -π/2 a 0 (de 12h até 3h)
+    ctx.arc(centerX, centerY, circleRadius, -Math.PI/2, 0, false);
+    // Fechar voltando ao centro
+    ctx.lineTo(centerX, centerY);
+    ctx.fill();
+
+    // === NOVO: QUADRANTE INFERIOR ESQUERDO ===
+    ctx.fillStyle = '#4a4a4a';
+    ctx.beginPath();
+    // Começar no centro
+    ctx.moveTo(centerX, centerY);
+    // Linha até ao INÍCIO do segundo arco (π/2 = 6 horas = fundo)
+    ctx.lineTo(centerX, centerY + circleRadius);
+    // Arco de π/2 até π (de 6h até 9h = fundo até esquerda)
+    ctx.arc(centerX, centerY, circleRadius, Math.PI/2, Math.PI, false);
+    // Voltar ao centro
+    ctx.lineTo(centerX, centerY);
+    ctx.fill();
+    
+    // === PASSO 3: CONTORNO DO CÍRCULO (um pouco mais grosso) ===
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 4;               // Linha ligeiramente mais grossa
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // === PASSO 4: MIRA INTERNA (duas linhas em cruz) ===
+    ctx.strokeStyle = '#2a2a2a';       // Linhas brancas para contraste contra o fundo preto
+    ctx.lineWidth = 4;               // Mesma grossura que o contorno
+    ctx.lineCap = 'round';           // Extremidades arredondadas para melhor visual
+    
+    // Linha horizontal da mira
+    ctx.beginPath();
+    ctx.moveTo(centerX - circleRadius * 1.1, centerY);  // Começar a 70% do raio à esquerda
+    ctx.lineTo(centerX + circleRadius * 1.1, centerY);  // Terminar a 70% do raio à direita
+    ctx.stroke();
+    
+    // Linha vertical da mira  
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - circleRadius * 1.1);  // Começar a 70% do raio acima
+    ctx.lineTo(centerX, centerY + circleRadius * 1.1);  // Terminar a 70% do raio abaixo
+    ctx.stroke();
+    
+    // === CRIAR TEXTURA THREE.JS ===
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    
+    // === CRIAR GEOMETRIA SIMPLES ===
+    // Usar um plano simples em vez de cilindro para evitar problemas de orientação
+    const symbolGeometry = new THREE.PlaneGeometry(
+        symbolRadius * 2,            // Largura (diâmetro)
+        symbolRadius * 2             // Altura (diâmetro) 
+    );
+    
+    // === MATERIAL COM TRANSPARÊNCIA ===
+    const symbolMaterial = new THREE.MeshBasicMaterial({
+        map: texture,                // Aplicar nossa textura
+        transparent: true,           // Permitir transparência
+        alphaTest: 0.1,             // Descartar pixels quase transparentes
+        side: THREE.DoubleSide,      // Visível de ambos os lados
+        depthWrite: false            // Evitar problemas de profundidade
+    });
+    
+    // === CRIAR O MESH FINAL ===
+    this.centerOfMassCross = new THREE.Mesh(symbolGeometry, symbolMaterial);
+    
+    // === ORIENTAÇÃO CORRETA ===
+    // Manter horizontal - sem rotações complexas!
+    // O plano já está na orientação certa por defeito
+    this.centerOfMassCross.rotation.x = -Math.PI / 2;  // Apenas rotacionar para ficar horizontal no chão
+    
+    // === CONFIGURAÇÕES FINAIS ===
+    this.centerOfMassCross.castShadow = false;      // Sem sombras
+    this.centerOfMassCross.receiveShadow = false;   // Sem receber sombras
+    
+    // Adicionar ao grupo do centro de massa
+    this.centerOfMassGroup.add(this.centerOfMassCross);
+    this.centerOfMassCross.position.y = 0;
+    
+    console.log('PASSO 1: Símbolo básico de centro de massa criado');
+}
+
+/**
+ * OPCIONAL: Função auxiliar para debug da textura
+ * Chama esta função no console para ver como ficou a textura
+ */
+debugCenterOfMassTexture() {
+    if (this.centerOfMassCross && this.centerOfMassCross.material.map) {
+        // Criar uma imagem temporária para visualizar a textura
+        const canvas = this.centerOfMassCross.material.map.image;
+        const dataURL = canvas.toDataURL();
         
-        // Create cross geometry
-        const horizontalArmGeometry = new THREE.BoxGeometry(
-            crossSize, crossHeight, crossThickness
-        );
+        console.log('Textura do centro de massa criada:');
+        console.log('Para ver a textura, cola este URL numa nova aba do browser:');
+        console.log(dataURL);
         
-        const verticalArmGeometry = new THREE.BoxGeometry(
-            crossThickness, crossHeight, crossSize
-        );
-        
-        // Create cross material
-        const crossMaterial = new THREE.MeshBasicMaterial({
-            color: 0xff0000,
-            transparent: false,
-            emissive: 0xaa0000,
-            emissiveIntensity: 0.3,
-            side: THREE.DoubleSide
-        });
-        
-        const horizontalArm = new THREE.Mesh(horizontalArmGeometry, crossMaterial);
-        const verticalArm = new THREE.Mesh(verticalArmGeometry, crossMaterial);
-        
-        this.centerOfMassCross = new THREE.Group();
-        this.centerOfMassCross.add(horizontalArm);
-        this.centerOfMassCross.add(verticalArm);
-        
-        // Disable shadows
-        horizontalArm.castShadow = false;
-        horizontalArm.receiveShadow = false;
-        verticalArm.castShadow = false;
-        verticalArm.receiveShadow = false;
-        
-        this.centerOfMassGroup.add(this.centerOfMassCross);
-        this.centerOfMassCross.position.y = 0;
+        // Opcional: abrir automaticamente em nova aba
+        // window.open(dataURL, '_blank');
+    } else {
+        console.log('Símbolo do centro de massa ainda não foi criado');
     }
+}
 
     /**
      * Create fixed green reference point at geometric center (0,0)
@@ -320,9 +413,9 @@ class PalletSimulator {
         );
         
         const referenceMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
+            color: 0xDAA520,
             transparent: false,
-            emissive: 0x004400,
+            emissive: 0xB8860B,
             emissiveIntensity: 0.4,
             side: THREE.DoubleSide
         });

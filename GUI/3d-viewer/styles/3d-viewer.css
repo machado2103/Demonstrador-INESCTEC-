@@ -283,26 +283,142 @@
 /* ========================================= */
 
 
-/* Melhorar aparência do Weight Distribution Heatmap */
+/* Weight Distribution Heatmap - Otimizado para 12x8 grid */
+.heatmap .heat-grid {
+    display: grid !important;
+    grid-template-columns: repeat(12, 1fr) !important;
+    grid-template-rows: repeat(8, 1fr) !important;
+    gap: 1px !important;
+    
+    /* Tamanho compacto mas visível */
+    width: 240px !important;  /* 12 células × 20px cada = 240px */
+    height: 160px !important; /* 8 células × 20px cada = 160px */
+    max-width: 240px !important;
+    
+    padding: 3px !important;
+    background-color: #f0f0f0 !important;
+    border-radius: 4px !important;
+    margin: 0 auto !important;
+}
+
 .heatmap .heat-grid .heat-cell {
-    border-radius: 2px;
-    transition: all 0.3s ease;
-    min-height: 20px; /* Garantir altura mínima visível */
+    /* Células pequenas mas bem visíveis */
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    max-width: 18px !important;
+    max-height: 18px !important;
+    
+    border-radius: 1px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    
+    /* Garantir que são realmente quadradas */
+    aspect-ratio: 1 !important;
+    box-sizing: border-box !important;
 }
 
 .heatmap .heat-grid .heat-cell:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    z-index: 1;
-    position: relative;
+    transform: scale(1.2) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+    z-index: 10 !important;
+    position: relative !important;
+    border: 1px solid #333 !important;
 }
 
-/* Tornar a legenda mais informativa */
+/* Container do heatmap */
+.metric-card .heatmap {
+    max-width: 250px !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+}
+
+/* Legenda compacta */
 .heatmap .legend {
-    margin-top: 8px;
-    font-size: 0.8rem;
+    margin-top: 8px !important;
+    font-size: 0.6rem !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    max-width: 250px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 .heatmap .legend span {
-    margin-right: 12px;
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    margin: 0 !important;
+    font-size: 0.6rem !important;
+    white-space: nowrap !important;
+}
+
+.heatmap .legend-dot {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+}
+
+/* Responsive - se ainda estiver muito grande */
+@media (max-width: 1400px) {
+    .heatmap .heat-grid {
+        width: 180px !important;
+        height: 120px !important;
+        max-width: 180px !important;
+    }
+    
+    .heatmap .heat-grid .heat-cell {
+        width: 13px !important;
+        height: 13px !important;
+        min-width: 13px !important;
+        min-height: 13px !important;
+        max-width: 13px !important;
+        max-height: 13px !important;
+    }
+    
+    .metric-card .heatmap {
+        max-width: 190px !important;
+    }
+    
+    .heatmap .legend {
+        max-width: 190px !important;
+        font-size: 0.55rem !important;
+    }
+}
+
+/* Para telas muito pequenas */
+@media (max-width: 1200px) {
+    .heatmap .heat-grid {
+        width: 156px !important;
+        height: 104px !important;
+        max-width: 156px !important;
+    }
+    
+    .heatmap .heat-grid .heat-cell {
+        width: 11px !important;
+        height: 11px !important;
+        min-width: 11px !important;
+        min-height: 11px !important;
+        max-width: 11px !important;
+        max-height: 11px !important;
+    }
+    
+    .metric-card .heatmap {
+        max-width: 170px !important;
+    }
+    
+    .heatmap .legend {
+        max-width: 170px !important;
+        font-size: 0.7rem !important;
+        gap: 4px !important;
+    }
+    
+    .heatmap .legend-dot {
+        width: 6px !important;
+        height: 6px !important;
+    }
 }

@@ -6,9 +6,9 @@ class WeightDistributionCalculator {
     constructor() {
         // grid (6×4 = 24 cells)
         this.gridConfig = {
-            rows: 4,        
-            cols: 6,        
-            totalCells: 24  
+            rows: 8,        
+            cols: 12,        
+            totalCells: 96  
         };
         
         // Pallet dimensions
@@ -82,13 +82,11 @@ class WeightDistributionCalculator {
      * Initialize complete system with heatmap + legend + CSS
      */
     initializeCompleteSystem() {
-        // 1. Apply required CSS dynamically
-        this.injectRequiredCSS();
         
-        // 2. Initialize heatmap
+        // Initialize heatmap
         this.initializeHeatmapHTML();
         
-        // 3. Initialize dynamic legend
+        // Initialize dynamic legend
         this.initializeDynamicLegend();
         
     }
