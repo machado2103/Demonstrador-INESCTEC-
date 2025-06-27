@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (startButton) {
     startButton.addEventListener('click', function() {
       // Redirection to the simulation page
-      window.location.href = 'description_page/index.html';
+      window.location.href = './description_page/index.html';
     });
   }
   

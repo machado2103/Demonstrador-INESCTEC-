@@ -331,7 +331,7 @@ class PalletDataLoader {
         // Adjust position relative to pallet center
         box.position.x -= 6.0;  
         box.position.z -= 4.0;  
-        box.position.y += 0.72; 
+        box.position.y += 0.72 -8; 
         
         currentIndex++;
         return {

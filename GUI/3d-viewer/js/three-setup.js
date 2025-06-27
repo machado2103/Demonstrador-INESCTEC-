@@ -69,8 +69,8 @@ class PalletSimulator {
         const aspect = containerRect.width / containerRect.height;
         
         this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-        this.camera.position.set(0, 20, 18);
-        this.camera.lookAt(0, 5, 20);
+    this.camera.position.set(0, 8, 15);  // Mais alta e mais próxima
+    this.camera.lookAt(0, -9, 0);         // Olhar para baixo da palete
     }
     
     /**
@@ -81,7 +81,7 @@ class PalletSimulator {
             throw new Error('WebGL is not supported by this browser');
         }
         
-        this.renderer = new THREE.WebGLRenderer({ 
+        this.renderer = new THREE.WebGLRenderer({    //No windows isto pode dar clash mas tenho que ver quando mudar (por causa dos drivers)
             antialias: true,
             alpha: true
         });
@@ -168,6 +168,8 @@ class PalletSimulator {
         this.createPalletTopSurface(palletLength, palletWidth, palletHeight, woodColor);
         this.createPalletSupportBlocks(palletLength, palletWidth, palletHeight, woodColor);
         this.createPalletBottomBoards(palletLength, palletWidth, palletHeight, woodColor);
+
+        this.pallet.position.y = -8;
         
         this.scene.add(this.pallet);
     }
@@ -181,7 +183,8 @@ class PalletSimulator {
         
         // Calculate beam dimensions
         const palletHeight = 1.44;
-        const beamStartY = -(palletHeight / 2);
+        const palletOffset = -8;
+        const beamStartY = -(palletHeight / 2) + palletOffset;
         const beamEndY = 1000;
         const beamHeight = beamEndY - beamStartY;
         const beamRadius = 0.1;
@@ -425,7 +428,7 @@ debugCenterOfMassTexture() {
         this.palletCenterReference.receiveShadow = false;
         
         // Position at geometric center, will update Y based on load height
-        this.palletCenterReference.position.set(0, 0.72, 0);
+        this.palletCenterReference.position.set(0, 0.72 - 8, 0);
         
         // Add directly to scene (not to centerOfMassGroup) so it stays at (0,0)
         this.scene.add(this.palletCenterReference);

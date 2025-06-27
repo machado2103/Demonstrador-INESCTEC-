@@ -1,7 +1,6 @@
 // main.js - Electron main process
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const cowsay = require('cowsay');
 
 // Desabilitar sandbox e uso de shared memory para evitar erros no Linux
 //app.commandLine.appendSwitch('no-sandbox');
@@ -34,16 +33,8 @@ function createWindow() {
 
 // Initialize the App
 app.whenReady().then(() => {
-  const startupMessage = cowsay.say({
-    text: "Mooooooo",
-    e: "oO",  // olhos da vaca (opcional)
-    T: "U "   // língua da vaca (opcional)
-  });
-    
-  console.log(startupMessage);
-
   createWindow();
-
+  console.log("App started successfully!");
 
   app.on('activate', function () {
     // No macOS, recreate a window quando o ícone do dock é clicado e não há outras janelas abertas
