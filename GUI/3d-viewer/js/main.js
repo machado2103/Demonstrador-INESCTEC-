@@ -84,10 +84,10 @@ class PalletizationApp {
             
             this.initializeSimulator();
             this.initializeDataLoader();
-            this.initializeFileManager(); // NOVO: Inicializar FileManager
+            this.initializeFileManager(); 
             this.setupUI();
-            
-            await this.loadDefaultCrosslogData();
+
+            this.initializeStandbyMode();
             
             this.isInitialized = true;
             
@@ -160,6 +160,80 @@ class PalletizationApp {
         
         console.log('FileManager initialized successfully');
     }
+
+    /**
+     * Initialize standby mode - waiting for user to load a file
+     * Versão simplificada: apenas desativa controlos
+     */
+    initializeStandbyMode() {
+        console.log('Application ready - waiting for file selection');
+        
+        // Configurar estado inicial de standby
+        this.animationState.isStandby = true;
+        this.animationState.isPlaying = false;
+        this.animationState.isPaused = false;
+        this.animationState.currentBoxIndex = 0;
+        this.animationState.totalBoxes = 0;
+        this.animationState.isCompleted = false;
+        
+        // Apenas desativar botões de controlo (mantém Load File e Load Example ativos)
+        this.updateButtonStatesForStandby();
+    }
+
+    /**
+     * Update button states for standby mode
+     * Desativa controlos mas mantém aparência normal
+     */
+    updateButtonStatesForStandby() {
+        // Desativar botões de controlo de simulação
+        const controlButtons = [
+            'prev-pallet-btn',
+            'next-pallet-btn', 
+            'restart-pallet-btn',
+            'finished-pallet-btn',
+            'step-back-btn',
+            'step-forward-btn',
+            'play-pause-btn'
+        ];
+        
+        controlButtons.forEach(buttonId => {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                button.disabled = true;
+                // Manter aparência normal - sem alterações visuais
+            }
+        });
+        
+        // Garantir que botões de carregamento ficam ativos
+        const loadFileButton = document.querySelector('button[title*="Load a new simulation file"]');
+        const loadExampleButton = document.querySelector('button[title*="Load the default simulation.txt"]');
+        
+        if (loadFileButton) {
+            loadFileButton.disabled = false;
+        }
+        if (loadExampleButton) {
+            loadExampleButton.disabled = false;
+        }
+    }
+
+    /**
+     * Exit standby mode and activate normal functionality
+     * Versão simplificada: apenas ativa controlos
+     */
+    exitStandbyMode() {
+        console.log('File loaded - activating normal mode');
+        
+        // Remover flag de standby
+        this.animationState.isStandby = false;
+        
+        // Ativar todos os botões normalmente
+        this.updateButtonStates();
+        
+        // Atualizar contadores com dados reais
+        this.updatePalletCounter();
+        this.updateBoxCounter();
+    }
+
     
     /**
      * Set up user interface controls
@@ -474,36 +548,177 @@ animationButtons.style.cssText = `
         `;
         boxCounter.textContent = 'Box 0 of 0';
 
-        const loadFileButton = document.createElement('button');
-        loadFileButton.style.cssText = `
-            background: linear-gradient(145deg, #63CBF1, #2F8DCB);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        `;
-        loadFileButton.textContent = '📁 Load New File';
-        loadFileButton.title = 'Load a new simulation file';
+    // === 1. CONTAINER PARA OS DOIS BOTÕES ===
+    const loadButtonsContainer = document.createElement('div');
+    loadButtonsContainer.style.cssText = `
+        display: flex;
+        gap: 8px; /* Espaço entre os dois botões */
+        width: 100%;
+        align-items: center;
+    `;
 
-        loadFileButton.addEventListener('mouseenter', () => {
+    // === 2. BOTÃO LOAD FILE (reduzido para metade) ===
+    const loadFileButton = document.createElement('button');
+    loadFileButton.style.cssText = `
+        background: linear-gradient(145deg, #63CBF1, #2F8DCB);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 16px; /* Padding reduzido horizontalmente */
+        font-size: 0.85rem; /* Fonte ligeiramente menor */
+        font-weight: bold;
+        cursor: pointer;
+        width: 47%; /* Cerca de metade da largura total */
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    `;
+    loadFileButton.textContent = '📁 Load File';
+    loadFileButton.title = 'Load a new simulation file from your computer';
+
+    // === 3. BOTÃO LOAD EXAMPLE (novo) ===
+    const loadExampleButton = document.createElement('button');
+    loadExampleButton.style.cssText = `
+        background: linear-gradient(145deg, #2ECC71, #27AE60); /* Gradiente verde para diferenciação */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 16px; /* Mesmo padding que o Load File */
+        font-size: 0.85rem; /* Mesma fonte */
+        font-weight: bold;
+        cursor: pointer;
+        width: 47%; /* Mesma largura que o Load File */
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    `;
+    loadExampleButton.textContent = '📄 Load Example';
+    loadExampleButton.title = 'Load the default simulation.txt example file';
+
+    // === 4. EFEITOS HOVER PARA AMBOS OS BOTÕES ===
+    // Hover para Load File
+    loadFileButton.addEventListener('mouseenter', () => {
         loadFileButton.style.transform = 'translateY(-2px)';
         loadFileButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-        });
-        loadFileButton.addEventListener('mouseleave', () => {
-            loadFileButton.style.transform = 'translateY(0)';
-            loadFileButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-        });
+    });
+    loadFileButton.addEventListener('mouseleave', () => {
+        loadFileButton.style.transform = 'translateY(0)';
+        loadFileButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    });
+
+    // Hover para Load Example
+    loadExampleButton.addEventListener('mouseenter', () => {
+        loadExampleButton.style.transform = 'translateY(-2px)';
+        loadExampleButton.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+    });
+    loadExampleButton.addEventListener('mouseleave', () => {
+        loadExampleButton.style.transform = 'translateY(0)';
+        loadExampleButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    });
+
+    // === 5. FUNCIONALIDADE DO BOTÃO LOAD EXAMPLE ===
+    loadExampleButton.addEventListener('click', async () => {
+        try {
+            loadExampleButton.textContent = '⏳ Loading...';
+            loadExampleButton.disabled = true;
+            
+            const response = await fetch('3d-viewer/data/simulation.txt');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const fileContent = await response.text();
+            
+            if (!fileContent || fileContent.trim().length === 0) {
+                throw new Error('Example file is empty or contains no valid data');
+            }
+            
+            if (window.palletApp && window.palletApp.loadDataFromString) {
+                await window.palletApp.loadDataFromString(fileContent);
+                
+                // ✅ ADICIONAR ESTA LINHA:
+                window.palletApp.exitStandbyMode();
+                
+                showLoadMessage('Example simulation loaded successfully!', 'success');
+            } else {
+                throw new Error('PalletApp not available');
+            }
+            
+        } catch (error) {
+            console.error('Error loading example file:', error);
+            showLoadMessage('Failed to load example: ' + error.message, 'error');
+        } finally {
+            loadExampleButton.textContent = '📄 Load Example';
+            loadExampleButton.disabled = false;
+        }
+    });
+
+    // === 6. FUNÇÃO AUXILIAR PARA MOSTRAR MENSAGENS ===
+    function showLoadMessage(message, type = 'info') {
+        // Remove mensagem anterior se existir
+        const existingMessage = document.querySelector('.load-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        // Criar nova mensagem
+        const messageElement = document.createElement('div');
+        messageElement.className = `load-message load-message-${type}`;
+        messageElement.textContent = message;
+        
+        // Estilos da mensagem
+        messageElement.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        `;
+        
+        // Cores por tipo
+        const colors = {
+            success: '#27ae60',
+            error: '#e74c3c',
+            info: '#3498db'
+        };
+    
+        messageElement.style.backgroundColor = colors[type] || colors.info;
+        
+        document.body.appendChild(messageElement);
+        
+        // Remover após 4 segundos
+        setTimeout(() => {
+            if (messageElement.parentNode) {
+                messageElement.style.opacity = '0';
+                messageElement.style.transform = 'translateX(100%)';
+                
+                setTimeout(() => {
+                    if (messageElement.parentNode) {
+                        messageElement.remove();
+                    }
+                }, 300);
+            }
+        }, 1000);
+    }
+        
+
+        loadFileButton.title = 'Load a new simulation file';
+
+        loadButtonsContainer.appendChild(loadFileButton);
+        loadButtonsContainer.appendChild(loadExampleButton);
 
         // Adicionar elementos à área esquerda
         leftArea.appendChild(palletCounter);
         leftArea.appendChild(boxCounter);
-        leftArea.appendChild(loadFileButton);
+        leftArea.appendChild(loadButtonsContainer);
 
         
         // Right animation controls
@@ -567,7 +782,6 @@ animationButtons.style.cssText = `
         // Adicionar elementos à área esquerda
         leftArea.appendChild(palletCounter);
         leftArea.appendChild(boxCounter);
-        leftArea.appendChild(loadFileButton);
 
         // Adicionar as duas áreas principais ao container
         layerEfficiencyCard.innerHTML = ''; // Limpar conteúdo existente
@@ -709,12 +923,15 @@ animationButtons.style.cssText = `
         this.resetAnimationState();
         this.resetSimulationTimer();
         
-        // Reset metrics calculators
+        // Reset all metrics calculators including new total weight
         if (this.volumeEfficiencyCalculator) {
             this.volumeEfficiencyCalculator.reset();
         }
         if (this.bottomMetricsCalculator) {
             this.bottomMetricsCalculator.reset();
+        }
+        if (this.weightDistributionCalculator) {
+            this.weightDistributionCalculator.reset();
         }
     }
 
@@ -785,20 +1002,114 @@ animationButtons.style.cssText = `
      * Calculate current height in centimeters
      */
     calculateCurrentHeight() {
-        if (!window.unitsSystem) {
-            console.error('Units system not available for height calculation');
+        if (!this.simulator || !this.simulator.boxes || this.simulator.boxes.length === 0) {
+            this.metricsState.currentMaxHeight = 0;
             return 0;
         }
         
-        const result = window.unitsSystem.calculateDisplayHeight(
-            this.simulator ? this.simulator.boxes : [],
-            this.metricsState.palletTopY,
-            this.metricsState.boxFloorOffset
-        );
+        // IMPORTANT: Pallet is positioned at Y = -8 in Three.js scene
+        const PALLET_Y_OFFSET = -8;
+        const PALLET_TOP_SURFACE_Y = PALLET_Y_OFFSET + (1.44 / 2); // Top of pallet surface
         
-        this.metricsState.currentMaxHeight = result.cm;
-        return result.cm;
+        // Find the highest point of all boxes
+        let maxYInThreeUnits = -Infinity;
+        
+        this.simulator.boxes.forEach((box) => {
+            if (!box || !box.position || !box.geometry || !box.geometry.parameters) {
+                return;
+            }
+            
+            // Get box top position in Three.js units
+            const boxCenterY = box.position.y;
+            const boxHeight = box.geometry.parameters.height;
+            const boxTopY = boxCenterY + (boxHeight / 2);
+            
+            if (boxTopY > maxYInThreeUnits) {
+                maxYInThreeUnits = boxTopY;
+            }
+        });
+        
+        // If no valid boxes found
+        if (maxYInThreeUnits === -Infinity) {
+            this.metricsState.currentMaxHeight = 0;
+            return 0;
+        }
+        
+        // Calculate height relative to pallet top surface
+        const heightAbovePalletInThreeUnits = maxYInThreeUnits - PALLET_TOP_SURFACE_Y;
+        
+        // Convert from Three.js units to centimeters
+        let heightCm = 0;
+        
+        if (window.unitsSystem && window.unitsSystem.threeJSToDisplayCm) {
+            // Use the unified units system if available
+            heightCm = window.unitsSystem.threeJSToDisplayCm(heightAbovePalletInThreeUnits);
+        } else {
+            // Fallback: 1 Three.js unit = 10cm (based on PalletDataLoader conversion)
+            heightCm = heightAbovePalletInThreeUnits * 10;
+        }
+        
+        // Ensure we don't return negative heights
+        heightCm = Math.max(0, heightCm);
+        
+        this.metricsState.currentMaxHeight = heightCm;
+        return heightCm;
     }
+
+    /**
+     * DEBUG: Compare height calculations
+     * Execute this in console to debug height issues
+     */
+    debugHeightCalculation() {
+        if (!this.simulator || !this.simulator.boxes || this.simulator.boxes.length === 0) {
+            console.log('No boxes available for height debug');
+            return;
+        }
+        
+        console.log('=== HEIGHT CALCULATION DEBUG (FIXED) ===');
+        
+        const PALLET_Y_OFFSET = -8;
+        const PALLET_TOP_SURFACE_Y = PALLET_Y_OFFSET + (1.44 / 2);
+        
+        console.log(`Pallet offset: ${PALLET_Y_OFFSET}`);
+        console.log(`Pallet top surface Y: ${PALLET_TOP_SURFACE_Y.toFixed(3)}`);
+        
+        let maxY = -Infinity;
+        let maxYBox = null;
+        
+        this.simulator.boxes.forEach((box, index) => {
+            const boxCenterY = box.position.y;
+            const boxHeight = box.geometry.parameters.height;
+            const boxTopY = boxCenterY + (boxHeight / 2);
+            
+            console.log(`Box ${index}: center Y=${boxCenterY.toFixed(3)}, height=${boxHeight.toFixed(3)}, top Y=${boxTopY.toFixed(3)}`);
+            
+            if (boxTopY > maxY) {
+                maxY = boxTopY;
+                maxYBox = index;
+            }
+        });
+        
+        const heightAbovePallet = maxY - PALLET_TOP_SURFACE_Y;
+        const heightCm = this.calculateCurrentHeight();
+        
+        console.log(`Highest box: ${maxYBox} at Y=${maxY.toFixed(3)} Three.js units`);
+        console.log(`Height above pallet surface: ${heightAbovePallet.toFixed(3)} Three.js units`);
+        console.log(`Calculated height: ${heightCm.toFixed(1)} cm`);
+        console.log(`Conversion factor: ${window.unitsSystem?.conversions?.threeUnitsToCm || 10}`);
+        console.log('==========================================');
+        
+        return {
+            palletOffset: PALLET_Y_OFFSET,
+            palletTopSurfaceY: PALLET_TOP_SURFACE_Y,
+            maxYThreeUnits: maxY,
+            heightAbovePalletThreeUnits: heightAbovePallet,
+            heightCm: heightCm,
+            conversionFactor: window.unitsSystem?.conversions?.threeUnitsToCm || 10,
+            totalBoxes: this.simulator.boxes.length
+        };
+    }
+
     
     /**
      * Start the simulation timer
@@ -989,6 +1300,10 @@ animationButtons.style.cssText = `
             
             this.sequenceState.lastPlacedSequence = this.findCurrentMaxSequence();
             this.sequenceState.nextExpectedSequence = maxSequence;
+            
+            // Immediately recalculate total weight after box removal
+            const centerOfMassResult = this.centerOfMassState.lastCalculation;
+            this.bottomMetricsCalculator.calculateBottomMetrics(this.simulator.boxes, centerOfMassResult);
         }
         
         this.animationState.isCompleted = false;
@@ -1022,6 +1337,10 @@ animationButtons.style.cssText = `
         this.sequenceState.lastPlacedSequence = nextBox.sequence;
         this.sequenceState.nextExpectedSequence = this.findNextExpectedSequence(sortedBoxes, nextBox.sequence);
         
+        // Immediately recalculate total weight after box addition
+        const centerOfMassResult = this.centerOfMassState.lastCalculation;
+        this.bottomMetricsCalculator.calculateBottomMetrics(this.simulator.boxes, centerOfMassResult);
+        
         if (this.simulator.boxes.length === sortedBoxes.length) {
             this.setAnimationCompleted();
         }
@@ -1031,6 +1350,7 @@ animationButtons.style.cssText = `
         this.updateBoxCounter();
         this.updateButtonStates();
     }
+
 
     /**
      * Set animation as completed and update UI
@@ -1174,6 +1494,12 @@ animationButtons.style.cssText = `
      * Update all button states based on current conditions
      */
     updateButtonStates() {
+
+         if (this.animationState.isStandby) {
+        this.updateButtonStatesForStandby();
+        return;
+        }
+
         const prevBtn = document.getElementById('prev-pallet-btn');
         const nextBtn = document.getElementById('next-pallet-btn');
         const restartBtn = document.getElementById('restart-pallet-btn');
@@ -1181,6 +1507,8 @@ animationButtons.style.cssText = `
         const stepBackBtn = document.getElementById('step-back-btn');
         const stepForwardBtn = document.getElementById('step-forward-btn');
         const playPauseBtn = document.getElementById('play-pause-btn');
+
+       
         
         if (!this.dataLoader || !prevBtn || !nextBtn || !restartBtn || !finishedBtn || 
             !stepBackBtn || !stepForwardBtn || !playPauseBtn) {
@@ -1261,14 +1589,15 @@ animationButtons.style.cssText = `
                 const currentHeightCm = this.calculateCurrentHeight();
                 this.volumeEfficiencyCalculator.updateEfficiency(this.simulator.boxes, currentHeightCm);
 
-                // Update bottom metrics
+                // Update bottom metrics (LSI + Total Weight) in real-time
                 const centerOfMassResult = this.centerOfMassState.lastCalculation;
                 this.bottomMetricsCalculator.calculateBottomMetrics(this.simulator.boxes, centerOfMassResult);
                 this.updateBottomMetricsDisplay();
 
+                // Update weight distribution
                 this.updateWeightDistribution();
             }
-        }, 200);
+        }, 200); // Update every 200ms for smooth real-time updates
     }
     
     /**
@@ -1680,12 +2009,12 @@ animationButtons.style.cssText = `
             lsiElement.title = `Load Stability: ${formatted.lsi.rating}`;
         }
         
-        // Update Box Density (replaces Global Efficiency)  
-        const densityElement = document.getElementById('global-efficiency');
-        if (densityElement) {
-            densityElement.textContent = formatted.boxDensity.display;
-            densityElement.style.color = formatted.boxDensity.color;
-            densityElement.title = `Density Efficiency: ${formatted.boxDensity.rating}`;
+        // Update Total Weight (replaces Global Efficiency/Box Density)  
+        const weightElement = document.getElementById('global-efficiency');
+        if (weightElement) {
+            weightElement.textContent = formatted.totalWeight.display;
+            weightElement.style.color = formatted.totalWeight.color;
+            weightElement.title = `Total Weight: ${formatted.totalWeight.display}`;
         }
     }
 
@@ -1842,14 +2171,14 @@ window.palletAppUtils = {
 
     /**
      * Navigate to box selection page
-     */
-    function goToBoxSelection() {
-        window.location.href = '../box_selection/index.html';
+     *///goToBoxSelection
+    function goToPreviousPage() {
+        window.location.href = '../description_page/index.html';
     }
 
     /**
      * Navigate to ending page
-     */
-    function goToEndingPage() {
+     *///goToEndingPage
+    function goToNextPage() {
         window.location.href = '../ending_page/index.html';
     }

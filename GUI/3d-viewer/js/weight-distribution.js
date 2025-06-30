@@ -4,11 +4,11 @@
 
 class WeightDistributionCalculator {
     constructor() {
-        // grid (6×4 = 24 cells)
+        // grid (12×8 = 96 cells)
         this.gridConfig = {
-            rows: 8,        
-            cols: 12,        
-            totalCells: 96  
+            rows: 16,        
+            cols: 24,        
+            totalCells: 384 
         };
         
         // Pallet dimensions
@@ -746,7 +746,25 @@ disposeCenterOfMassPoint() {
     }
 
     
-
+    reset() {
+    console.log('Resetting weight distribution calculator...');
+    
+    // Reset weight grid
+    this.resetGrid();
+    
+    // Hide center of mass point
+    this.hideCenterOfMassPoint();
+    
+    // Clear heatmap display
+    this.updateHeatmapDisplay();
+    
+    // Reset center of mass point state
+    this.centerOfMassPoint.currentPosition = { x: 0, z: 0 };
+    this.centerOfMassPoint.lastUpdate = 0;
+    this.centerOfMassPoint.isVisible = false;
+    
+    console.log('Weight distribution calculator reset complete');
+    }
 
 
 

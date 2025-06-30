@@ -79,7 +79,7 @@
         <footer class="status-bar">
             <!-- Back button -->
             <div class="nav-button-left">
-                <button id="nav-back-btn" class="nav-button" onclick="goToBoxSelection()">
+                <button id="nav-back-btn" class="nav-button" onclick="goToPreviousPage()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 12H5"></path>
                         <path d="m12 19-7-7 7-7"></path>
@@ -89,7 +89,7 @@
 
             <!-- Metrics section -->
             <div class="status-group">
-                <span class="status-label">Center of Mass Deviation:</span>
+                <span class="status-label">Center of Mass to Geometric Center Deviation:</span>
                 <span class="status-value" id="center-mass">0.0cm</span>
             </div>
             <div class="status-group">
@@ -97,13 +97,13 @@
                 <span class="status-value" id="collisions">0</span>
             </div>
             <div class="status-group">
-                <span class="status-label">Box Density:</span>
-                <span class="status-value" id="global-efficiency">0 boxes/m²</span>
+                <span class="status-label">Total Weight:</span>
+                <span class="status-value" id="global-efficiency">0</span>
             </div>
 
             <!-- Advance page button -->
             <div class="nav-button-right">
-                <button id="nav-forward-btn" class="nav-button" onclick="goToEndingPage()">
+                <button id="nav-forward-btn" class="nav-button" onclick="goToNextPage()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M5 12h14"></path>
                         <path d="m12 5 7 7-7 7"></path>

@@ -383,6 +383,11 @@ class FileManager {
         if (this.palletApp.resetControls) {
             this.palletApp.resetControls();
         }
+
+        //Exit Standby mode
+        if (this.palletApp.exitStandbyMode) {
+        this.palletApp.exitStandbyMode();
+        }
     }
     
     /**

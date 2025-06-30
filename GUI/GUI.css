@@ -290,21 +290,41 @@
     color: white;
     padding: 15px;
     display: flex;
-    justify-content: space-around; /* Mantém a distribuição original das métricas */
+    justify-content: space-between; /* Mantém a distribuição original das métricas */
     position: relative; /* NOVO: Permite posicionamento absoluto dos botões filhos */
     align-items: center; /* NOVO: Assegura que tudo fica alinhado verticalmente */
     min-height: 60px; /* NOVO: Garante espaço suficiente para os botões */
+
+    gap: 20px; /* Espaço mínimo entre elementos */
 }
 
 .status-group {
     text-align: center;
+    
+    /* Cada grupo ocupa espaço igual */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+    /* Prevenir overflow de texto */
+    min-width: 0; /* Permite que flex-shrink funcione */
+    overflow: hidden;
 }
 
 .status-label {
     display: block;
-    font-size: 0.8rem;
+    font-size: 1.0rem;
     color: #bdc3c7;
     margin-bottom: 5px;
+
+        /*Gestão de texto longo */
+    line-height: 1.2;
+    max-width: 100%;
+    word-wrap: break-word;
+    hyphens: auto; /* Quebra de palavras automática */
+    
 }
 
 .status-value {
@@ -312,6 +332,10 @@
     font-size: 1.1rem;
     font-weight: bold;
     color: var(--secondary-color);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Posicionamento do botão esquerdo */

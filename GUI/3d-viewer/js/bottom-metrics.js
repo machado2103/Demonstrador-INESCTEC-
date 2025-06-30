@@ -1,6 +1,6 @@
 /**
  * Bottom Metrics Calculator for Palletization Simulator
- * Calculates Load Stability Index (LSI) and Box Density Score
+ * Calculates Load Stability Index (LSI) and Total Weight
  */
 
 class BottomMetricsCalculator {
@@ -31,10 +31,9 @@ class BottomMetricsCalculator {
                 stabilityRating: 'Excellent'
             },
             
-            boxDensity: {
-                value: 0,
-                score: 0,
-                efficiency: 'Low'
+            totalWeight: {
+                value: 0,              // Total weight in kg
+                formattedValue: '0 kg' // Formatted display value
             }
         };
     }
@@ -53,12 +52,12 @@ class BottomMetricsCalculator {
         // Calculate Load Stability Index
         const lsiResult = this.calculateLoadStabilityIndex(boxes, centerOfMassResult);
         
-        // Calculate Box Density Score
-        const densityResult = this.calculateBoxDensityScore(boxes);
+        // Calculate Total Weight
+        const weightResult = this.calculateTotalWeight(boxes);
         
         // Store results
         this.currentMetrics.lsi = lsiResult;
-        this.currentMetrics.boxDensity = densityResult;
+        this.currentMetrics.totalWeight = weightResult;
              
         return this.getCurrentMetrics();
     }
@@ -171,72 +170,63 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * Calculate Box Density Score
-     * Measures boxes per square meter + utilization efficiency
+     * Calculate Total Weight of all boxes on pallet
+     * Sums the weight of all boxes currently placed
+     * NOTE: Assumes input weights are in GRAMS and converts to KILOGRAMS
      * 
      * @param {Array} boxes - Array of boxes
-     * @returns {Object} Box density calculation result
+     * @returns {Object} Total weight calculation result
      */
-    calculateBoxDensityScore(boxes) {
+    calculateTotalWeight(boxes) {
         if (!boxes || boxes.length === 0) {
             return {
                 value: 0,
-                score: 0,
-                efficiency: 'Empty'
+                formattedValue: '0 kg',
+                boxCount: 0
             };
         }
         
-        // 1. Calculate raw density (boxes per m²)
-        const palletAreaM2 = this.palletDimensions.baseArea / 100; // Convert to m²
-        const rawDensity = boxes.length / palletAreaM2;
+        // 1. Calculate total weight by summing all box weights (convert grams to kg)
+        let totalWeightGrams = 0;
+        let validBoxCount = 0;
         
-        // 2. Calculate efficiency score
-        // Based on industrial benchmarks: 30-50 boxes/m² is typical for mixed pallets
-        const benchmarks = {
-            minimum: 10,    // Minimum acceptable density
-            good: 30,       // Good density
-            excellent: 50   // Excellent density
-        };
+        boxes.forEach(box => {
+            const weightGrams = box.userData.weight || 0;
+            if (weightGrams > 0) {
+                totalWeightGrams += weightGrams;
+                validBoxCount++;
+            }
+        });
         
-        let efficiencyScore = 0;
-        if (rawDensity >= benchmarks.excellent) {
-            efficiencyScore = 100;
-        } else if (rawDensity >= benchmarks.good) {
-            // Linear between good and excellent
-            const ratio = (rawDensity - benchmarks.good) / (benchmarks.excellent - benchmarks.good);
-            efficiencyScore = 70 + (ratio * 30); // 70-100%
-        } else if (rawDensity >= benchmarks.minimum) {
-            // Linear between minimum and good
-            const ratio = (rawDensity - benchmarks.minimum) / (benchmarks.good - benchmarks.minimum);
-            efficiencyScore = 30 + (ratio * 40); // 30-70%
-        } else {
-            // Below minimum
-            efficiencyScore = Math.max(0, (rawDensity / benchmarks.minimum) * 30);
-        }
+        // Convert grams to kilograms
+        const totalWeightKg = totalWeightGrams / 1000;
         
-        // 3. Determine efficiency rating
-        const efficiency = this.getDensityEfficiencyRating(efficiencyScore);
+        // 2. Format the weight for display
+        const formattedValue = this.formatWeight(totalWeightKg);
         
         return {
-            value: rawDensity,
-            score: efficiencyScore,
-            efficiency: efficiency,
-            benchmarks: benchmarks
+            value: totalWeightKg,           // Weight in kilograms
+            valueGrams: totalWeightGrams,   // Original weight in grams
+            formattedValue: formattedValue,
+            boxCount: validBoxCount,
+            averageBoxWeight: validBoxCount > 0 ? (totalWeightKg / validBoxCount) : 0
         };
     }
 
     /**
-     * Determine efficiency rating based on density score
-     * @param {number} efficiencyScore - Efficiency score (0-100%)
-     * @returns {string} Efficiency rating
+     * Format weight value for display
+     * @param {number} weightKg - Weight in kilograms
+     * @returns {string} Formatted weight string
      */
-    getDensityEfficiencyRating(efficiencyScore) {
-        if (efficiencyScore >= 85) return 'Excellent';
-        if (efficiencyScore >= 70) return 'Good';
-        if (efficiencyScore >= 50) return 'Fair';
-        if (efficiencyScore >= 30) return 'Poor';
-        if (efficiencyScore > 0) return 'Low';
-        return 'Empty';
+    formatWeight(weightKg) {
+        if (weightKg === 0) {
+            return '0 kg';
+        } else if (weightKg < 1000) {
+            return `${weightKg.toFixed(1)} kg`;
+        } else {
+            const weightTons = weightKg / 1000;
+            return `${weightTons.toFixed(2)} t`;
+        }
     }
     
     /**
@@ -264,26 +254,6 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * Get safety limits information
-     * @returns {Object} Safety limits information
-     */
-    getSafetyInfo() {
-        return {
-            current: this.safetyLimits.current,
-            profiles: {
-                conservative: this.safetyLimits.conservative,
-                standard: this.safetyLimits.standard,
-                liberal: this.safetyLimits.liberal
-            },
-            explanation: {
-                conservative: 'For fragile products or sensitive transport',
-                standard: 'For normal industrial applications (recommended)',
-                liberal: 'For very stable loads and careful transport'
-            }
-        };
-    }
-    
-    /**
      * Get empty metrics (when no data available)
      */
     getEmptyMetrics() {
@@ -295,10 +265,10 @@ class BottomMetricsCalculator {
                 stabilityRating: 'No Load',
                 safetyLimit: this.safetyLimits.current
             },
-            boxDensity: {
+            totalWeight: {
                 value: 0,
-                score: 0,
-                efficiency: 'Empty'
+                formattedValue: '0 kg',
+                boxCount: 0
             }
         };
     }
@@ -310,7 +280,6 @@ class BottomMetricsCalculator {
         return {
             ...this.currentMetrics,
             timestamp: Date.now(),
-            safetyInfo: this.getSafetyInfo()
         };
     }
     
@@ -326,10 +295,9 @@ class BottomMetricsCalculator {
                 rating: current.lsi.stabilityRating,
                 color: this.getLSIColor(current.lsi.value)
             },
-            boxDensity: {
-                display: `${current.boxDensity.value.toFixed(1)} boxes/m²`,
-                rating: current.boxDensity.efficiency,
-                color: this.getDensityColor(current.boxDensity.score)
+            totalWeight: {
+                display: current.totalWeight.formattedValue,
+                color: this.getWeightColor(current.totalWeight.value)
             }
         };
     }
@@ -346,9 +314,9 @@ class BottomMetricsCalculator {
     }
     
     /**
-     * Get density color based on animation state
+     * Get weight color based on animation state and weight value
      */
-    getDensityColor(densityScore) {
+    getWeightColor(weightValue) {
         if (window.palletApp && window.palletApp.animationState.isCompleted) {
             return '#27ae60'; // Green when animation complete
         } else {
@@ -368,10 +336,10 @@ class BottomMetricsCalculator {
                 stabilityRating: 'No Load',
                 safetyLimit: this.safetyLimits.current
             },
-            boxDensity: {
+            totalWeight: {
                 value: 0,
-                score: 0,
-                efficiency: 'Empty'
+                formattedValue: '0 kg',
+                boxCount: 0
             }
         };
     }
@@ -381,6 +349,24 @@ class BottomMetricsCalculator {
      */
     dispose() {
         this.currentMetrics = null;
+    }
+
+    // ============================================
+    // BACKWARD COMPATIBILITY METHODS
+    // These maintain compatibility with existing code that expects boxDensity
+    // ============================================
+    
+    /**
+     * @deprecated Use totalWeight instead
+     * Maintains backward compatibility
+     */
+    get boxDensity() {
+        console.warn('boxDensity is deprecated, use totalWeight instead');
+        return {
+            value: this.currentMetrics.totalWeight.value,
+            score: Math.min(100, this.currentMetrics.totalWeight.value / 10), // Simple mapping
+            efficiency: 'N/A'
+        };
     }
 }
 

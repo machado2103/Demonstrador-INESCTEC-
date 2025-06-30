@@ -2,14 +2,12 @@
  * Volume Efficiency Calculator
  * Calculates and visualizes volume efficiency for pallet loading
  * 
- * Conversion: 1 Three.js unit = 100mm = 10cm (based on PalletDataLoader)
- * Pallet dimensions: 1200mm × 800mm × 1500mm (120cm × 80cm × 150cm)
+ * Uses the Unified Units System: 1 Three.js unit = 100mm = 10cm
  */
 
 class VolumeEfficiencyCalculator {
     constructor() {
-        // Pallet dimensions based on Crosslog data
-        // PalletDataLoader uses * 0.01 conversion (1 unit = 100mm)
+        // Pallet dimensions from unified system
         this.palletDimensions = {
             lengthCm: 120,          // 1200mm = 120cm
             widthCm: 80,            // 800mm = 80cm  
@@ -73,44 +71,40 @@ class VolumeEfficiencyCalculator {
             return this.getEmptyEfficiencyResult();
         }
         
+        // Check if unified units system is available
+        if (!window.unitsSystem) {
+            console.error('VolumeEfficiency: Unified units system not available');
+            return this.getEmptyEfficiencyResult();
+        }
+        
         let totalOccupiedVolumeCm3 = 0;
         let validBoxCount = 0;
         
         boxes.forEach((box, index) => {
             try {
-                let boxVolumeCm3 = 0;
-                
                 if (!box.geometry || !box.geometry.parameters) {
-                    console.warn(`Box ${index} has invalid geometry`);
+                    console.warn(`VolumeEfficiency: Box ${index} has invalid geometry`);
                     return;
                 }
                 
-                // Extract dimensions in Three.js units
-                const widthUnits = box.geometry.parameters.width || 0;
-                const heightUnits = box.geometry.parameters.height || 0;
-                const depthUnits = box.geometry.parameters.depth || 0;
-                
-                // Convert to centimeters: 1 unit = 10cm
-                const widthCm = widthUnits * 10;
-                const heightCm = heightUnits * 10;
-                const depthCm = depthUnits * 10;
-                
-                boxVolumeCm3 = widthCm * heightCm * depthCm;
+                // Calculate volume using unified units system
+                const boxVolumeCm3 = window.unitsSystem.calculateBoxVolumeCm3(box);
                 
                 if (boxVolumeCm3 > 0) {
                     totalOccupiedVolumeCm3 += boxVolumeCm3;
                     validBoxCount++;
                 } else {
-                    console.warn(`Box ${index} has invalid volume (dimensions: ${widthCm}×${heightCm}×${depthCm} cm)`);
+                    console.warn(`VolumeEfficiency: Box ${index} has invalid volume`);
                 }
                 
             } catch (error) {
-                console.error(`Error calculating volume for box ${index}:`, error);
+                console.error(`VolumeEfficiency: Error calculating volume for box ${index}:`, error);
             }
         });
         
-        // Calculate available volume (fixed base area × dynamic height)
-        const availableVolumeCm3 = this.palletDimensions.baseAreaCm2 * currentHeightCm;
+        // Calculate available volume using unified system pallet area
+        const palletAreaCm2 = window.unitsSystem.getPalletAreaCm2();
+        const availableVolumeCm3 = palletAreaCm2 * currentHeightCm;
         
         // Calculate efficiency percentage
         let efficiency = 0;
@@ -388,10 +382,58 @@ class VolumeEfficiencyCalculator {
                 palletDimensions: this.palletDimensions
             },
             metadata: {
-                conversionRule: '1 Three.js unit = 100mm = 10cm (based on PalletDataLoader)',
-                palletArea: this.palletDimensions.baseAreaCm2,
-                calculationMethod: 'Direct conversion from Three.js units'
+                unitsSystem: window.unitsSystem ? window.unitsSystem.getSystemInfo() : 'Not available',
+                conversionFactors: window.unitsSystem ? window.unitsSystem.getConversionFactors() : 'Not available',
+                calculationMethod: 'Using Unified Units System'
             }
+        };
+    }
+    
+    /**
+     * Debug method for volume efficiency calculation
+     */
+    debugVolumeEfficiency() {
+        if (!window.palletApp || !window.palletApp.simulator || !window.palletApp.simulator.boxes) {
+            console.log('VolumeEfficiency: No boxes available for debug');
+            return null;
+        }
+        
+        if (!window.unitsSystem) {
+            console.error('VolumeEfficiency: Unified units system not available');
+            return null;
+        }
+        
+        const boxes = window.palletApp.simulator.boxes;
+        const currentHeightCm = window.palletApp.calculateCurrentHeight();
+        
+        console.log('=== VOLUME EFFICIENCY DEBUG ===');
+        console.log('Units System Info:', window.unitsSystem.getSystemInfo());
+        console.log(`Current height: ${currentHeightCm} cm`);
+        console.log(`Number of boxes: ${boxes.length}`);
+        console.log(`Pallet area: ${window.unitsSystem.getPalletAreaCm2()} cm²`);
+        
+        // Calculate total volume manually for verification
+        let totalVolume = 0;
+        boxes.forEach((box, index) => {
+            const volume = window.unitsSystem.calculateBoxVolumeCm3(box);
+            totalVolume += volume;
+            console.log(`Box ${index}: ${volume.toFixed(0)} cm³`);
+        });
+        
+        const availableVolume = window.unitsSystem.getPalletAreaCm2() * currentHeightCm;
+        const efficiency = availableVolume > 0 ? (totalVolume / availableVolume) * 100 : 0;
+        
+        console.log(`Total occupied volume: ${totalVolume.toFixed(0)} cm³`);
+        console.log(`Available volume: ${availableVolume.toFixed(0)} cm³`);
+        console.log(`Calculated efficiency: ${efficiency.toFixed(1)}%`);
+        console.log('===============================');
+        
+        return {
+            totalOccupiedVolume: totalVolume,
+            availableVolume: availableVolume,
+            efficiency: efficiency,
+            currentHeight: currentHeightCm,
+            boxCount: boxes.length
         };
     }
     

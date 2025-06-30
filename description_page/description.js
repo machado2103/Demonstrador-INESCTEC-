@@ -11,13 +11,13 @@ document.addEventListener('DOMContentLoaded', function() {
            // Use Electron API for navigation
            if (window.electronAPI) {
                console.log('Using Electron API for navigation');
-               window.electronAPI.navigateTo('box_selection/index.html');
+               window.electronAPI.navigateTo('GUI/index.html');
            } else {
                console.log('Electron API not found, using standard navigation');
                // Navigation to box selection page using absolute path
                const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
                const parentUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
-               const newUrl = parentUrl + '/box_selection/index.html';
+               const newUrl = parentUrl + '/GUI/index.html';
                console.log('Navigating to:', newUrl);
                window.location.href = newUrl;
            }
