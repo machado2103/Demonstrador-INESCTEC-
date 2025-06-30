@@ -22,9 +22,11 @@ class CenterOfMassCalculator {
         // Calculation state
         this.currentCenterOfMass = {
             x: 0,            // X coordinate of center of mass
+            y: 0,            // Y coordinate (height) of center of mass
             z: 0,            // Z coordinate of center of mass (we ignore Y for top-down analysis)
             totalWeight: 0,  // Total weight of all boxes
-            deviation: 0,    // Distance from pallet center (in units, where 1 unit = 1cm)
+            deviation2D: 0,  // Distance from pallet center (in units, where 1 unit = 1cm)
+            deviation3D: 0,  //True 3D deviation (X,Y,Z)
             boxCount: 0      // Number of boxes included in calculation
         };
         
@@ -44,81 +46,97 @@ class CenterOfMassCalculator {
      * @returns {Object} Center of mass information including coordinates and deviation
      */
     calculateCenterOfMass(boxes) {
-
-        
         // Validate input
         if (!boxes || boxes.length === 0) {
             console.log('No boxes provided for calculation');
             return this.getEmptyResult();
         }
         
-        // Initialize calculation variables
+        // Initialize calculation variables for 3D calculation
         let weightedSumX = 0;    // Sum of (weight × x-position) for all boxes
+        let weightedSumY = 0;    // ✅ NEW: Sum of (weight × y-position) for height analysis
         let weightedSumZ = 0;    // Sum of (weight × z-position) for all boxes
         let totalWeight = 0;     // Total weight of all boxes
         let validBoxCount = 0;   // Count of boxes with valid weight data
         
         // Debug information
         if (this.isDebugMode) {
-            console.log(`Calculating center of mass for ${boxes.length} boxes`);
+            console.log(`🧮 Calculating 3D center of mass for ${boxes.length} boxes`);
         }
         
-        // Process each box in the calculation
+        // Process each box in the 3D calculation
         for (let i = 0; i < boxes.length; i++) {
             const box = boxes[i];
             
-            // Extract weight from box metadata (stored when box was created)
+            // Extract weight from box metadata
             const weight = this.extractBoxWeight(box);
             
             if (weight <= 0) {
-                console.warn(`Box ${i} has invalid weight: ${weight}. Skipping.`);
+                console.warn(`📦 Box ${i} has invalid weight: ${weight}. Skipping.`);
                 continue; // Skip boxes with invalid weight
             }
             
             // Get box position in world coordinates
             const position = this.getBoxPosition(box);
             
-            // Add this box's contribution to the weighted sums
+            // ✅ ENHANCED: Add contribution to all three axes
             // Physics formula: Center = Σ(mass_i × position_i) / Σ(mass_i)
             weightedSumX += weight * position.x;
+            weightedSumY += weight * position.y;  // ✅ NEW: Include height component
             weightedSumZ += weight * position.z;
             totalWeight += weight;
             validBoxCount++;
             
-            // Debug output for individual boxes
-            debugLog('CENTER_OF_MASS', `Box ${i}: pos(${position.x.toFixed(2)}, ${position.z.toFixed(2)}), weight=${weight}kg, contribution=(${(weight * position.x).toFixed(2)}, ${(weight * position.z).toFixed(2)})`);
+            // Enhanced debug output for 3D analysis
+            if (this.isDebugMode) {
+                console.log(`📦 Box ${i}: pos(${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}), weight=${weight}kg`);
+                console.log(`   contribution=(${(weight * position.x).toFixed(2)}, ${(weight * position.y).toFixed(2)}, ${(weight * position.z).toFixed(2)})`);
+            }
         }
         
         // Validate that we have valid data for calculation
         if (totalWeight <= 0 || validBoxCount === 0) {
-            console.warn('No valid boxes found for center of mass calculation');
+            console.warn('⚠️ No valid boxes found for center of mass calculation');
             return this.getEmptyResult();
         }
         
-        // Calculate final center of mass coordinates
-        // This is the weighted average: total weighted sum / total weight
+        // ✅ ENHANCED: Calculate 3D center of mass coordinates
         const centerX = weightedSumX / totalWeight;
+        const centerY = weightedSumY / totalWeight;  // ✅ NEW: Height center of mass
         const centerZ = weightedSumZ / totalWeight;
         
-        // Calculate deviation from pallet center
-        // Using Pythagorean theorem: distance = √(x² + z²)
-        const deviation = Math.sqrt(centerX * centerX + centerZ * centerZ);
+        // ✅ ENHANCED: Calculate both 2D and 3D deviations
+        // 2D deviation (horizontal only) - for backward compatibility
+        const deviation2D = Math.sqrt(centerX * centerX + centerZ * centerZ);
         
-        // Store results
+        // 3D deviation (complete spatial analysis) - NEW FEATURE
+        const deviation3D = Math.sqrt(centerX * centerX + centerY * centerY + centerZ * centerZ);
+        
+        // Store enhanced results
         this.currentCenterOfMass = {
             x: centerX,
+            y: centerY,          // ✅ NEW: Y coordinate stored
             z: centerZ,
             totalWeight: totalWeight,
-            deviation: deviation,
+            deviation2D: deviation2D,    // Horizontal deviation only
+            deviation3D: deviation3D,    // ✅ NEW: Complete 3D deviation
             boxCount: validBoxCount
         };
 
-        const deviationCm = window.unitsSystem ? 
-            window.unitsSystem.threeJSToDisplayCm(deviation) : 
-            deviation * 10; // fallback
-        debugLog('CENTER_OF_MASS', `🎯 CoM deviation: ${deviationCm.toFixed(1)}cm (${deviation.toFixed(3)} units)`);
-        debugLog('CENTER_OF_MASS', `🎯 CoM position: (${centerX.toFixed(3)}, ${centerZ.toFixed(3)}) units, ${validBoxCount} boxes`);
-    
+        // Enhanced logging with 3D information
+        const deviationCm2D = window.unitsSystem ? 
+            window.unitsSystem.threeJSToDisplayCm(deviation2D) : 
+            deviation2D * 10;
+            
+        const deviationCm3D = window.unitsSystem ? 
+            window.unitsSystem.threeJSToDisplayCm(deviation3D) : 
+            deviation3D * 10;
+            
+        console.log(`🎯 3D Center of Mass Results:`);
+        console.log(`   Position: (${centerX.toFixed(3)}, ${centerY.toFixed(3)}, ${centerZ.toFixed(3)}) units`);
+        console.log(`   2D Deviation: ${deviationCm2D.toFixed(1)}cm (horizontal only)`);
+        console.log(`   3D Deviation: ${deviationCm3D.toFixed(1)}cm (including height)`);
+        console.log(`   Boxes processed: ${validBoxCount}`);
         
         // Store in history for analysis
         this.calculationHistory.push({
@@ -126,7 +144,6 @@ class CenterOfMassCalculator {
             result: { ...this.currentCenterOfMass },
             boxCount: validBoxCount
         });
-        
         
         return this.getCurrentResult();
     }
@@ -204,16 +221,18 @@ class CenterOfMassCalculator {
      * @returns {number} Deviation as percentage
      */
     calculateDeviationPercentage() {
-        if (this.currentCenterOfMass.deviation === 0) return 0;
-        
-        // Calculate deviation relative to pallet diagonal
-        const palletDiagonal = Math.sqrt(
-            this.palletDimensions.length * this.palletDimensions.length +
-            this.palletDimensions.width * this.palletDimensions.width
-        ) / 2;
-        
-        return (this.currentCenterOfMass.deviation / palletDiagonal) * 100;
-    }
+            if (this.currentCenterOfMass.deviation3D === 0) return 0;
+            
+            // Calculate 3D diagonal including height estimate
+            const estimatedMaxHeight = 20; // 20 units = 200cm typical max pallet height
+            const pallet3DDiagonal = Math.sqrt(
+                this.palletDimensions.length * this.palletDimensions.length +
+                this.palletDimensions.width * this.palletDimensions.width +
+                estimatedMaxHeight * estimatedMaxHeight
+            ) / 2;
+            
+            return (this.currentCenterOfMass.deviation3D / pallet3DDiagonal) * 100;
+        }
     
     /**
      * Calculate a stability rating based on center of mass deviation
@@ -244,7 +263,22 @@ class CenterOfMassCalculator {
      */
     // SUBSTITUIR o método getFormattedDeviation() por:
     getFormattedDeviation() {
-        return window.unitsSystem.formatCenterOfMassDeviation(this.currentCenterOfMass.deviation);
+        if (window.unitsSystem && window.unitsSystem.formatCenterOfMassDeviation) {
+            return window.unitsSystem.formatCenterOfMassDeviation(this.currentCenterOfMass.deviation3D);
+        } else {
+            // Fallback formatting
+            const deviationMm = this.currentCenterOfMass.deviation3D * 10;
+            return deviationMm < 10 ? `${deviationMm.toFixed(1)}mm` : `${(deviationMm/10).toFixed(1)}cm`;
+        }
+    }
+
+    getFormattedDeviation2D() {
+        if (window.unitsSystem && window.unitsSystem.formatCenterOfMassDeviation) {
+            return window.unitsSystem.formatCenterOfMassDeviation(this.currentCenterOfMass.deviation2D);
+        } else {
+            const deviationMm = this.currentCenterOfMass.deviation2D * 10;
+            return deviationMm < 10 ? `${deviationMm.toFixed(1)}mm` : `${(deviationMm/10).toFixed(1)}cm`;
+        }
     }
     
     /**
@@ -269,24 +303,50 @@ class CenterOfMassCalculator {
      * @returns {Object} Deviation values in both mm and cm with formatting info
      */
     getDeviationMetrics() {
-        const deviationMm = this.currentCenterOfMass.deviation * 10;
-        const deviationCm = this.currentCenterOfMass.deviation;
+        const deviation2DMm = this.currentCenterOfMass.deviation2D * 10;
+        const deviation3DMm = this.currentCenterOfMass.deviation3D * 10;
+        const heightDeviationMm = Math.abs(this.currentCenterOfMass.y) * 10;
         
         return {
-            mm: {
-                value: deviationMm,
-                formatted: `${deviationMm.toFixed(1)}mm`,
-                precision: deviationMm < 10 ? 1 : 0
+            // 2D metrics (horizontal only)
+            horizontal: {
+                mm: {
+                    value: deviation2DMm,
+                    formatted: `${deviation2DMm.toFixed(1)}mm`
+                },
+                cm: {
+                    value: deviation2DMm / 10,
+                    formatted: `${(deviation2DMm / 10).toFixed(1)}cm`
+                }
             },
-            cm: {
-                value: deviationCm,
-                formatted: `${deviationCm.toFixed(1)}cm`,
-                precision: 1
+            
+            // ✅ NEW: 3D metrics (complete analysis)
+            spatial: {
+                mm: {
+                    value: deviation3DMm,
+                    formatted: `${deviation3DMm.toFixed(1)}mm`
+                },
+                cm: {
+                    value: deviation3DMm / 10,
+                    formatted: `${(deviation3DMm / 10).toFixed(1)}cm`
+                }
             },
-            // Recommended display format
+            
+            // ✅ NEW: Height-specific metrics
+            height: {
+                mm: {
+                    value: heightDeviationMm,
+                    formatted: `${heightDeviationMm.toFixed(1)}mm`
+                },
+                cm: {
+                    value: heightDeviationMm / 10,
+                    formatted: `${(heightDeviationMm / 10).toFixed(1)}cm`
+                }
+            },
+            
+            // Primary display (3D)
             display: this.getFormattedDeviation(),
-            // Which unit is recommended for this value
-            recommendedUnit: deviationMm < 10 ? 'mm' : 'cm'
+            recommendedUnit: deviation3DMm < 10 ? 'mm' : 'cm'
         };
     }
     
@@ -343,39 +403,6 @@ class CenterOfMassCalculator {
             },
             recommendations: this.generateRecommendations(result)
         };
-    }
-    
-    /**
-     * Generate recommendations based on center of mass analysis
-     * @param {Object} result - Center of mass calculation result
-     * @returns {Array} Array of recommendation strings
-     */
-    generateRecommendations(result) {
-        const recommendations = [];
-        const deviationMm = result.deviationMm;
-        
-        if (deviationMm > 250) { // > 25cm
-            recommendations.push('Consider redistributing heavier boxes closer to pallet center');
-        }
-        
-        if (deviationMm > 150) { // > 15cm
-            recommendations.push('Monitor stability during transport');
-        }
-        
-        if (result.stabilityRating === 'Excellent') {
-            recommendations.push('Excellent load distribution - optimal for transport');
-        }
-        
-        if (result.boxCount < 5) {
-            recommendations.push('Low box count - center of mass calculation may be less reliable');
-        }
-        
-        // Add precision-based recommendations
-        if (deviationMm < 10) {
-            recommendations.push('Very precise positioning - deviation under 1cm');
-        }
-        
-        return recommendations;
     }
     
     /**
