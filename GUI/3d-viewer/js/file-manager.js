@@ -360,6 +360,8 @@ class FileManager {
             throw new Error('PalletApp is not available');
         }
         
+        console.log('🔄 FileManager: Starting reload simulation');
+        
         // Stop current animation if running
         if (this.palletApp.stopAnimation) {
             this.palletApp.stopAnimation();
@@ -380,14 +382,19 @@ class FileManager {
         }
         
         // Reset controls
-        if (this.palletApp.resetControls) {
-            this.palletApp.resetControls();
+        if (this.palletApp.dataLoader?.allPallets?.length > 0) {
+        this.palletApp.dataLoader.currentPalletIndex = 0;
         }
+        this.palletApp.updateButtonStates();
+        this.palletApp.updatePalletCounter();
+        this.palletApp.updateBoxCounter();
 
         //Exit Standby mode
         if (this.palletApp.exitStandbyMode) {
-        this.palletApp.exitStandbyMode();
+            this.palletApp.exitStandbyMode();
         }
+        
+        console.log('✅ FileManager: Reload simulation completed');
     }
     
     /**
@@ -493,7 +500,13 @@ class FileManager {
             
             await this.reloadSimulation(fileData.content);
             this.showMessage(`Switched to: ${fileName}`, 'info');
-            
+
+            if (this.palletApp.startSimulationTimer) {
+            setTimeout(() => {
+                this.palletApp.startSimulationTimer();
+                console.log('Timer restarted after file switch'); // Debug
+            }, 200);
+        }       
         } catch (error) {
             console.error('Error switching file:', error);
             this.showMessage('Error loading file: ' + error.message, 'error');

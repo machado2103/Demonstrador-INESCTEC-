@@ -73,6 +73,12 @@ class PalletizationApp {
      * Initialize the complete application
      */
     async init() {
+
+         if (window.timerControls && window.timerControls.stop) {
+        window.timerControls.stop();
+        console.log('🛑 Old GUI timer stopped');
+        }
+
         try {
             if (document.readyState === 'loading') {
                 await new Promise(resolve => {
@@ -161,6 +167,12 @@ class PalletizationApp {
         console.log('FileManager initialized successfully');
     }
 
+// POR:
+initializeFileManager() {
+    this.fileManager = new FileManager(this);
+    console.log('FileManager initialized successfully');
+}
+
     /**
      * Initialize standby mode - waiting for user to load a file
      * Versão simplificada: apenas desativa controlos
@@ -248,6 +260,15 @@ class PalletizationApp {
         if (this.simulator && this.simulator.geometricCenterHorizontalPoint) {
             this.simulator.geometricCenterHorizontalPoint.visible = true;
         }
+
+        setTimeout(() => {
+        if (!this.metricsState.simulationTimer.isRunning) {
+            console.log('Timer not running after exitStandbyMode, restarting...');
+            this.startSimulationTimer();
+        } else {
+            console.log('Timer already running after exitStandbyMode');
+        }
+    }, 300);
     }
 
     
@@ -518,6 +539,7 @@ animationButtons.style.cssText = `
                 this.dataLoader.previousPallet();
                 this.resetAnimationState();
                 this.resetSimulationTimer();
+                this.startSimulationTimer();
             }
         }, 'square', 'arrowLeft');
         prevPalletButton.id = 'prev-pallet-btn';
@@ -529,6 +551,7 @@ animationButtons.style.cssText = `
                 this.dataLoader.nextPallet();
                 this.resetAnimationState();
                 this.resetSimulationTimer();
+                this.startSimulationTimer();
             }
         }, 'square', 'arrowRight');
         nextPalletButton.id = 'next-pallet-btn';
@@ -974,31 +997,35 @@ animationButtons.style.cssText = `
      * @param {string} content - File content
      */
     async loadDataFromString(content) {
-        try {
-            // Stop any current animation
-            this.stopAnimation();
+    try {
+        // Stop any current animation
+        this.stopAnimation();
+        
+        // Clear current simulation
+        this.clearSimulation();
+        
+        // Parse new data using existing method
+        const success = this.loadCrosslogData(content, 'New File');
+        
+        if (success) {
+            // Update UI
+            this.updateButtonStates();
+            this.updatePalletCounter();
+            this.updateBoxCounter();
             
-            // Clear current simulation
-            this.clearSimulation();
+            // CORREÇÃO: Garantir que timer inicia aqui e não é interrompido
+            this.resetSimulationTimer();
+            this.startSimulationTimer();
             
-            // Parse new data using existing method
-            const success = this.loadCrosslogData(content, 'New File');
-            
-            if (success) {
-                // Update UI
-                this.updateButtonStates();
-                this.updatePalletCounter();
-                this.updateBoxCounter();
-                
-                console.log('Data loaded successfully from string');
-            } else {
-                throw new Error('Failed to parse Crosslog data');
-            }
-            
-        } catch (error) {
-            console.error('Error loading data from string:', error);
-            throw error;
+            console.log('Data loaded successfully from string');
+        } else {
+            throw new Error('Failed to parse Crosslog data');
         }
+        
+    } catch (error) {
+        console.error('Error loading data from string:', error);
+        throw error;
+    }
     }
 
     /**
@@ -1150,13 +1177,30 @@ animationButtons.style.cssText = `
     startSimulationTimer() {
         const timer = this.metricsState.simulationTimer;
         
-        if (!timer.isRunning && !this.animationState.isCompleted) {
+        console.log('startSimulationTimer called, current state:', {
+            isRunning: timer.isRunning,
+            isCompleted: this.animationState.isCompleted,
+            hasDisplayInterval: !!timer.displayInterval
+        });
+        
+        // Parar qualquer timer anterior
+        if (timer.isRunning || timer.displayInterval) {
+            console.log('Stopping previous timer...');
+            this.stopSimulationTimer();
+        }
+        
+        // Só iniciar se não estiver completo
+        if (!this.animationState.isCompleted) {
             timer.startTime = Date.now();
             timer.isRunning = true;
             
             timer.displayInterval = setInterval(() => {
                 this.updateTimeDisplay();
             }, 100);
+            
+            console.log('Timer started successfully!');
+        } else {
+            console.log('Animation completed, timer not started');
         }
     }
     
@@ -1166,18 +1210,20 @@ animationButtons.style.cssText = `
     stopSimulationTimer() {
         const timer = this.metricsState.simulationTimer;
         
-        if (timer.isRunning) {
+        if (timer.isRunning && timer.startTime) {
             const sessionTime = Date.now() - timer.startTime;
             timer.pausedTime += sessionTime;
-            
-            timer.isRunning = false;
-            timer.startTime = null;
-            
-            if (timer.displayInterval) {
-                clearInterval(timer.displayInterval);
-                timer.displayInterval = null;
-            }
         }
+        
+        timer.isRunning = false;
+        timer.startTime = null;
+        
+        // Garantir que o interval é sempre limpo
+        if (timer.displayInterval) {
+            clearInterval(timer.displayInterval);
+            timer.displayInterval = null;
+        }
+        
     }
     
     /**
