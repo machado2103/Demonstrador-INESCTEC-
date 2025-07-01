@@ -131,12 +131,7 @@ class CenterOfMassCalculator {
         const deviationCm3D = window.unitsSystem ? 
             window.unitsSystem.threeJSToDisplayCm(deviation3D) : 
             deviation3D * 10;
-            
-        console.log(`🎯 3D Center of Mass Results:`);
-        console.log(`   Position: (${centerX.toFixed(3)}, ${centerY.toFixed(3)}, ${centerZ.toFixed(3)}) units`);
-        console.log(`   2D Deviation: ${deviationCm2D.toFixed(1)}cm (horizontal only)`);
-        console.log(`   3D Deviation: ${deviationCm3D.toFixed(1)}cm (including height)`);
-        console.log(`   Boxes processed: ${validBoxCount}`);
+        
         
         // Store in history for analysis
         this.calculationHistory.push({

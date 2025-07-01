@@ -1,11 +1,5 @@
 /**
- * Enhanced Weight Distribution Calculator with Debugging and Fixes
- * 
- * ISSUES IDENTIFIED AND FIXED:
- * 1. Weight distribution should be 2D (horizontal projection only)
- * 2. Center of mass positioning was potentially incorrect
- * 3. Added comprehensive debugging to verify calculations
- * 4. Clarified the physical meaning of each metric
+ * Weight Distribution Calculator
  */
 
 class WeightDistributionCalculator {
@@ -29,7 +23,7 @@ class WeightDistributionCalculator {
             cellSizeMm: 50   
         };
         
-        // FIXED: Weight distribution is 2D only (horizontal projection)
+        //Weight distribution is 2D only (horizontal projection)
         this.weightGrid = new Array(this.gridConfig.totalCells).fill(0);
         this.totalWeight = 0;
         this.maxCellWeight = 0;
@@ -44,38 +38,62 @@ class WeightDistributionCalculator {
         };
         
         this.colorConfig = {
+            // 10-color gradient from green to red (10% increments each)
             colors: {
-                veryLow: '#2E7D32',    
-                low: '#66BB6A',        
-                medium: '#FDD835',     
-                high: '#FF8F00',       
-                veryHigh: '#D32F2F',   
-                empty: '#F5F5F5'       
+    level0: '#064E3B',    // Emerald-900
+    level1: '#047857',    // Emerald-700
+    level2: '#059669',    // Emerald-600
+    level3: '#10B981',    // Emerald-500
+    level4: '#34D399',    // Emerald-400
+    level5: '#6EE7B7',    // Emerald-300
+    level6: '#FBBF24',    // Amber-400 (much better than harsh yellow)
+    level7: '#F59E0B',    // Amber-500
+    level8: '#DC2626',    // Red-600
+    level9: '#991B1B',    // Red-800
+    empty: '#F9FAFB'
             },
             
+            // 10 threshold levels (10% increments)
             thresholds: {
-                veryLow: 0.20,    
-                low: 0.40,        
-                medium: 0.60,     
-                high: 0.80,       
-                veryHigh: 1.00    
+                level0: 0.10,    // 0-10%
+                level1: 0.20,    // 10-20%
+                level2: 0.30,    // 20-30%
+                level3: 0.40,    // 30-40%
+                level4: 0.50,    // 40-50%
+                level5: 0.60,    // 50-60%
+                level6: 0.70,    // 60-70%
+                level7: 0.80,    // 70-80%
+                level8: 0.90,    // 80-90%
+                level9: 1.00     // 90-100%
             },
 
+            // Legend information for display
             legendInfo: [
-                { key: 'veryLow', color: '#2E7D32', label: 'Very Low', range: '0-20%' },
-                { key: 'low', color: '#66BB6A', label: 'Low', range: '20-40%' },
-                { key: 'medium', color: '#FDD835', label: 'Medium', range: '40-60%' },
-                { key: 'high', color: '#FF8F00', label: 'High', range: '60-80%' },
-                { key: 'veryHigh', color: '#D32F2F', label: 'Very High', range: '80-100%' }
+                { key: 'level0', color: '#064E3B' },
+                { key: 'level1', color: '#047857' },
+                { key: 'level2', color: '#059669' },
+                { key: 'level3', color: '#10B981' },
+                { key: 'level4', color: '#34D399' },
+                { key: 'level5', color: '#6EE7B7' },
+                { key: 'level6', color: '#FBBF24' },
+                { key: 'level7', color: '#F59E0B' },
+                { key: 'level8', color: '#DC2626' },
+                { key: 'level9', color: '#991B1B' }
             ],
             
+            // Human-readable category names
             categoryNames: {
                 empty: 'No Weight',
-                veryLow: 'Very Low',
-                low: 'Low', 
-                medium: 'Medium',
-                high: 'High',
-                veryHigh: 'Very High'
+                level0: 'Minimal (0-10%)',
+                level1: 'Very Low (10-20%)',
+                level2: 'Low (20-30%)',
+                level3: 'Low-Medium (30-40%)',
+                level4: 'Medium (40-50%)',
+                level5: 'Medium-High (50-60%)',
+                level6: 'High (60-70%)',
+                level7: 'Very High (70-80%)',
+                level8: 'Extreme (80-90%)',
+                level9: 'Maximum (90-100%)'
             }
         };
         
@@ -100,7 +118,6 @@ class WeightDistributionCalculator {
      * This represents how weight is distributed on the pallet base
      */
     calculateWeightDistribution(boxes) {
-        console.log(`Calculating 2D weight distribution for ${boxes?.length || 0} boxes`);
         
         this.resetGrid();
         this.resetDebugData();
@@ -141,9 +158,7 @@ class WeightDistributionCalculator {
         this.calculateFinalStatistics();
         this.updateHeatmapDisplay();
         
-        if (this.isDebugMode) {
-            this.debugWeightDistribution();
-        }
+
         
         return this.getDistributionSummary();
     }
@@ -292,26 +307,7 @@ class WeightDistributionCalculator {
         
         // Compare with grid-based calculation
         const gridBasedCenterOfMass = this.calculateCenterOfMassFromGrid();
-        
-        if (this.isDebugMode) {
-            console.log('=== CENTER OF MASS VERIFICATION (PALLET BASE REFERENCE) ===');
-            console.log('Pallet base Y level:', PALLET_BASE_Y.toFixed(3));
-            console.log('Direct calculation (X,Z):', {
-                x: this.centerOfMassDebug.rawCalculation.x.toFixed(3),
-                z: this.centerOfMassDebug.rawCalculation.z.toFixed(3)
-            });
-            console.log('Height above pallet base:', this.centerOfMassDebug.rawCalculation.y?.toFixed(3), 'units');
-            console.log('Grid-based calculation:', gridBasedCenterOfMass);
-            console.log('Total weight:', totalWeight.toFixed(3), 'kg');
-            
-            // NEW: Check if center of mass is actually off-center
-            const horizontalDeviation = Math.sqrt(
-                this.centerOfMassDebug.rawCalculation.x ** 2 + 
-                this.centerOfMassDebug.rawCalculation.z ** 2
-            );
-            console.log('Horizontal deviation from pallet center:', horizontalDeviation.toFixed(3), 'units');
-            console.log('=============================================================');
-        }
+    
     }
     
     /**
@@ -432,13 +428,6 @@ class WeightDistributionCalculator {
         
         const isWithinBounds = (xPercent >= 0 && xPercent <= 100 && zPercent >= 0 && zPercent <= 100);
         
-        if (this.isDebugMode) {
-            console.log(`CENTER OF MASS POSITION DEBUG:`);
-            console.log(`  Input: (${centerX.toFixed(3)}, ${centerZ.toFixed(3)}) units`);
-            console.log(`  Conversion: X=${xPercent.toFixed(1)}%, Z=${zPercent.toFixed(1)}%`);
-            console.log(`  Final: (${clampedX.toFixed(1)}%, ${clampedZ.toFixed(1)}%)`);
-            console.log(`  Within bounds: ${isWithinBounds}`);
-        }
         
         return {
             x: clampedX,
@@ -516,52 +505,7 @@ class WeightDistributionCalculator {
     /**
      * COMPREHENSIVE DEBUG METHOD with coordinate system verification
      */
-    debugWeightDistribution() {
-        console.log('=== WEIGHT DISTRIBUTION DEBUG REPORT ===');
-        
-        // 1. Coordinate System Verification
-        console.log('Coordinate System Status:');
-        console.log(`  Pallet position in scene: Y = -8`);
-        console.log(`  Pallet base level: Y = ${(-8 - 1.44/2).toFixed(3)}`);
-        console.log(`  Center of mass calculation: Corrected for pallet position`);
-        
-        // 2. Grid Summary
-        console.log('Grid Summary:');
-        console.log(`  Total cells: ${this.gridConfig.totalCells}`);
-        console.log(`  Occupied cells: ${this.weightGrid.filter(w => w > 0).length}`);
-        console.log(`  Total weight: ${this.totalWeight.toFixed(3)} kg`);
-        console.log(`  Max cell weight: ${this.maxCellWeight.toFixed(3)} kg`);
-        
-        // 3. Weight by quadrants with analysis
-        this.debugWeightByQuadrants();
-        
-        // 4. Center of mass verification
-        console.log('Center of Mass Results:');
-        const cm = this.centerOfMassDebug.rawCalculation;
-        console.log(`  Position: (${cm.x.toFixed(3)}, ${cm.z.toFixed(3)}) units from pallet center`);
-        if (cm.y !== undefined) {
-            console.log(`  Height above pallet base: ${cm.y.toFixed(3)} units`);
-        }
-        
-        // 5. Visual verification helper
-        const expectedPosition = this.convertCenterOfMassToHeatmapPosition(cm.x, cm.z);
-        console.log('Expected Heatmap Position:');
-        console.log(`  Should appear at: ${expectedPosition.x.toFixed(1)}%, ${expectedPosition.z.toFixed(1)}%`);
-        console.log(`  (50%, 50% = perfect center)`);
-        
-        // 6. Top weighted cells
-        this.debugTopWeightedCells();
-        
-        console.log('=========================================');
-        
-        // 7. Return analysis for further inspection
-        return {
-            centerOfMass: cm,
-            expectedHeatmapPosition: expectedPosition,
-            quadrantAnalysis: this.getQuadrantAnalysis(),
-            recommendation: this.getStabilityRecommendation(cm)
-        };
-    }
+
     
     /**
      * Get quadrant analysis for verification
@@ -664,10 +608,7 @@ class WeightDistributionCalculator {
         const rightWeight = quadrantWeights[0] + quadrantWeights[3]; // Q1 + Q4
         const frontWeight = quadrantWeights[0] + quadrantWeights[1]; // Q1 + Q2
         const backWeight = quadrantWeights[2] + quadrantWeights[3]; // Q3 + Q4
-        
-        console.log('Weight Distribution Analysis:');
-        console.log(`  Left side: ${leftWeight.toFixed(2)} kg vs Right side: ${rightWeight.toFixed(2)} kg`);
-        console.log(`  Front side: ${frontWeight.toFixed(2)} kg vs Back side: ${backWeight.toFixed(2)} kg`);
+
         
         if (leftWeight > rightWeight) {
             console.log(`  → Center of mass should be LEFT of center (difference: ${(leftWeight - rightWeight).toFixed(2)} kg)`);
@@ -760,58 +701,78 @@ class WeightDistributionCalculator {
     }
     
     calculateCellColorAndCategory(cellWeight) {
-        if (cellWeight === 0) {
-            return { color: this.colorConfig.colors.empty, category: 'empty' };
-        }
-        
-        if (this.maxCellWeight === 0) {
-            return { color: this.colorConfig.colors.empty, category: 'empty' };
-        }
-        
-        const intensity = cellWeight / this.maxCellWeight;
-        
-        if (intensity <= this.colorConfig.thresholds.veryLow) {
-            return { color: this.colorConfig.colors.veryLow, category: 'veryLow' };
-        } else if (intensity <= this.colorConfig.thresholds.low) {
-            return { color: this.colorConfig.colors.low, category: 'low' };
-        } else if (intensity <= this.colorConfig.thresholds.medium) {
-            return { color: this.colorConfig.colors.medium, category: 'medium' };
-        } else if (intensity <= this.colorConfig.thresholds.high) {
-            return { color: this.colorConfig.colors.high, category: 'high' };
-        } else {
-            return { color: this.colorConfig.colors.veryHigh, category: 'veryHigh' };
-        }
+    // Handle empty cells
+    if (cellWeight === 0) {
+        return { color: this.colorConfig.colors.empty, category: 'empty' };
+    }
+    
+    // Handle case where no weight exists yet
+    if (this.maxCellWeight === 0) {
+        return { color: this.colorConfig.colors.empty, category: 'empty' };
+    }
+    
+    // Calculate intensity as percentage of maximum cell weight
+    const intensity = cellWeight / this.maxCellWeight;
+    
+    // Determine color level based on 10% increments
+    if (intensity <= this.colorConfig.thresholds.level0) {
+        return { color: this.colorConfig.colors.level0, category: 'level0' };
+    } else if (intensity <= this.colorConfig.thresholds.level1) {
+        return { color: this.colorConfig.colors.level1, category: 'level1' };
+    } else if (intensity <= this.colorConfig.thresholds.level2) {
+        return { color: this.colorConfig.colors.level2, category: 'level2' };
+    } else if (intensity <= this.colorConfig.thresholds.level3) {
+        return { color: this.colorConfig.colors.level3, category: 'level3' };
+    } else if (intensity <= this.colorConfig.thresholds.level4) {
+        return { color: this.colorConfig.colors.level4, category: 'level4' };
+    } else if (intensity <= this.colorConfig.thresholds.level5) {
+        return { color: this.colorConfig.colors.level5, category: 'level5' };
+    } else if (intensity <= this.colorConfig.thresholds.level6) {
+        return { color: this.colorConfig.colors.level6, category: 'level6' };
+    } else if (intensity <= this.colorConfig.thresholds.level7) {
+        return { color: this.colorConfig.colors.level7, category: 'level7' };
+    } else if (intensity <= this.colorConfig.thresholds.level8) {
+        return { color: this.colorConfig.colors.level8, category: 'level8' };
+    } else {
+        return { color: this.colorConfig.colors.level9, category: 'level9' };
+    }
     }
     
     getDistributionSummary() {
-        const nonEmptyCells = this.weightGrid.filter(weight => weight > 0).length;
-        const averageWeight = this.totalWeight / Math.max(nonEmptyCells, 1);
-        
-        const categories = { 
-            empty: 0, veryLow: 0, low: 0, medium: 0, high: 0, veryHigh: 0 
-        };
-        
-        this.weightGrid.forEach(weight => {
-            const { category } = this.calculateCellColorAndCategory(weight);
-            categories[category]++;
-        });
-        
-        return {
-            totalWeight: this.totalWeight,
-            maxCellWeight: this.maxCellWeight,
-            averageWeight: averageWeight,
-            occupiedCells: nonEmptyCells,
-            totalCells: this.gridConfig.totalCells,
-            occupancyPercentage: (nonEmptyCells / this.gridConfig.totalCells) * 100,
-            categories: categories,
-            weightGrid: [...this.weightGrid],
-            isBalanced: this.assessBalance(),
-            gridResolution: `${this.gridConfig.rows}×${this.gridConfig.cols}`,
-            cellSizeMm: `${this.cellDimensions.cellSizeMm}×${this.cellDimensions.cellSizeMm}mm`,
-            centerOfMass: this.centerOfMassDebug.rawCalculation,
-            lastUpdate: Date.now()
-        };
+    const nonEmptyCells = this.weightGrid.filter(weight => weight > 0).length;
+    const averageWeight = this.totalWeight / Math.max(nonEmptyCells, 1);
+    
+    // Initialize all 10 categories plus empty
+    const categories = { 
+        empty: 0, 
+        level0: 0, level1: 0, level2: 0, level3: 0, level4: 0,
+        level5: 0, level6: 0, level7: 0, level8: 0, level9: 0
+    };
+    
+    // Count cells in each category
+    this.weightGrid.forEach(weight => {
+        const { category } = this.calculateCellColorAndCategory(weight);
+        categories[category]++;
+    });
+    
+    return {
+        totalWeight: this.totalWeight,
+        maxCellWeight: this.maxCellWeight,
+        averageWeight: averageWeight,
+        occupiedCells: nonEmptyCells,
+        totalCells: this.gridConfig.totalCells,
+        occupancyPercentage: (nonEmptyCells / this.gridConfig.totalCells) * 100,
+        categories: categories,
+        weightGrid: [...this.weightGrid],
+        isBalanced: this.assessBalance(),
+        gridResolution: `${this.gridConfig.rows}×${this.gridConfig.cols}`,
+        cellSizeMm: `${this.cellDimensions.cellSizeMm}×${this.cellDimensions.cellSizeMm}mm`,
+        centerOfMass: this.centerOfMassDebug.rawCalculation,
+        lastUpdate: Date.now(),
+        colorLevels: 10  // New property indicating enhanced granularity
+    };
     }
+
 
     assessBalance() {
         if (this.totalWeight === 0) return true;
@@ -837,7 +798,6 @@ class WeightDistributionCalculator {
                 this.initializeCenterOfMassPoint();
             }, 100);
             
-            console.log('Weight Distribution Calculator initialized with debugging enabled');
             
         } catch (error) {
             console.error('Error initializing weight distribution system:', error);
@@ -876,40 +836,91 @@ class WeightDistributionCalculator {
         
         this.legendElement.innerHTML = '';
         
+        // Configure main legend container for single-line layout
+        this.legendElement.style.cssText = `
+            margin-top: 8px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            gap: 4px !important;
+        `;
+        
+        // Create single-row container for all 10 colors
+        const colorLegendContainer = document.createElement('div');
+        colorLegendContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex-wrap: nowrap;
+            width: 100%;
+            overflow: visible;
+        `;
+        
+        // Add all 10 color items to the single row
         this.colorConfig.legendInfo.forEach(item => {
             const legendItem = document.createElement('span');
+            legendItem.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                font-size: 0.5rem;
+                white-space: nowrap;
+                padding: 1px;
+                flex-shrink: 1;
+                min-width: 0;
+            `;
             
             const dot = document.createElement('div');
             dot.className = 'legend-dot';
-            dot.style.backgroundColor = item.color;
+            dot.style.cssText = `
+                width: 7px;
+                height: 7px;
+                border-radius: 2px;
+                flex-shrink: 0;
+                background-color: ${item.color};
+                border: 1px solid rgba(0,0,0,0.15);
+            `;
             
             const label = document.createElement('span');
             label.textContent = item.label;
+            label.style.cssText = `
+                font-size: 0.5rem;
+                color: #333;
+                font-weight: 500;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                white-space: nowrap;
+                min-width: 0;
+            `;
             
             legendItem.appendChild(dot);
             legendItem.appendChild(label);
-            this.legendElement.appendChild(legendItem);
+            colorLegendContainer.appendChild(legendItem);
         });
         
-        // Mass center legend
-        const centerOfMassLegendItem = document.createElement('span');
+        // Add the single-line color legend to main container
+        this.legendElement.appendChild(colorLegendContainer);
+        
+        // Center of mass legend item (on its own line below)
+        const centerOfMassLegendItem = document.createElement('div');
         centerOfMassLegendItem.style.cssText = `
             display: flex !important;
             align-items: center !important;
+            justify-content: center !important;
             gap: 3px !important;
-            margin: 0 !important;
-            font-size: 0.6rem !important;
+            font-size: 0.55rem !important;
             white-space: nowrap !important;
-            margin-left: 8px !important;
-            padding-left: 8px !important;
-            border-left: 1px solid #dee2e6 !important;
+            margin-top: 2px !important;
         `;
         
         const centerOfMassDot = document.createElement('div');
         centerOfMassDot.className = 'legend-dot';
         centerOfMassDot.style.cssText = `
-            width: 8px !important;
-            height: 8px !important;
+            width: 7px !important;
+            height: 7px !important;
             border-radius: 50% !important;
             flex-shrink: 0 !important;
             background: radial-gradient(circle, #1a365d 0%, #2c5282 50%, #3182ce 100%) !important;
@@ -920,7 +931,7 @@ class WeightDistributionCalculator {
         const centerOfMassLabel = document.createElement('span');
         centerOfMassLabel.textContent = 'Center of Mass';
         centerOfMassLabel.style.cssText = `
-            font-size: 0.6rem !important;
+            font-size: 0.55rem !important;
             color: #2c3e50 !important;
             font-weight: 500 !important;
         `;
@@ -1010,14 +1021,7 @@ class WeightDistributionCalculator {
         }
     }
 
-    setDebugMode(enabled) {
-        this.isDebugMode = enabled;
-        console.log(`Weight distribution debug mode ${enabled ? 'enabled' : 'disabled'}`);
-        
-        if (enabled && this.centerOfMassDebug.boxCount > 0) {
-            this.debugWeightDistribution();
-        }
-    }
+
 }
 
 // Export for global access

@@ -232,6 +232,10 @@ class PalletizationApp {
         // Atualizar contadores com dados reais
         this.updatePalletCounter();
         this.updateBoxCounter();
+
+        if (this.simulator && this.simulator.geometricCenterSphere) {
+        this.simulator.geometricCenterSphere.visible = true;
+        }
     }
 
     
@@ -918,6 +922,10 @@ animationButtons.style.cssText = `
         
         if (this.simulator && this.simulator.centerOfMassGroup) {
             this.simulator.hideCenterOfMassBeam();
+        }
+
+        if (this.simulator && this.simulator.geometricCenterSphere) {
+        this.simulator.geometricCenterSphere.visible = false;
         }
         
         this.resetAnimationState();
@@ -1752,6 +1760,10 @@ animationButtons.style.cssText = `
         if (this.metricsState.simulationTimer.displayInterval) {
             clearInterval(this.metricsState.simulationTimer.displayInterval);
         }
+
+        if (this.simulator.disposeHorizontalCenterOfMassSystem) {
+            this.simulator.disposeHorizontalCenterOfMassSystem();
+        }
         
         if (this.simulator) {
             this.simulator.dispose();
@@ -1772,6 +1784,8 @@ animationButtons.style.cssText = `
         if (this.weightDistributionCalculator) {
             this.weightDistributionCalculator.dispose();
         }
+
+        
     }
 
     /**
@@ -1811,7 +1825,11 @@ animationButtons.style.cssText = `
                     this.simulator.updateCenterOfMassCrossHeight(this.simulator.boxes);
                 }
             }
-            
+
+            if (this.simulator && this.simulator.updateHorizontalCenterOfMassPosition) {
+                this.simulator.updateHorizontalCenterOfMassPosition(result);
+            }
+                        
             if (result.deviationCm > 20) {
                 console.warn(`High center of mass deviation detected: ${formattedDeviation}`);
             }
@@ -2043,10 +2061,6 @@ animationButtons.style.cssText = `
             // NOVO: Atualizar ponto de centro de massa no heatmap
             if (this.centerOfMassState.lastCalculation) {
                 this.weightDistributionCalculator.updateCenterOfMassPoint(this.centerOfMassState.lastCalculation);
-            }
-            
-            if (distributionResult && !distributionResult.isBalanced) {
-                console.warn('Weight distribution is unbalanced - consider redistributing load');
             }
 
         } catch (error) {

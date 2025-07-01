@@ -25,12 +25,17 @@ class PalletSimulator {
         this.pallet = null;
         this.boxes = [];
         
-        // Center of mass visualization components
+        // Center of mass visualization components (X,Z)
         this.centerOfMassGroup = null;
         this.centerOfMassBeam = null;
         this.centerOfMassCross = null;
         this.centerOfMassGlow = null;
         this.palletCenterReference = null;  // Green reference point at geometric center
+
+        // Sistema de visualização horizontal do centro de massa (altura Y)
+        this.horizontalCenterOfMassGroup = null;     // Grupo para beam e mira horizontais
+        this.horizontalCenterOfMassBeam = null;      // Beam horizontal infinito
+        this.horizontalBeamGlow = null;              // Efeito visual de brilho no beam horizontal
         
         // Animation
         this.animationId = null;
@@ -49,6 +54,9 @@ class PalletSimulator {
         this.createControls();
         this.createPallet();
         this.setupEventListeners();
+        this.createCenterOfMassBeam(); //Não existia antes
+        this.createHorizontalCenterOfMassSystem();
+        this.createGeometricCenterSphere();
         this.animate();
     }
     
@@ -196,15 +204,16 @@ class PalletSimulator {
         
         // Create beam material with enhanced visibility
         const beamMaterial = new THREE.MeshBasicMaterial({
-            color: 0x2c5282,
+            color: 0x2c5282,           // Mesmo azul consistente
             transparent: true,
-            opacity: 0.1,
+            opacity: 0.12,             
             blending: THREE.NormalBlending,
-            depthWrite: false,
+            depthWrite: false,         
+            depthTest: false,         
             side: THREE.DoubleSide,
             emissive: 0x1a365d,
-            emissiveIntensity: 0.3
-        });
+            emissiveIntensity: 0.2    
+        })
         
         this.centerOfMassBeam = new THREE.Mesh(beamGeometry, beamMaterial);
         this.centerOfMassBeam.position.y = beamStartY + (beamHeight / 2);
@@ -221,6 +230,8 @@ class PalletSimulator {
         this.createBeamGlowSprite();
         this.createCenterOfMassIcon();
         this.createFixedPalletCenterReference();
+        this.centerOfMassBeam.userData.isDynamic = true;
+        this.centerOfMassBeam.userData.originalHeight = beamHeight;
         
         this.scene.add(this.centerOfMassGroup);
         this.hideCenterOfMassBeam();
@@ -237,10 +248,10 @@ class PalletSimulator {
         
         // Create radial gradient
         const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-        gradient.addColorStop(0, 'rgba(255, 0, 0, 1.0)');
-        gradient.addColorStop(0.3, 'rgba(255, 0, 0, 0.8)');
-        gradient.addColorStop(0.7, 'rgba(255, 0, 0, 0.3)');
-        gradient.addColorStop(1, 'rgba(255, 0, 0, 0.0)');
+        gradient.addColorStop(0, 'rgba(44, 82, 130, 1.0)'); // Azul em vez de vermelho
+        gradient.addColorStop(0.3, 'rgba(44, 82, 130, 0.8)');
+        gradient.addColorStop(0.7, 'rgba(44, 82, 130, 0.3)');
+        gradient.addColorStop(1, 'rgba(44, 82, 130, 0.0)');
         
         context.fillStyle = gradient;
         context.fillRect(0, 0, 64, 64);
@@ -267,141 +278,491 @@ class PalletSimulator {
         this.centerOfMassGroup.add(this.centerOfMassGlow);
     }
 
-createCenterOfMassIcon() {
-    const symbolRadius = 0.4;        // Tamanho do símbolo no mundo 3D
-    const symbolHeight = 0.02;       // Espessura muito fina
-    
-    // === CRIAR TEXTURA NO CANVAS ===
+    createCenterOfMassIcon() {
+        const symbolRadius = 0.4;        // Tamanho do símbolo no mundo 3D
+        const symbolHeight = 0.02;       // Espessura muito fina
+        
+        // === CRIAR TEXTURA NO CANVAS ===
+        const canvas = document.createElement('canvas');
+        const size = 128;                // Resolução da textura
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        
+        // Definir centro e raio do círculo
+        const centerX = size / 2;        // Centro X = 64 pixels
+        const centerY = size / 2;        // Centro Y = 64 pixels  
+        const circleRadius = size * 0.25 // Raio = 40% do canvas = ~51 pixels
+        
+        // === PASSO 1: FUNDO TRANSPARENTE ===
+        // Limpar tudo (deixar transparente)
+        ctx.clearRect(0, 0, size, size);
+        
+        // === PASSO 2: CÍRCULO PRETO ===
+        ctx.fillStyle = '#f8f8f8';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // === NOVO PASSO 2.5: QUADRANTE SUPERIOR-DIREITO PRETO ===
+        ctx.fillStyle = '#4a4a4a';
+        ctx.beginPath();
+        // Começar no centro do círculo
+        ctx.moveTo(centerX, centerY);
+        // Desenhar linha até ao INÍCIO do arco (-π/2 = 12 horas = topo)
+        ctx.lineTo(centerX, centerY - circleRadius);
+        // Desenhar o arco de -π/2 a 0 (de 12h até 3h)
+        ctx.arc(centerX, centerY, circleRadius, -Math.PI/2, 0, false);
+        // Fechar voltando ao centro
+        ctx.lineTo(centerX, centerY);
+        ctx.fill();
+
+        // === NOVO: QUADRANTE INFERIOR ESQUERDO ===
+        ctx.fillStyle = '#4a4a4a';
+        ctx.beginPath();
+        // Começar no centro
+        ctx.moveTo(centerX, centerY);
+        // Linha até ao INÍCIO do segundo arco (π/2 = 6 horas = fundo)
+        ctx.lineTo(centerX, centerY + circleRadius);
+        // Arco de π/2 até π (de 6h até 9h = fundo até esquerda)
+        ctx.arc(centerX, centerY, circleRadius, Math.PI/2, Math.PI, false);
+        // Voltar ao centro
+        ctx.lineTo(centerX, centerY);
+        ctx.fill();
+        
+        // === PASSO 3: CONTORNO DO CÍRCULO (um pouco mais grosso) ===
+        ctx.strokeStyle = '#2a2a2a';
+        ctx.lineWidth = 4;               // Linha ligeiramente mais grossa
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // === PASSO 4: MIRA INTERNA (duas linhas em cruz) ===
+        ctx.strokeStyle = '#2a2a2a';       // Linhas brancas para contraste contra o fundo preto
+        ctx.lineWidth = 4;               // Mesma grossura que o contorno
+        ctx.lineCap = 'round';           // Extremidades arredondadas para melhor visual
+        
+        // Linha horizontal da mira
+        ctx.beginPath();
+        ctx.moveTo(centerX - circleRadius * 1.1, centerY);  // Começar a 70% do raio à esquerda
+        ctx.lineTo(centerX + circleRadius * 1.1, centerY);  // Terminar a 70% do raio à direita
+        ctx.stroke();
+        
+        // Linha vertical da mira  
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - circleRadius * 1.1);  // Começar a 70% do raio acima
+        ctx.lineTo(centerX, centerY + circleRadius * 1.1);  // Terminar a 70% do raio abaixo
+        ctx.stroke();
+        
+        // === CRIAR TEXTURA THREE.JS ===
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        
+        // === CRIAR GEOMETRIA SIMPLES ===
+        // Usar um plano simples em vez de cilindro para evitar problemas de orientação
+        const symbolGeometry = new THREE.PlaneGeometry(
+            symbolRadius * 2,            // Largura (diâmetro)
+            symbolRadius * 2             // Altura (diâmetro) 
+        );
+        
+        // === MATERIAL COM TRANSPARÊNCIA ===
+        const symbolMaterial = new THREE.MeshBasicMaterial({
+            map: texture,                // Aplicar nossa textura
+            transparent: true,           // Permitir transparência
+            alphaTest: 0.1,             // Descartar pixels quase transparentes
+            side: THREE.DoubleSide,      // Visível de ambos os lados
+            depthWrite: false            // Evitar problemas de profundidade
+        });
+        
+        // === CRIAR O MESH FINAL ===
+        this.centerOfMassCross = new THREE.Mesh(symbolGeometry, symbolMaterial);
+        
+        // Manter horizontal - sem rotações complexas!
+        // O plano já está na orientação certa por defeito
+        this.centerOfMassCross.rotation.x = -Math.PI / 2;  // Apenas rotacionar para ficar horizontal no chão
+        
+        // === CONFIGURAÇÕES FINAIS ===
+        this.centerOfMassCross.castShadow = false;      // Sem sombras
+        this.centerOfMassCross.receiveShadow = false;   // Sem receber sombras
+        
+        // Adicionar ao grupo do centro de massa
+        this.centerOfMassGroup.add(this.centerOfMassCross);
+        this.centerOfMassCross.position.y = 0;
+        
+    }
+
+    /**
+     * OPCIONAL: Função auxiliar para debug da textura
+     * Chama esta função no console para ver como ficou a textura
+     */
+    debugCenterOfMassTexture() {
+        if (this.centerOfMassCross && this.centerOfMassCross.material.map) {
+            // Criar uma imagem temporária para visualizar a textura
+            const canvas = this.centerOfMassCross.material.map.image;
+            const dataURL = canvas.toDataURL();
+            
+            console.log('Textura do centro de massa criada:');
+            console.log('Para ver a textura, cola este URL numa nova aba do browser:');
+            console.log(dataURL);
+            
+            // Opcional: abrir automaticamente em nova aba
+            // window.open(dataURL, '_blank');
+        } else {
+            console.log('Símbolo do centro de massa ainda não foi criado');
+        }
+    }
+
+    /**
+     * Criar sistema de visualização horizontal do centro de massa
+     * Chamar este método no init() depois de createCenterOfMassBeam()
+     */
+    createHorizontalCenterOfMassSystem() {
+        this.horizontalCenterOfMassGroup = new THREE.Group();
+        this.horizontalCenterOfMassGroup.name = 'HorizontalCenterOfMassVisualization';
+        
+        // Usar as mesmas cores do sistema vertical para consistência visual
+        const beamColor = 0x2c5282;      // Azul do beam existente
+        const emissiveColor = 0x1a365d;  // Cor emissiva do beam existente
+        
+        this.createInfiniteHorizontalBeam(beamColor, emissiveColor);
+        this.createHorizontalCenterOfMassCross(beamColor, emissiveColor);
+        this.createHorizontalBeamGlow();
+        
+        this.scene.add(this.horizontalCenterOfMassGroup);
+        this.hideHorizontalCenterOfMassSystem();
+        
+    }
+
+    /**
+     * Criar beam horizontal infinito que se estende desde o centro da palete
+     */
+    createInfiniteHorizontalBeam(beamColor, emissiveColor) {
+        // Calcular dimensões do beam horizontal infinito
+        const beamLength = 2000;      // Comprimento muito longo para simular infinito
+        const beamRadius = 0.08;      // Raio similar ao beam vertical mas ligeiramente mais fino
+        
+        // Criar geometria horizontal
+        const beamGeometry = new THREE.CylinderGeometry(
+            beamRadius, beamRadius, beamLength, 8, 1
+        );
+        
+        // Rodar a geometria para ficar horizontal ao longo do eixo Z
+        beamGeometry.rotateZ(Math.PI / 2);
+        
+        // Material com propriedades especiais para visibilidade garantida
+        const beamMaterial = new THREE.MeshBasicMaterial({
+            color: beamColor,
+            transparent: true,
+            opacity: 0.12,              // Ligeiramente mais subtil que o beam vertical
+            blending: THREE.NormalBlending,
+            depthWrite: false,          // Não escrever no depth buffer
+            depthTest: false,           // Não testar profundidade - sempre visível
+            side: THREE.DoubleSide,
+            emissive: emissiveColor,
+            emissiveIntensity: 0.2
+        });
+        
+        this.horizontalCenterOfMassBeam = new THREE.Mesh(beamGeometry, beamMaterial);
+        
+        // Posicionar o beam para que comece no centro da palete
+        this.horizontalCenterOfMassBeam.position.set(beamLength / 2, 0, 0);
+        
+        // Configurações de renderização especiais
+        this.horizontalCenterOfMassBeam.castShadow = false;
+        this.horizontalCenterOfMassBeam.receiveShadow = false;
+        this.horizontalCenterOfMassBeam.renderOrder = 999; // Renderizar quase no topo
+        
+        this.horizontalCenterOfMassBeam.userData = {
+            isHorizontalBeam: true,
+            isVisible: true,
+            baseLength: beamLength
+        };
+        
+        this.horizontalCenterOfMassGroup.add(this.horizontalCenterOfMassBeam);
+    }
+
+    /**
+     * Criar mira horizontal que marca a altura Y do centro de massa
+     */
+    createHorizontalCenterOfMassCross(beamColor, emissiveColor) {
+    // Criar a mesma textura da mira vertical para consistência
     const canvas = document.createElement('canvas');
-    const size = 128;                // Resolução da textura
+    const size = 128;
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
     
-    // Definir centro e raio do círculo
-    const centerX = size / 2;        // Centro X = 64 pixels
-    const centerY = size / 2;        // Centro Y = 64 pixels  
-    const circleRadius = size * 0.25 // Raio = 40% do canvas = ~51 pixels
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const circleRadius = size * 0.25;
     
-    // === PASSO 1: FUNDO TRANSPARENTE ===
-    // Limpar tudo (deixar transparente)
+    // Fundo transparente
     ctx.clearRect(0, 0, size, size);
     
-    // === PASSO 2: CÍRCULO PRETO ===
+    // Círculo base claro
     ctx.fillStyle = '#f8f8f8';
     ctx.beginPath();
     ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
     ctx.fill();
-
-    // === NOVO PASSO 2.5: QUADRANTE SUPERIOR-DIREITO PRETO ===
+    
+    // Quadrantes escuros para dar contraste
     ctx.fillStyle = '#4a4a4a';
     ctx.beginPath();
-    // Começar no centro do círculo
     ctx.moveTo(centerX, centerY);
-    // Desenhar linha até ao INÍCIO do arco (-π/2 = 12 horas = topo)
     ctx.lineTo(centerX, centerY - circleRadius);
-    // Desenhar o arco de -π/2 a 0 (de 12h até 3h)
     ctx.arc(centerX, centerY, circleRadius, -Math.PI/2, 0, false);
-    // Fechar voltando ao centro
-    ctx.lineTo(centerX, centerY);
-    ctx.fill();
-
-    // === NOVO: QUADRANTE INFERIOR ESQUERDO ===
-    ctx.fillStyle = '#4a4a4a';
-    ctx.beginPath();
-    // Começar no centro
-    ctx.moveTo(centerX, centerY);
-    // Linha até ao INÍCIO do segundo arco (π/2 = 6 horas = fundo)
-    ctx.lineTo(centerX, centerY + circleRadius);
-    // Arco de π/2 até π (de 6h até 9h = fundo até esquerda)
-    ctx.arc(centerX, centerY, circleRadius, Math.PI/2, Math.PI, false);
-    // Voltar ao centro
     ctx.lineTo(centerX, centerY);
     ctx.fill();
     
-    // === PASSO 3: CONTORNO DO CÍRCULO (um pouco mais grosso) ===
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(centerX, centerY + circleRadius);
+    ctx.arc(centerX, centerY, circleRadius, Math.PI/2, Math.PI, false);
+    ctx.lineTo(centerX, centerY);
+    ctx.fill();
+    
+    // Contorno do círculo
     ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = 4;               // Linha ligeiramente mais grossa
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
     ctx.stroke();
     
-    // === PASSO 4: MIRA INTERNA (duas linhas em cruz) ===
-    ctx.strokeStyle = '#2a2a2a';       // Linhas brancas para contraste contra o fundo preto
-    ctx.lineWidth = 4;               // Mesma grossura que o contorno
-    ctx.lineCap = 'round';           // Extremidades arredondadas para melhor visual
+    // Mira interna (cruz)
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
     
     // Linha horizontal da mira
     ctx.beginPath();
-    ctx.moveTo(centerX - circleRadius * 1.1, centerY);  // Começar a 70% do raio à esquerda
-    ctx.lineTo(centerX + circleRadius * 1.1, centerY);  // Terminar a 70% do raio à direita
+    ctx.moveTo(centerX - circleRadius * 1.1, centerY);
+    ctx.lineTo(centerX + circleRadius * 1.1, centerY);
     ctx.stroke();
     
     // Linha vertical da mira  
     ctx.beginPath();
-    ctx.moveTo(centerX, centerY - circleRadius * 1.1);  // Começar a 70% do raio acima
-    ctx.lineTo(centerX, centerY + circleRadius * 1.1);  // Terminar a 70% do raio abaixo
+    ctx.moveTo(centerX, centerY - circleRadius * 1.1);
+    ctx.lineTo(centerX, centerY + circleRadius * 1.1);
     ctx.stroke();
     
-    // === CRIAR TEXTURA THREE.JS ===
+    // Criar textura e geometria
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
     
-    // === CRIAR GEOMETRIA SIMPLES ===
-    // Usar um plano simples em vez de cilindro para evitar problemas de orientação
-    const symbolGeometry = new THREE.PlaneGeometry(
-        symbolRadius * 2,            // Largura (diâmetro)
-        symbolRadius * 2             // Altura (diâmetro) 
+    const crossRadius = 0.35;  // Ligeiramente menor que a mira vertical
+    const crossGeometry = new THREE.PlaneGeometry(
+        crossRadius * 2,
+        crossRadius * 2
     );
     
-    // === MATERIAL COM TRANSPARÊNCIA ===
-    const symbolMaterial = new THREE.MeshBasicMaterial({
-        map: texture,                // Aplicar nossa textura
-        transparent: true,           // Permitir transparência
-        alphaTest: 0.1,             // Descartar pixels quase transparentes
-        side: THREE.DoubleSide,      // Visível de ambos os lados
-        depthWrite: false            // Evitar problemas de profundidade
+    // Material com renderização especial para visibilidade garantida
+    const crossMaterial = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        alphaTest: 0.1,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        depthTest: false,           // Sempre visível através das caixas
+        emissive: emissiveColor,
+        emissiveIntensity: 0.3
     });
     
-    // === CRIAR O MESH FINAL ===
-    this.centerOfMassCross = new THREE.Mesh(symbolGeometry, symbolMaterial);
-    
-    // === ORIENTAÇÃO CORRETA ===
-    // Manter horizontal - sem rotações complexas!
-    // O plano já está na orientação certa por defeito
-    this.centerOfMassCross.rotation.x = -Math.PI / 2;  // Apenas rotacionar para ficar horizontal no chão
-    
-    // === CONFIGURAÇÕES FINAIS ===
-    this.centerOfMassCross.castShadow = false;      // Sem sombras
-    this.centerOfMassCross.receiveShadow = false;   // Sem receber sombras
-    
-    // Adicionar ao grupo do centro de massa
-    this.centerOfMassGroup.add(this.centerOfMassCross);
-    this.centerOfMassCross.position.y = 0;
-    
-    console.log('PASSO 1: Símbolo básico de centro de massa criado');
-}
+    this.horizontalCenterOfMassCross = new THREE.Mesh(crossGeometry, crossMaterial);
 
-/**
- * OPCIONAL: Função auxiliar para debug da textura
- * Chama esta função no console para ver como ficou a textura
- */
-debugCenterOfMassTexture() {
-    if (this.centerOfMassCross && this.centerOfMassCross.material.map) {
-        // Criar uma imagem temporária para visualizar a textura
-        const canvas = this.centerOfMassCross.material.map.image;
-        const dataURL = canvas.toDataURL();
-        
-        console.log('Textura do centro de massa criada:');
-        console.log('Para ver a textura, cola este URL numa nova aba do browser:');
-        console.log(dataURL);
-        
-        // Opcional: abrir automaticamente em nova aba
-        // window.open(dataURL, '_blank');
-    } else {
-        console.log('Símbolo do centro de massa ainda não foi criado');
+    this.centerOfMassCross.rotation.x = -Math.PI/2;
+    
+    // Configurações de renderização especiais
+    this.horizontalCenterOfMassCross.castShadow = false;
+    this.horizontalCenterOfMassCross.receiveShadow = false;
+    this.horizontalCenterOfMassCross.renderOrder = 1001; // Renderizar porf cima do beam
+    
+    // CORREÇÃO: Posição inicial será calculada dinamicamente
+    // Em vez de posição fixa, a mira será posicionada na face frontal das caixas
+    this.horizontalCenterOfMassCross.position.set(6.0, 0, 0); // Posição inicial neutra
+    
+    this.horizontalCenterOfMassGroup.add(this.horizontalCenterOfMassCross);
     }
-}
+
+
+    /**
+     * Criar efeito de brilho para o beam horizontal
+     */
+    createHorizontalBeamGlow() {       
+        this.horizontalBeamGlow = null;
+    }
+
+        /**
+     * Calculate the frontmost position of all boxes to position the horizontal crosshair
+     * This function analyzes all boxes and finds which one extends furthest forward (highest Z)
+     * @param {Array} boxes - Array of Three.js box meshes currently in the scene
+     * @returns {number} Z coordinate where the horizontal crosshair should be positioned
+     */
+    calculateFrontmostBoxPosition(boxes) {
+        if (!boxes || boxes.length === 0) {
+            return 4.0; // Default position if no boxes (middle of pallet)
+        }
+        
+        let frontmostZ = -Infinity;
+        
+        // Find the box that extends furthest forward (highest Z value)
+        boxes.forEach(box => {
+            if (!box || !box.position || !box.geometry || !box.geometry.parameters) {
+                return; // Skip invalid boxes
+            }
+            
+            const boxCenterZ = box.position.z;
+            const boxDepth = box.geometry.parameters.depth;
+            const boxFrontZ = boxCenterZ + (boxDepth / 2);
+            
+            if (boxFrontZ > frontmostZ) {
+                frontmostZ = boxFrontZ;
+            }
+        });
+        
+        // If no valid boxes found, use default position
+        if (frontmostZ === -Infinity) {
+            return 4.0;
+        }
+        
+        // Add small margin so crosshair is visible beyond the boxes
+        const margin = 0.5;
+        return frontmostZ + margin;
+    }
+
+    /**
+     * Update vertical beam length to point to horizontal beam position
+     * Instead of going to infinity, the vertical beam now points to where the horizontal crosshair is
+     * @param {number} targetZ - Z coordinate where the vertical beam should end
+     */
+    updateVerticalBeamLength(targetZ) {
+        if (!this.centerOfMassBeam || !this.centerOfMassGlow) {
+            return;
+        }
+        
+        // Calculate new beam length
+        const palletHeight = 1.44;
+        const palletOffset = -8;
+        const beamStartY = -(palletHeight / 2) + palletOffset;
+        
+        // Instead of going to infinity, go to the Z position of horizontal crosshair
+        const beamEndY = targetZ;
+        const beamHeight = beamEndY - beamStartY;
+        
+        // Update beam geometry
+        const beamRadius = 0.1;
+        const newBeamGeometry = new THREE.CylinderGeometry(
+            beamRadius, beamRadius, beamHeight, 8, 1
+        );
+        
+        // Replace existing geometry
+        this.centerOfMassBeam.geometry.dispose();
+        this.centerOfMassBeam.geometry = newBeamGeometry;
+        this.centerOfMassBeam.position.y = beamStartY + (beamHeight / 2);
+        
+        // Update glow position at beam top
+        this.centerOfMassGlow.position.y = beamEndY - beamStartY - (beamStartY + ((beamEndY - beamStartY) / 2));
+        
+        console.log(`Vertical beam updated: height=${beamHeight.toFixed(2)}, points to Z=${targetZ.toFixed(2)}`);
+    }
+
+    /**
+     * Atualizar posição do sistema horizontal baseado na altura Y do centro de massa
+     * @param {Object} centerOfMassData - Dados do centro de massa incluindo Y
+     */
+    updateHorizontalCenterOfMassPosition(centerOfMassData) {
+        if (!this.horizontalCenterOfMassGroup || !centerOfMassData) {
+            console.warn('Sistema horizontal de centro de massa não inicializado');
+            return;
+        }
+        
+        // Validar coordenada Y
+        if (typeof centerOfMassData.y !== 'number') {
+            console.warn('Coordenada Y do centro de massa inválida:', centerOfMassData);
+            return;
+        }
+        
+        // Atualizar altura Y de todo o grupo horizontal
+        this.horizontalCenterOfMassGroup.position.y = centerOfMassData.y;
+
+        this.horizontalCenterOfMassCross.rotation.y = -Math.PI / 2;
+
+        if (this.horizontalCenterOfMassCross) {
+            this.horizontalCenterOfMassCross.position.x = 6.0;
+        }
+        
+        
+    
+        
+        this.showHorizontalCenterOfMassSystem();
+    }
+
+    /**
+     * Mostrar sistema horizontal de centro de massa
+     */
+    showHorizontalCenterOfMassSystem() {
+        if (this.horizontalCenterOfMassGroup) {
+            this.horizontalCenterOfMassGroup.visible = true;
+            
+            if (this.horizontalCenterOfMassBeam) {
+                this.horizontalCenterOfMassBeam.userData.isVisible = true;
+            }
+            
+        }
+    }
+
+    /**
+     * Esconder sistema horizontal de centro de massa
+     */
+    hideHorizontalCenterOfMassSystem() {
+        if (this.horizontalCenterOfMassGroup) {
+            this.horizontalCenterOfMassGroup.visible = false;
+            
+            if (this.horizontalCenterOfMassBeam) {
+                this.horizontalCenterOfMassBeam.userData.isVisible = false;
+            }
+            
+        }
+    }
+
+    /**
+     * Verificar se o sistema horizontal está visível
+     */
+    isHorizontalCenterOfMassSystemVisible() {
+        return this.horizontalCenterOfMassGroup && this.horizontalCenterOfMassGroup.visible;
+    }
+
+    /**
+     * Alternar visibilidade do sistema horizontal
+     */
+    toggleHorizontalCenterOfMassSystem() {
+        if (this.isHorizontalCenterOfMassSystemVisible()) {
+            this.hideHorizontalCenterOfMassSystem();
+        } else {
+            this.showHorizontalCenterOfMassSystem();
+        }
+    }
+
+    /**
+     * Limpar recursos do sistema horizontal
+     */
+    disposeHorizontalCenterOfMassSystem() {
+        if (this.horizontalCenterOfMassGroup) {
+            this.horizontalCenterOfMassGroup.traverse((child) => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (child.material.map) child.material.map.dispose();
+                    child.material.dispose();
+                }
+            });
+            this.scene.remove(this.horizontalCenterOfMassGroup);
+            this.horizontalCenterOfMassGroup = null;
+        }
+        
+        this.horizontalCenterOfMassBeam = null;
+        this.horizontalCenterOfMassCross = null;
+        this.horizontalBeamGlow = null;
+    }
+
 
     /**
      * Create fixed green reference point at geometric center (0,0)
@@ -435,6 +796,60 @@ debugCenterOfMassTexture() {
         this.palletCenterReference.visible = false;
     }
 
+    createGeometricCenterSphere() {
+    // Propriedades da esfera - dimensionada para ser bem visível mas não dominante
+    const sphereRadius = 0.18;  // Ligeiramente maior que o ponto de referência para destacar
+    
+    // Geometria da esfera com boa resolução para suavidade visual
+    const sphereGeometry = new THREE.SphereGeometry(
+        sphereRadius,  // Raio da esfera
+        16,           // Segmentos horizontais (resolução)
+        12            // Segmentos verticais (resolução)
+    );
+    
+    // Material com as mesmas propriedades de visibilidade do beam horizontal
+    // Isto garante que a esfera seja sempre visível através das caixas
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0xDAA520,           // Mesma cor dourada do ponto de referência vertical
+        transparent: true,
+        opacity: 0.8,              // Mais opaca que os beams para ser bem visível
+        emissive: 0xB8860B,        // Cor emissiva para dar brilho próprio
+        emissiveIntensity: 0.5,    // Intensidade do brilho
+        depthWrite: false,         // Não escrever no buffer de profundidade
+        depthTest: false,          // Não testar profundidade - sempre visível
+        side: THREE.DoubleSide,    // Visível de ambos os lados
+        wireframe: false           // Esfera sólida, não em wireframe
+    });
+    
+    // Criar o mesh da esfera
+    this.geometricCenterSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    
+    // Configurações de renderização para garantir visibilidade máxima
+    this.geometricCenterSphere.castShadow = false;      // Não projectar sombras
+    this.geometricCenterSphere.receiveShadow = false;   // Não receber sombras
+    this.geometricCenterSphere.renderOrder = 1002;     // Renderizar por cima de tudo
+    
+    // Posição inicial no centro geométrico da palete
+    // X e Z sempre fixos em 0 (centro da palete)
+    // Y será atualizado dinamicamente baseado na altura da carga
+    this.geometricCenterSphere.position.set(0, -7.5, 0); // Posição inicial ligeiramente acima da palete
+    
+    // Adicionar diretamente à cena (não a um grupo específico)
+    // Isto permite controlo independente da esfera
+    this.scene.add(this.geometricCenterSphere);
+    
+    // Inicialmente visível
+    this.geometricCenterSphere.visible = false;
+    
+    // Adicionar metadados úteis para debugging e controlo
+    this.geometricCenterSphere.userData = {
+        type: 'geometricCenter',
+        isReference: true,
+        alwaysVisible: true
+    };
+    
+    }
+
     /**
      * Update center of mass beam position
      * @param {Object} centerOfMass - Object with x, z coordinates
@@ -457,6 +872,100 @@ debugCenterOfMassTexture() {
         this.centerOfMassGroup.position.z = centerOfMass.z;
         
         this.showCenterOfMassBeam();
+    }
+
+    updateVerticalBeamLength(targetZ) {
+    if (!this.centerOfMassBeam || !this.centerOfMassGlow) {
+        return;
+    }
+    
+    // Calcular novo comprimento do beam vertical
+    const palletHeight = 1.44;
+    const palletOffset = -8;
+    const beamStartY = -(palletHeight / 2) + palletOffset;
+    
+    // CORREÇÃO: Em vez de ir ao infinito, ir até à posição Z do beam horizontal
+    const beamEndY = targetZ; // O beam vai até à coordenada Z da mira horizontal
+    const beamHeight = beamEndY - beamStartY;
+    
+    // Atualizar geometria do beam
+    const beamRadius = 0.1;
+    const newBeamGeometry = new THREE.CylinderGeometry(
+        beamRadius, beamRadius, beamHeight, 8, 1
+    );
+    
+    // Substituir geometria existente
+    this.centerOfMassBeam.geometry.dispose();
+    this.centerOfMassBeam.geometry = newBeamGeometry;
+    this.centerOfMassBeam.position.y = beamStartY + (beamHeight / 2);
+    
+    // Atualizar posição do brilho no topo do beam
+    this.centerOfMassGlow.position.y = beamEndY - beamStartY - (beamStartY + ((beamEndY - beamStartY) / 2));
+    
+    console.log(`Beam vertical atualizado: altura=${beamHeight.toFixed(2)}, aponta para Z=${targetZ.toFixed(2)}`);
+    }
+
+    /**
+     * Atualizar posição vertical da esfera de centro geométrico
+     * A esfera move-se para marcar o centro geométrico da altura atual da carga
+     * @param {Array} boxes - Array de caixas atualmente na cena
+     */
+    updateGeometricCenterSphere(boxes) {
+        // Verificar se a esfera existe e se há caixas para processar
+        if (!this.geometricCenterSphere) {
+            return; // Esfera não foi criada ainda
+        }
+        
+        // Se não há caixas, posicionar a esfera ligeiramente acima da palete
+        if (!boxes || boxes.length === 0) {
+            const palletOffset = -8;
+            const palletHeight = 1.44;
+            const palletTopY = palletOffset + (palletHeight / 2);
+            
+            this.geometricCenterSphere.position.y = palletTopY + 0.3; // Ligeiramente acima da palete
+            this.geometricCenterSphere.visible = true;
+            return;
+        }
+        
+        // Encontrar os limites verticais da carga atual
+        let minBoxY = Infinity;   // Parte mais baixa de todas as caixas
+        let maxBoxY = -Infinity;  // Parte mais alta de todas as caixas
+        
+        // Analisar cada caixa para determinar os limites verticais
+        boxes.forEach(box => {
+            // Verificar se a caixa tem dados válidos
+            if (!box || !box.position || !box.geometry || !box.geometry.parameters) {
+                return; // Ignorar caixas inválidas
+            }
+            
+            // Calcular as posições top e bottom desta caixa específica
+            const boxCenterY = box.position.y;
+            const boxHeight = box.geometry.parameters.height;
+            const boxBottomY = boxCenterY - (boxHeight / 2);
+            const boxTopY = boxCenterY + (boxHeight / 2);
+            
+            // Atualizar os limites se esta caixa os estende
+            if (boxBottomY < minBoxY) {
+                minBoxY = boxBottomY;
+            }
+            if (boxTopY > maxBoxY) {
+                maxBoxY = boxTopY;
+            }
+        });
+        
+        // Calcular o centro geométrico vertical da carga
+        const geometricCenterY = (minBoxY + maxBoxY) / 2;
+        
+        // Atualizar a posição da esfera
+        // X e Z permanecem sempre 0 (centro da palete)
+        // Apenas Y muda para refletir o centro geométrico atual
+        this.geometricCenterSphere.position.x = 0;  // Sempre no centro X
+        this.geometricCenterSphere.position.z = 0;  // Sempre no centro Z
+        this.geometricCenterSphere.position.y = geometricCenterY;
+        
+        // Garantir que a esfera está visível
+        this.geometricCenterSphere.visible = true;
+
     }
 
     /**
@@ -530,34 +1039,36 @@ debugCenterOfMassTexture() {
      * @param {Array} boxes - Array of box meshes currently in the scene
      */
     updateCenterOfMassCrossHeight(boxes) {
-        if (!this.centerOfMassCross || !boxes || boxes.length === 0) {
-            if (this.centerOfMassCross) {
-                this.centerOfMassCross.visible = false;
-            }
-            
-            if (this.palletCenterReference) {
-                this.palletCenterReference.visible = false;
-            }
-            return;
+    if (!this.centerOfMassCross || !boxes || boxes.length === 0) {
+        if (this.centerOfMassCross) {
+            this.centerOfMassCross.visible = false;
         }
         
-        // Find the highest point among all boxes
-        let maxHeight = -Infinity;
-        
-        boxes.forEach(box => {
-            const boxTop = box.position.y + (box.geometry.parameters.height / 2);
-            if (boxTop > maxHeight) {
-                maxHeight = boxTop;
-            }
-        });
-        
-        // Position cross above highest box
-        const crossOffset = 0.1;
-        this.centerOfMassCross.position.y = maxHeight + crossOffset;
-        this.centerOfMassCross.visible = true;
+        if (this.palletCenterReference) {
+            this.palletCenterReference.visible = false;
+        }
+        return;
+    }
+    
+    // Encontrar o ponto mais alto das caixas
+    let maxHeight = -Infinity;
+    
+    boxes.forEach(box => {
+        const boxTop = box.position.y + (box.geometry.parameters.height / 2);
+        if (boxTop > maxHeight) {
+            maxHeight = boxTop;
+        }
+    });
+    
+    // Posicionar cruz acima da caixa mais alta
+    const crossOffset = 0.1;
+    this.centerOfMassCross.position.y = maxHeight + crossOffset;
+    this.centerOfMassCross.visible = true;
 
-        // Update green reference point height
-        this.updatePalletCenterReferenceHeight(boxes);
+    // Atualizar referência do centro da palete
+    this.updatePalletCenterReferenceHeight(boxes);
+
+    this.updateGeometricCenterSphere(boxes);
     }
     
     /**
@@ -721,6 +1232,19 @@ debugCenterOfMassTexture() {
             });
             this.scene.remove(this.centerOfMassGroup);
         }
+
+        if (this.geometricCenterSphere) {
+            if (this.geometricCenterSphere.geometry) {
+                this.geometricCenterSphere.geometry.dispose();
+            }
+            if (this.geometricCenterSphere.material) {
+                this.geometricCenterSphere.material.dispose();
+            }
+            this.scene.remove(this.geometricCenterSphere);
+            this.geometricCenterSphere = null;
+        }
+
+        this.disposeHorizontalCenterOfMassSystem();
         
         // Dispose fixed reference point resources
         if (this.palletCenterReference) {
