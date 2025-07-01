@@ -236,6 +236,18 @@ class PalletizationApp {
         if (this.simulator && this.simulator.geometricCenterSphere) {
         this.simulator.geometricCenterSphere.visible = true;
         }
+
+        if (this.simulator && this.simulator.centerOfMassSphere) {
+            this.simulator.centerOfMassSphere.visible = true;
+        }
+
+        if (this.simulator && this.simulator.geometricCenterHorizontalPoint) {
+            this.simulator.geometricCenterHorizontalPoint.visible = true;
+        }
+
+        if (this.simulator && this.simulator.geometricCenterHorizontalPoint) {
+            this.simulator.geometricCenterHorizontalPoint.visible = true;
+        }
     }
 
     
@@ -941,6 +953,19 @@ animationButtons.style.cssText = `
         if (this.weightDistributionCalculator) {
             this.weightDistributionCalculator.reset();
         }
+
+        if (this.simulator && this.simulator.centerOfMassSphere) {
+            this.simulator.centerOfMassSphere.visible = false;
+        }
+
+        // Hide geometric center horizontal point
+        if (this.simulator && this.simulator.geometricCenterHorizontalPoint) {
+            this.simulator.geometricCenterHorizontalPoint.visible = false;
+        }
+
+        if (this.simulator && this.simulator.geometricCenterHorizontalPoint) {
+    this.simulator.geometricCenterHorizontalPoint.visible = false;
+}
     }
 
     /**
@@ -1833,6 +1858,10 @@ animationButtons.style.cssText = `
             if (result.deviationCm > 20) {
                 console.warn(`High center of mass deviation detected: ${formattedDeviation}`);
             }
+
+            if (this.simulator && this.simulator.updateCenterOfMassSphere) {
+                this.simulator.updateCenterOfMassSphere(result);
+            }
             
         } catch (error) {
             console.error('Error calculating center of mass:', error);
@@ -1842,6 +1871,7 @@ animationButtons.style.cssText = `
                 this.simulator.hideCenterOfMassBeam();
             }
         }
+
     }
 
     /**

@@ -35,7 +35,15 @@ class PalletSimulator {
         // Sistema de visualização horizontal do centro de massa (altura Y)
         this.horizontalCenterOfMassGroup = null;     // Grupo para beam e mira horizontais
         this.horizontalCenterOfMassBeam = null;      // Beam horizontal infinito
+
+        
         this.horizontalBeamGlow = null;              // Efeito visual de brilho no beam horizontal
+
+        this.centerOfMassSphere = null; // 3D center of mass sphere
+
+        this.geometricCenterHorizontalPoint = null; 
+
+
         
         // Animation
         this.animationId = null;
@@ -57,6 +65,8 @@ class PalletSimulator {
         this.createCenterOfMassBeam(); //Não existia antes
         this.createHorizontalCenterOfMassSystem();
         this.createGeometricCenterSphere();
+        this.createCenterOfMassSphere();
+        this.createGeometricCenterHorizontalPoint();
         this.animate();
     }
     
@@ -684,6 +694,8 @@ class PalletSimulator {
         // Atualizar altura Y de todo o grupo horizontal
         this.horizontalCenterOfMassGroup.position.y = centerOfMassData.y;
 
+        this.horizontalCenterOfMassGroup.position.z = centerOfMassData.z;
+
         this.horizontalCenterOfMassCross.rotation.y = -Math.PI / 2;
 
         if (this.horizontalCenterOfMassCross) {
@@ -762,6 +774,8 @@ class PalletSimulator {
         this.horizontalCenterOfMassCross = null;
         this.horizontalBeamGlow = null;
     }
+
+    
 
 
     /**
@@ -849,6 +863,130 @@ class PalletSimulator {
     };
     
     }
+
+    createCenterOfMassSphere() {
+    const sphereRadius = 0.18;
+    
+    const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 16, 12);
+    
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0x73A1DB,           // Green color for center of mass
+        transparent: true,
+        opacity: 0.8,
+        emissive: 0x73A1DB,        // Darker green for emissive effect
+        emissiveIntensity: 0.5,
+        depthWrite: false,         // Always visible through boxes
+        depthTest: false,
+        side: THREE.DoubleSide,
+        wireframe: false
+    });
+    
+    this.centerOfMassSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    
+    this.centerOfMassSphere.castShadow = false;
+    this.centerOfMassSphere.receiveShadow = false;
+    this.centerOfMassSphere.renderOrder = 1003;  // Render above geometric center sphere
+    
+    // Initial position (will be updated dynamically)
+    this.centerOfMassSphere.position.set(0, -7.5, 0);
+    this.centerOfMassSphere.visible = false;  // Initially hidden
+    
+    this.scene.add(this.centerOfMassSphere);
+    
+    this.centerOfMassSphere.userData = {
+        type: 'centerOfMass',
+        isReference: true,
+        alwaysVisible: true
+    };
+    
+    console.log('Center of mass sphere created');
+    }
+
+    createGeometricCenterHorizontalPoint() {
+    // Point properties - sized to match the vertical reference point
+    const pointRadius = 0.15;  // Same radius as palletCenterReference
+    const pointHeight = 0.08;  // Same height as palletCenterReference for consistency
+    
+    // Create cylindrical geometry for the horizontal point
+    // Using cylinder instead of sphere to maintain visual consistency with vertical reference
+    const pointGeometry = new THREE.CylinderGeometry(
+        pointRadius,    // Top radius
+        pointRadius,    // Bottom radius  
+        pointHeight,    // Height of cylinder
+        12,            // Radial segments (smooth circle)
+        1              // Height segments
+    );
+    
+    // Material with same visual properties as geometric center elements
+    // Using identical color and emissive properties as palletCenterReference
+    const pointMaterial = new THREE.MeshBasicMaterial({
+        color: 0xDAA520,           // Same golden color as geometric center sphere
+        transparent: true,
+        opacity: 0.9,              // Slightly more opaque for better side visibility
+        emissive: 0xB8860B,        // Same emissive color for consistent glow
+        emissiveIntensity: 0.4,    // Same intensity as reference point
+        depthWrite: false,         // Always visible through boxes
+        depthTest: false,          // No depth testing - always render on top
+        side: THREE.DoubleSide     // Visible from both sides
+    });
+    
+    // Create the mesh for the horizontal geometric center point
+    this.geometricCenterHorizontalPoint = new THREE.Mesh(pointGeometry, pointMaterial);
+    
+    // Configure rendering properties for maximum visibility
+    this.geometricCenterHorizontalPoint.castShadow = false;      // No shadow casting
+    this.geometricCenterHorizontalPoint.receiveShadow = false;   // No shadow receiving
+    this.geometricCenterHorizontalPoint.renderOrder = 1004;     // Render above center of mass sphere
+    
+    // Initial position - will be updated dynamically
+    // X: Always at geometric center (0)
+    // Y: Will vary with load height 
+    // Z: Will be positioned at front face of boxes for side view visibility
+    this.geometricCenterHorizontalPoint.position.set(6.0, -7.5, 0);
+    
+    // Add directly to scene for independent control
+    this.scene.add(this.geometricCenterHorizontalPoint);
+
+    this.geometricCenterHorizontalPoint.rotation.z = -Math.PI / 2;
+    
+    // Initially hidden until boxes are loaded
+    this.geometricCenterHorizontalPoint.visible = false;
+    
+    // Add metadata for debugging and identification
+    this.geometricCenterHorizontalPoint.userData = {
+        type: 'geometricCenterHorizontal',
+        isReference: true,
+        alwaysVisible: true,
+        purpose: 'Side view geometric center visualization'
+    };
+    }
+
+        /**
+     * Update center of mass sphere position based on calculated center of mass data
+     * @param {Object} centerOfMassData - Center of mass calculation result with x, y, z coordinates
+     */
+    updateCenterOfMassSphere(centerOfMassData) {
+        if (!this.centerOfMassSphere || !centerOfMassData) {
+            return;
+        }
+        
+        // Validate center of mass coordinates
+        if (typeof centerOfMassData.x !== 'number' || 
+            typeof centerOfMassData.y !== 'number' || 
+            typeof centerOfMassData.z !== 'number') {
+            console.warn('Invalid center of mass coordinates provided');
+            return;
+        }
+        
+        // Update sphere position to match center of mass coordinates
+        this.centerOfMassSphere.position.x = centerOfMassData.x;
+        this.centerOfMassSphere.position.y = centerOfMassData.y;
+        this.centerOfMassSphere.position.z = centerOfMassData.z;
+        
+        // Ensure sphere is visible when center of mass data is available
+        this.centerOfMassSphere.visible = true;
+    }
+
 
     /**
      * Update center of mass beam position
@@ -966,7 +1104,94 @@ class PalletSimulator {
         // Garantir que a esfera está visível
         this.geometricCenterSphere.visible = true;
 
+        this.updateGeometricCenterHorizontalPoint(boxes);
+
     }
+
+    /**
+ * Update horizontal geometric center point position based on current load
+ * This point represents the geometric center from a lateral view perspective
+ * X: Always at pallet center (0)
+ * Y: Follows the geometric center height of the current load
+ * Z: Positioned at the front face of the load for optimal side visibility
+ * 
+ * @param {Array} boxes - Array of boxes currently in the scene
+ */
+updateGeometricCenterHorizontalPoint(boxes) {
+    // Verify the horizontal point exists
+    if (!this.geometricCenterHorizontalPoint) {
+        return; // Point not created yet
+    }
+    
+    // If no boxes, position slightly beyond pallet front edge and hide
+    if (!boxes || boxes.length === 0) {
+        const palletOffset = -8;
+        const palletHeight = 1.44;
+        const palletTopY = palletOffset + (palletHeight / 2);
+        
+        this.geometricCenterHorizontalPoint.position.set(
+            0,              // Always at geometric center X
+            palletTopY + 0.3, // Slightly above pallet surface
+            4.5             // Beyond front edge of pallet
+        );
+        this.geometricCenterHorizontalPoint.visible = false;
+        return;
+    }
+    
+    // Calculate geometric center height (same logic as sphere)
+    let minBoxY = Infinity;   // Lowest point of all boxes
+    let maxBoxY = -Infinity;  // Highest point of all boxes
+    let maxBoxZ = -Infinity;  // Frontmost position of all boxes
+    
+    // Analyze each box to determine spatial bounds
+    boxes.forEach(box => {
+        // Validate box data integrity
+        if (!box || !box.position || !box.geometry || !box.geometry.parameters) {
+            return; // Skip invalid boxes
+        }
+        
+        // Calculate box boundaries
+        const boxCenterY = box.position.y;
+        const boxHeight = box.geometry.parameters.height;
+        const boxBottomY = boxCenterY - (boxHeight / 2);
+        const boxTopY = boxCenterY + (boxHeight / 2);
+        
+        // Calculate frontmost Z position for side view placement
+        const boxCenterZ = box.position.z;
+        const boxDepth = box.geometry.parameters.depth;
+        const boxFrontZ = boxCenterZ + (boxDepth / 2);
+        
+        // Update height bounds
+        if (boxBottomY < minBoxY) {
+            minBoxY = boxBottomY;
+        }
+        if (boxTopY > maxBoxY) {
+            maxBoxY = boxTopY;
+        }
+        
+        // Update frontmost position for optimal viewing
+        if (boxFrontZ > maxBoxZ) {
+            maxBoxZ = boxFrontZ;
+        }
+    });
+
+    // Calculate geometric center height
+    const geometricCenterY = (minBoxY + maxBoxY) / 2;
+    
+    // Position for optimal side view visibility
+    const sideViewMargin = 0.5;  // Margin beyond frontmost box
+    const horizontalPointZ = maxBoxZ + sideViewMargin;
+    
+    // Update horizontal point position
+    this.geometricCenterHorizontalPoint.position.set(
+        6.0,                  // Always at geometric center X (pallet center)
+        geometricCenterY,   // At geometric center height of current load
+        0   // At front face of load plus margin for visibility
+    );
+    
+    // Ensure point is visible when boxes are present
+    this.geometricCenterHorizontalPoint.visible = true;
+}
 
     /**
      * Show the center of mass beam
@@ -1245,12 +1470,34 @@ class PalletSimulator {
         }
 
         this.disposeHorizontalCenterOfMassSystem();
+
+        if (this.centerOfMassSphere) {
+            if (this.centerOfMassSphere.geometry) {
+                this.centerOfMassSphere.geometry.dispose();
+            }
+            if (this.centerOfMassSphere.material) {
+                this.centerOfMassSphere.material.dispose();
+            }
+            this.scene.remove(this.centerOfMassSphere);
+            this.centerOfMassSphere = null;
+        }
         
         // Dispose fixed reference point resources
         if (this.palletCenterReference) {
             if (this.palletCenterReference.geometry) this.palletCenterReference.geometry.dispose();
             if (this.palletCenterReference.material) this.palletCenterReference.material.dispose();
             this.scene.remove(this.palletCenterReference);
+        }
+
+        if (this.geometricCenterHorizontalPoint) {
+            if (this.geometricCenterHorizontalPoint.geometry) {
+                this.geometricCenterHorizontalPoint.geometry.dispose();
+            }
+            if (this.geometricCenterHorizontalPoint.material) {
+                this.geometricCenterHorizontalPoint.material.dispose();
+            }
+            this.scene.remove(this.geometricCenterHorizontalPoint);
+            this.geometricCenterHorizontalPoint = null;
         }
     }
 }

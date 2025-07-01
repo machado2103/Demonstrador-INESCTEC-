@@ -79,24 +79,18 @@ class CenterOfMassCalculator {
             // Get box position in world coordinates
             const position = this.getBoxPosition(box);
             
-            // ✅ ENHANCED: Add contribution to all three axes
             // Physics formula: Center = Σ(mass_i × position_i) / Σ(mass_i)
             weightedSumX += weight * position.x;
-            weightedSumY += weight * position.y;  // ✅ NEW: Include height component
+            weightedSumY += weight * position.y;  
             weightedSumZ += weight * position.z;
             totalWeight += weight;
             validBoxCount++;
             
-            // Enhanced debug output for 3D analysis
-            if (this.isDebugMode) {
-                console.log(`📦 Box ${i}: pos(${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}), weight=${weight}kg`);
-                console.log(`   contribution=(${(weight * position.x).toFixed(2)}, ${(weight * position.y).toFixed(2)}, ${(weight * position.z).toFixed(2)})`);
-            }
         }
         
         // Validate that we have valid data for calculation
         if (totalWeight <= 0 || validBoxCount === 0) {
-            console.warn('⚠️ No valid boxes found for center of mass calculation');
+            console.warn('No valid boxes found for center of mass calculation');
             return this.getEmptyResult();
         }
         
@@ -131,7 +125,8 @@ class CenterOfMassCalculator {
         const deviationCm3D = window.unitsSystem ? 
             window.unitsSystem.threeJSToDisplayCm(deviation3D) : 
             deviation3D * 10;
-        
+            
+
         
         // Store in history for analysis
         this.calculationHistory.push({
