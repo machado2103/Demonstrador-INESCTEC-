@@ -360,7 +360,7 @@ class FileManager {
             throw new Error('PalletApp is not available');
         }
         
-        console.log('🔄 FileManager: Starting reload simulation');
+        console.log('FileManager: Starting reload simulation');
         
         // Stop current animation if running
         if (this.palletApp.stopAnimation) {
@@ -388,13 +388,16 @@ class FileManager {
         this.palletApp.updateButtonStates();
         this.palletApp.updatePalletCounter();
         this.palletApp.updateBoxCounter();
+        if (this.palletApp.simulator && this.palletApp.simulator.resetCameraToInitialPosition) {
+            this.palletApp.simulator.resetCameraToInitialPosition();
+        }
 
         //Exit Standby mode
         if (this.palletApp.exitStandbyMode) {
             this.palletApp.exitStandbyMode();
         }
         
-        console.log('✅ FileManager: Reload simulation completed');
+        console.log('FileManager: Reload simulation completed');
     }
     
     /**

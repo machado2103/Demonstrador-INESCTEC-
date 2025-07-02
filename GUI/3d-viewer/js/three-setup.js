@@ -87,8 +87,10 @@ class PalletSimulator {
         const aspect = containerRect.width / containerRect.height;
         
         this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-    this.camera.position.set(0, 8, 15);  // Mais alta e mais próxima
-    this.camera.lookAt(0, -9, 0);         // Olhar para baixo da palete
+        this.camera.position.set(0, 8, 15);  // Mais alta e mais próxima
+        this.camera.lookAt(0, 0, 0);         // Olhar para baixo da palete
+
+        
     }
     
     /**
@@ -401,26 +403,8 @@ class PalletSimulator {
         
     }
 
-    /**
-     * OPCIONAL: Função auxiliar para debug da textura
-     * Chama esta função no console para ver como ficou a textura
-     */
-    debugCenterOfMassTexture() {
-        if (this.centerOfMassCross && this.centerOfMassCross.material.map) {
-            // Criar uma imagem temporária para visualizar a textura
-            const canvas = this.centerOfMassCross.material.map.image;
-            const dataURL = canvas.toDataURL();
-            
-            console.log('Textura do centro de massa criada:');
-            console.log('Para ver a textura, cola este URL numa nova aba do browser:');
-            console.log(dataURL);
-            
-            // Opcional: abrir automaticamente em nova aba
-            // window.open(dataURL, '_blank');
-        } else {
-            console.log('Símbolo do centro de massa ainda não foi criado');
-        }
-    }
+
+
 
     /**
      * Criar sistema de visualização horizontal do centro de massa
@@ -1391,7 +1375,58 @@ updateGeometricCenterHorizontalPoint(boxes) {
             this.pallet.add(board);
         });
     }
+
+    /**
+     * Reset camera to initial position and orientation
+     * Ensures consistent camera positioning across the application
+     */
+resetCameraToInitialPosition() {
+    if (!this.camera) {
+        console.warn('Camera not initialized - cannot reset position');
+        return;
+    }
+    
+    if (this.controls) {
         
+        // Destruir controls existentes
+        this.controls.dispose();
+        
+        // Recriar controls completamente novos
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        
+        // Reaplicar configurações
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.screenSpacePanning = false;
+        this.controls.minDistance = 2;
+        this.controls.maxDistance = 50;
+        this.controls.maxPolarAngle = Math.PI / 2;
+        
+        // CORREÇÃO: Desativar controls temporariamente
+        this.controls.enabled = false;
+        
+        // IMPORTANTE: Usar EXATAMENTE a mesma sequência que createCamera()
+        this.camera.position.set(0, 8, 15);
+        this.camera.lookAt(0, 0, 0);
+        this.camera.updateProjectionMatrix();
+        
+        // Reativar controls
+        this.controls.enabled = true;
+        this.controls.update();
+        
+    } else {
+        this.camera.position.set(0, 8, 15);
+        this.camera.lookAt(0, -9, 0);
+        this.camera.updateProjectionMatrix();
+
+        this.controls.target.set(0, -9, 0);
+        this.controls.update();
+    }
+    
+    console.log('Camera reset to exact initial position');
+}
+
+
     /**
      * Handle window resize events
      */

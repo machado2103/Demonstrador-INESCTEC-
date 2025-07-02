@@ -540,6 +540,9 @@ animationButtons.style.cssText = `
                 this.resetAnimationState();
                 this.resetSimulationTimer();
                 this.startSimulationTimer();
+                if (this.simulator && this.simulator.resetCameraToInitialPosition) {
+                    this.simulator.resetCameraToInitialPosition();
+                }
             }
         }, 'square', 'arrowLeft');
         prevPalletButton.id = 'prev-pallet-btn';
@@ -552,6 +555,9 @@ animationButtons.style.cssText = `
                 this.resetAnimationState();
                 this.resetSimulationTimer();
                 this.startSimulationTimer();
+                if (this.simulator && this.simulator.resetCameraToInitialPosition) {
+                    this.simulator.resetCameraToInitialPosition();
+                }
             }
         }, 'square', 'arrowRight');
         nextPalletButton.id = 'next-pallet-btn';
@@ -676,8 +682,13 @@ animationButtons.style.cssText = `
             if (window.palletApp && window.palletApp.loadDataFromString) {
                 await window.palletApp.loadDataFromString(fileContent);
                 
-                // ✅ ADICIONAR ESTA LINHA:
                 window.palletApp.exitStandbyMode();
+
+
+                //Restarts the camera position to the original position
+                if (window.palletApp.simulator && window.palletApp.simulator.resetCameraToInitialPosition) {
+                    window.palletApp.simulator.resetCameraToInitialPosition();
+                }
                 
                 showLoadMessage('Example simulation loaded successfully!', 'success');
             } else {
@@ -1047,14 +1058,9 @@ animationButtons.style.cssText = `
         this.updatePalletCounter();
         this.updateBoxCounter();
         
-        // Reset camera to initial position if needed
-        if (this.simulator && this.simulator.camera) {
-            this.simulator.camera.position.set(0, 20, 18);
-            this.simulator.camera.lookAt(0, 5, 20);
-            
-            if (this.simulator.controls) {
-                this.simulator.controls.reset();
-            }
+        // Reset camera to initial position
+        if (this.simulator && this.simulator.resetCameraToInitialPosition) {
+            this.simulator.resetCameraToInitialPosition();
         }
     }
     

@@ -18,8 +18,21 @@
         <!-- Main content area -->
         <main class="main-content">
             <!-- Visualization area (left side) -->
-            <section class="visualization-area">
-                <h2>3D Visualization</h2>
+                <section class="visualization-area">
+                <div class="visualization-header">
+                    <h2>3D Visualization</h2>
+                    <div class="inline-view-controls">
+                        <button class="view-button" id="topdown-view-btn" data-view="topdown">
+                            Top-Down View
+                        </button>
+                        <button class="view-button" id="isometric-view-btn" data-view="isometric">
+                            Isometric View
+                        </button>
+                        <button class="view-button" id="back-view-btn" data-view="back">
+                            Back View
+                        </button>
+                    </div>
+                </div>
                 
                 <!-- Container for Three.js -->
                 <div id="threejs-container" class="threejs-container">
